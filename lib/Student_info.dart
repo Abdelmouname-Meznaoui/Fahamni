@@ -5,9 +5,15 @@ import 'package:fahamni/widgets/widgets.dart';
 
 
 
-class studentinfo extends StatelessWidget {
+class studentinfo extends StatefulWidget {
   const studentinfo({super.key});
 
+  @override
+  State<studentinfo> createState() => _studentinfoState();
+}
+
+class _studentinfoState extends State<studentinfo> {
+  int selectedIndex = -1;
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -48,7 +54,7 @@ class studentinfo extends StatelessWidget {
             Container(
                 margin: const EdgeInsets.only(left: 20),
                 child: const Text(
-                "Student Academic ",
+                "Who are you?",
                 style: TextStyle(
                   letterSpacing: -0.25,
                   fontFamily: "Inter",
@@ -58,38 +64,27 @@ class studentinfo extends StatelessWidget {
                   height: 30 / 18,
                 ),
               ),),
-            Container(
-                margin: const EdgeInsets.only(left: 20),
-                child: const Text(
-                "Details",
-                style: TextStyle(
-                  letterSpacing: -0.25,
-                  fontFamily: "Inter",
-                  fontSize: 30,
-                  fontWeight: FontWeight.w700,
-                  color: Color(0xff1f2937),
-                  height: 10 / 18,
-                ),
-              ),),
+           
               SizedBox(height: 20),
-              Buttons(),
+              Buttons(selectedIndex,(index) => setState(() => selectedIndex = index),
+        ),
               SizedBox(height: 20),
-              Student_widget(),
+              if (selectedIndex == 0) Student_widget(),
+if (selectedIndex == 1) Parent_widget(),
+//if (selectedIndex == 2) Tutor_widget(),
           ],
     ),),),);
   }
 }
 
 
-class Buttons extends StatefulWidget {
-  const Buttons({super.key});
+class Buttons extends StatelessWidget {
+  final int selectedIndex;
+  final ValueChanged<int> onSelectionChanged;
 
-  @override
-  State<Buttons> createState() => _ButtonsState();
-}
-
-class _ButtonsState extends State<Buttons> {
-  int selectedIndex = -1;
+  const Buttons(this.selectedIndex, this.onSelectionChanged, {super.key});
+ 
+ 
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -114,9 +109,9 @@ class _ButtonsState extends State<Buttons> {
          Container(
            child: ElevatedButton(
             onPressed: () {
-              setState(() {
-                selectedIndex = selectedIndex == 0 ? -1 : 0;
-              });
+             
+                onSelectionChanged(selectedIndex == 0 ? -1 : 0);
+              ;
 
             },
             
@@ -145,9 +140,9 @@ class _ButtonsState extends State<Buttons> {
          Container(
            child: ElevatedButton(
             onPressed: () {
-              setState(() {
-                selectedIndex = selectedIndex == 1 ? -1 : 1;
-              });
+              
+                onSelectionChanged(selectedIndex == 1 ? -1 : 1);
+            
 
             },
         
@@ -178,9 +173,9 @@ class _ButtonsState extends State<Buttons> {
          Container(
            child: ElevatedButton(
             onPressed: () {
-              setState(() {
-                selectedIndex = selectedIndex == 2 ? -1 : 2;
-              });
+              
+                onSelectionChanged(selectedIndex == 2 ? -1 : 2);
+              
 
             },
          style: ElevatedButton.styleFrom(
@@ -221,6 +216,7 @@ class Student_widget extends StatefulWidget {
 class _Student_widgetState extends State<Student_widget> {
   String? selectedGrade;
   int selectedIndex = 0;
+  String? selectedSpeciality;
   int selectedLevelIndex = -1;
   
   final List<String> yourOptionsList = ['Option 1', 'Option 2', 'Option 3'];
@@ -231,6 +227,18 @@ class _Student_widgetState extends State<Student_widget> {
     ['1st year', '2nd year', '3rd year'],
     ['1CP', '2CP', '1CS', '2CS', '3CS','Master']];
     final List<int> levelOffsets = [0, 5, 9, 15];
+
+    static const Map<String, List<String>> SpecialityMapESI = {
+    '2CS':    ['Information Systems (SIT)','Computer Systems (SIQ)','Software Engineering (SIL)','AI & Data Science (SID)'],
+    '3CS':     ['Information Systems (SIT)','Computer Systems (SIQ)','Software Engineering (SIL)','AI & Data Science (SID)'],
+    'Master':       ['AI & Data Science','Cyber Security','Intelligent Systems','Mobile & Embedded Intelligent Systems'],
+  };
+
+  static const Map<String, List<String>> SpecialityMap = {
+    '1st year':    ['Letters and Social Studies','Sciences and Technology'],
+    '2nd year':     ['Experimental Sciences', 'Mathematics', 'Technical Mathematics(Mechanical Engineering)', 'Technical Mathematics(Electrical Engineering)','Technical Mathematics(Civil Engineering)','Technical Mathematics(Methods (Chemistry))','Management and Economics','Philosophy','Foreign Languages','Arts'],
+    '3rd year':       ['Experimental Sciences', 'Mathematics', 'Technical Mathematics(Mechanical Engineering)', 'Technical Mathematics(Electrical Engineering)','Technical Mathematics(Civil Engineering)','Technical Mathematics(Methods (Chemistry))','Management and Economics','Philosophy','Foreign Languages','Arts'],
+  };
 
 int getRealIndex(String grade) {
   int offset = levelOffsets[selectedIndex];
@@ -244,6 +252,19 @@ int getRealIndex(String grade) {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          Container(
+                margin: const EdgeInsets.only(left: 20),
+                child: const Text(
+                "Student Academic Details",
+                style: TextStyle(
+                  letterSpacing: -0.25,
+                  fontFamily: "Inter",
+                  fontSize: 30,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xff1f2937),
+                  height: 30 / 18,
+                ),
+              ),),
           Container(
             margin: const EdgeInsets.only(left: 29, right: 24),
             child: const Text(
@@ -267,7 +288,7 @@ int getRealIndex(String grade) {
            child: ElevatedButton(
             onPressed: () {
               setState(() {
-                selectedIndex = 0 ;selectedGrade = null;selectedLevelIndex = -1;
+                selectedIndex = 0 ;selectedGrade = null;selectedLevelIndex = -1;selectedSpeciality = null;
               });
 
             },
@@ -301,7 +322,7 @@ int getRealIndex(String grade) {
            child: ElevatedButton(
             onPressed: () {
               setState(() {
-                selectedIndex =1;selectedGrade = null;selectedLevelIndex = -1;  
+                selectedIndex =1;selectedGrade = null;selectedLevelIndex = -1;selectedSpeciality = null;  
               });
 
             },
@@ -339,7 +360,7 @@ int getRealIndex(String grade) {
            child: ElevatedButton(
             onPressed: () {
               setState(() {
-                selectedIndex = 2; selectedGrade = null;selectedLevelIndex = -1;
+                selectedIndex = 2; selectedGrade = null;selectedLevelIndex = -1;selectedSpeciality = null;
               });
 
             },
@@ -373,7 +394,7 @@ int getRealIndex(String grade) {
            child: ElevatedButton(
             onPressed: () {
               setState(() {
-                selectedIndex = 3;selectedGrade = null;selectedLevelIndex = -1;
+                selectedIndex = 3;selectedGrade = null;selectedLevelIndex = -1;selectedSpeciality = null;
               });
 
             },
@@ -458,6 +479,7 @@ int getRealIndex(String grade) {
                   setState(() {
                     selectedGrade = value;
                     selectedLevelIndex = getRealIndex(value!);
+                    selectedSpeciality = null;
                   });
                 },
                 decoration: InputDecoration(
@@ -477,6 +499,109 @@ int getRealIndex(String grade) {
               ),
           ),],
           ),
+          // Show for High School
+if (selectedIndex == 2 && selectedGrade != null)
+   Column(
+     crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      const SizedBox(height: 8),
+      Container(
+                margin: const EdgeInsets.only(left: 34),
+                child:
+              const Text(
+                "Speciality",
+                style: TextStyle(
+                  fontFamily: "Inter",
+                  fontSize: 15,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xff1f2937),
+                  height: 14 / 18,
+                ),
+              ),),
+              const SizedBox(height: 8),
+  Container(
+    margin: const EdgeInsets.only(left: 24, right: 24),
+    child: DropdownButtonFormField<String>(
+      value: selectedSpeciality,
+      isExpanded: true,
+      borderRadius: BorderRadius.circular(16),
+      dropdownColor: Colors.white,
+      elevation: 8,
+      icon: const Icon(Icons.keyboard_arrow_down_rounded, color: Color(0xFF94A3B8)),
+      hint: const Text(
+        'Select Speciality',
+        style: TextStyle(color: Color(0xFF94A3B8), fontSize: 14, fontFamily: 'Lexend'),
+      ),
+      items: (SpecialityMap[selectedGrade] ?? [])
+          .map((s) => DropdownMenuItem(
+                value: s,
+                child: Text(s, style: const TextStyle(color: Color(0xFF1f2937), fontSize: 14, fontFamily: 'Lexend')),
+              ))
+          .toList(),
+      onChanged: (value) => setState(() => selectedSpeciality = value),
+      decoration: InputDecoration(
+        prefixIcon: const Icon(Icons.school_outlined, color: Color(0xFF94A3B8)),
+        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFE0E0E0))),
+        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFE0E0E0), width: 2)),
+        filled: true,
+        fillColor: Colors.white,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+      ),
+    ),
+  ),],),
+
+// Show for University 2CS, 3CS, Master
+if (selectedIndex == 3 && (selectedGrade == '2CS' || selectedGrade == '3CS' || selectedGrade == 'Master'))
+     Column(
+     crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      const SizedBox(height: 8),
+      Container(
+                margin: const EdgeInsets.only(left: 34),
+                child:
+              const Text(
+                "Speciality",
+                style: TextStyle(
+                  fontFamily: "Inter",
+                  fontSize: 15,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xff1f2937),
+                  height: 14 / 18,
+                ),
+              ),),
+              const SizedBox(height: 8),
+  Container(
+
+    margin: const EdgeInsets.only(left: 24, right: 24),
+    child: DropdownButtonFormField<String>(
+      value: selectedSpeciality,
+      isExpanded: true,
+      borderRadius: BorderRadius.circular(16),
+      dropdownColor: Colors.white,
+      elevation: 8,
+      icon: const Icon(Icons.keyboard_arrow_down_rounded, color: Color(0xFF94A3B8)),
+      hint: const Text(
+        'Select Speciality',
+        style: TextStyle(color: Color(0xFF94A3B8), fontSize: 14, fontFamily: 'Lexend'),
+      ),
+      items: (SpecialityMapESI[selectedGrade] ?? [])
+          .map((s) => DropdownMenuItem(
+                value: s,
+                child: Text(s, style: const TextStyle(color: Color(0xFF1f2937), fontSize: 14, fontFamily: 'Lexend')),
+              ))
+          .toList(),
+      onChanged: (value) => setState(() => selectedSpeciality = value),
+      decoration: InputDecoration(
+        prefixIcon: const Icon(Icons.school_outlined, color: Color(0xFF94A3B8)),
+        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFE0E0E0))),
+        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFE0E0E0), width: 2)),
+        filled: true,
+        fillColor: Colors.white,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+      ),
+    ),
+  ),
+     ],),
           const SizedBox(height: 8),
           Container(
                 margin: const EdgeInsets.only(left: 34),
@@ -974,5 +1099,525 @@ class _SubjectPickerWidgetState extends State<SubjectPickerWidget> {
         ),
       ],
     ),);
+  }
+}
+
+
+class Parent_widget extends StatefulWidget {
+  const Parent_widget({super.key});
+
+  @override
+  State<Parent_widget> createState() => _Parent_widgetState();
+}
+
+class _Parent_widgetState extends State<Parent_widget> {
+  // Each item in this list = one child card on screen
+  List<Map<String, dynamic>> children = [
+    {"id": UniqueKey().toString(),"name": "", "level": null, "grade": null}];
+  void addChild() {
+    setState(() {
+      children.add({"id": UniqueKey().toString(),"name": "", "level": null, "grade": null});
+    });
+  }
+  void removeChild(int index) {
+    setState(() {
+      children.removeAt(index);});
+  }
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+                margin: const EdgeInsets.only(left: 20),
+                child: const Text(
+                "Children Information ",
+                style: TextStyle(
+                  letterSpacing: -0.25,
+                  fontFamily: "Inter",
+                  fontSize: 30,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xff1f2937),
+                  height: 30 / 18,
+                ),
+              ),),
+        ...List.generate(
+          children.length,
+          (index) => ChildCard(
+            key: ValueKey(children[index]['id']),
+            index: index,
+            data: children[index],
+            onRemove: children.length > 1 ? () => removeChild(index) : null,
+            onChanged: (updatedData) {
+              setState(() {
+              children[index] = updatedData;
+              });
+            },
+          ),
+        ),
+
+        const SizedBox(height: 12),
+
+        // Add Another Child button
+        Center(
+          child: TextButton.icon(
+            onPressed: addChild,
+            icon: const Icon(
+              size: 20,
+              Icons.add_circle_outline,
+              color: Color(0xFF000080),
+            ),
+            label: const Text(
+              "Add Another Child",
+              style: TextStyle(
+                fontFamily: "Inter",
+                fontSize: 20,
+                fontWeight: FontWeight.w700,
+                color: Color(0xFF000080),
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(height: 12),
+      ],
+    );
+  }
+}
+
+class ChildCard extends StatelessWidget {
+  final int index;
+  final Map<String, dynamic> data;
+  final VoidCallback? onRemove;
+  final ValueChanged<Map<String, dynamic>> onChanged;
+
+  const ChildCard({
+    super.key,
+    required this.index,
+    required this.data,
+    required this.onRemove,
+    required this.onChanged,
+  });
+
+  // Level → its available grades
+  static const Map<String, List<String>> gradeMap = {
+    'Primary':    ['1st year', '2nd year', '3rd year', '4th year', '5th year'],
+    'Middle':     ['1st year', '2nd year', '3rd year', '4th year'],
+    'High':       ['1st year', '2nd year', '3rd year'],
+    
+  };
+
+  static const Map<String, List<String>> SpecialityMap = {
+    '1st year':    ['Letters and Social Studies','Sciences and Technology'],
+    '2nd year':     ['Experimental Sciences', 'Mathematics', 'Technical Mathematics(Mechanical Engineering)', 'Technical Mathematics(Electrical Engineering)','Technical Mathematics(Civil Engineering)','Technical Mathematics(Methods (Chemistry))','Management and Economics','Philosophy','Foreign Languages','Arts'],
+    '3rd year':       ['Experimental Sciences', 'Mathematics', 'Technical Mathematics(Mechanical Engineering)', 'Technical Mathematics(Electrical Engineering)','Technical Mathematics(Civil Engineering)','Technical Mathematics(Methods (Chemistry))','Management and Economics','Philosophy','Foreign Languages','Arts'],
+  };
+
+  static const List<int> levelOffsets = [0, 5, 9];
+  static const List<String> levelOrder = ['Primary', 'Middle', 'High'];
+  
+
+  int getRealIndex() {
+  if (!levelOrder.contains(data['level'])) return 0;
+  int offset = levelOffsets[levelOrder.indexOf(data['level'])];
+  int gradePosition = gradeMap[data['level']]!.indexOf(data['grade']);
+  return offset + gradePosition;
+}
+  static const List<List<String>> subjectLists = [
+  // 1st Year Primary School
+  [
+    'Arabic Language', 'Mathematics', 'Islamic Education', 'Civic Education',
+    'Art Education', 'Physical Education and Sports'
+  ],
+  
+  // 2nd Year Primary School
+  [
+    'Arabic Language', 'Mathematics', 'Islamic Education', 'Civic Education',
+    'Art Education', 'Physical Education and Sports'
+  ],
+  
+  // 3rd Year Primary School
+  [
+    'Arabic Language', 'Mathematics', 'Science', 'History - Geography',
+    'French', 'English', 'Islamic Education', 'Civic Education',
+    'Art Education', 'Physical Education and Sports'
+  ],
+  
+  // 4th Year Primary School
+  [
+    'Arabic Language', 'Tamazight Language (region dependent)', 'Mathematics', 'Science',
+    'History - Geography', 'French', 'English', 'Islamic Education',
+    'Civic Education', 'Art Education', 'Physical Education and Sports'
+  ],
+  
+  // 5th Year Primary School
+  [
+    'Arabic Language', 'Tamazight Language (region dependent)', 'Mathematics', 'Science',
+    'History - Geography', 'French', 'English', 'Islamic Education',
+    'Civic Education', 'Art Education', 'Physical Education and Sports'
+  ],
+  
+  // 1st Year Middle School
+  [
+    'Arabic Language', 'Tamazight Language (region dependent)', 'Mathematics',
+    'Life and Earth Sciences', 'Physics Sciences and Technology',
+    'History - Geography', 'French', 'English', 'Islamic Education',
+    'Civic Education', 'Computer Science', 'Art Education',
+    'Physical Education and Sports'
+  ],
+  
+  // 2nd Year Middle School
+  [
+    'Arabic Language', 'Tamazight Language (region dependent)', 'Mathematics',
+    'Life and Earth Sciences', 'Physics Sciences',
+    'History - Geography', 'French', 'English', 'Islamic Education',
+    'Civic Education', 'Computer Science', 'Art Education',
+    'Physical Education and Sports'
+  ],
+  
+  // 3rd Year Middle School
+  [
+    'Arabic Language', 'Tamazight Language (region dependent)', 'Mathematics',
+    'Life and Earth Sciences', 'Physics Sciences',
+    'History - Geography', 'French', 'English', 'Islamic Education',
+    'Civic Education', 'Computer Science', 'Art Education',
+    'Physical Education and Sports'
+  ],
+  
+  // 4th Year Middle School
+  [
+    'Arabic Language', 'Tamazight Language (region dependent)', 'Mathematics',
+    'Life and Earth Sciences', 'Physics Sciences',
+    'History - Geography', 'French', 'English', 'Islamic Education',
+    'Civic Education', 'Computer Science', 'Art Education',
+    'Physical Education and Sports'
+  ],
+  
+  // High School - Experimental Sciences
+  [
+    'Arabic Language', 'Tamazight Language (region dependent)', 'Philosophy',
+    'Mathematics', 'Life and Earth Sciences',
+    'Physics Sciences', 'History - Geography', 'French', 'English',
+    'Islamic Education', 'Physical Education and Sports'
+  ],
+  
+  // High School - Mathematics
+  [
+    'Arabic Language', 'Tamazight Language (region dependent)', 'Philosophy',
+    'Advanced Mathematics', 'Physics Sciences',
+    'Life and Earth Sciences', 'History - Geography', 'French',
+    'English', 'Islamic Education', 'Physical Education and Sports'
+  ],
+  
+  // High School - Technical Mathematics
+  [
+    'Arabic Language', 'Tamazight Language (region dependent)', 'Philosophy',
+    'Mathematics', 'Physics Sciences', 'Industrial Technology',
+    'Engineering (specialty dependent)', 'Technical Drawing', 'History - Geography',
+    'French', 'English', 'Islamic Education', 'Physical Education and Sports'
+  ],
+  
+  // High School - Management and Economics
+  [
+    'Arabic Language', 'Tamazight Language (region dependent)', 'Philosophy',
+    'Applied Mathematics', 'General Economics', 'Management and Accounting',
+    'Law', 'History - Geography', 'French', 'English',
+    'Islamic Education', 'Physical Education and Sports'
+  ],
+  
+  // High School - Letters and Philosophy
+  [
+    'Advanced Arabic Language', 'Tamazight Language (region dependent)',
+    'Advanced Philosophy', 'History - Geography', 'Islamic Sciences',
+    'French', 'English', 'Light Mathematics', 'Physical Education and Sports'
+  ],
+  
+  // High School - Foreign Languages
+  [
+    'Arabic Language', 'Tamazight Language (region dependent)', 'Philosophy',
+    'Advanced French', 'Advanced English', 'Third Foreign Language',
+    'History - Geography', 'Light Mathematics', 'Islamic Education',
+    'Physical Education and Sports'
+  ],
+  
+];
+
+  @override
+  Widget build(BuildContext context) {
+    final List<String> grades =
+        data['level'] != null ? gradeMap[data['level']] ?? [] : [];
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFFFFF),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFE0E0E0)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.08),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  "CHILD ${index + 1}",
+                  style: const TextStyle(
+                    fontFamily: "Inter",
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF94A3B8),
+                    letterSpacing: 0.6,
+                  ),
+                ),
+                if (onRemove != null)
+                  IconButton(
+                    onPressed: onRemove,
+                    icon: const Icon(Icons.delete_outline,
+                        color: Color(0xFFEF4444), 
+                        size: 20),
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 12),
+
+            const Text(
+              "Child Name",
+              style: TextStyle(
+                fontFamily: "Inter",
+                fontSize: 14,
+                fontWeight: FontWeight.w700,
+                color: Color(0xFF334155),
+              ),
+            ),
+            const SizedBox(height: 8),
+            TextFormField(
+              initialValue: data['name'],
+              onChanged: (value) {
+                onChanged({...data, 'name': value});
+              },
+              decoration: InputDecoration(
+                hintText: 'Mimoun Mahieddine',
+                hintStyle: const TextStyle(
+                  color: Color(0xFF6B7280),
+                  fontSize: 16,
+                  fontFamily: 'Inter',
+                  fontWeight: FontWeight.w400,
+                ),
+                prefixIcon: const Icon(Icons.person_outline,
+                    color: Color(0xFF94A3B8)),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide:
+                      const BorderSide(color: Color(0xFFE0E0E0), width: 2),
+                ),
+                filled: true,
+                fillColor: const Color(0xFFF9F9F9),
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            const Text(
+              "Level of Study",
+              style: TextStyle(
+                fontFamily: "Inter",
+                fontSize: 14,
+                fontWeight: FontWeight.w700,
+                color: Color(0xFF334155),
+              ),
+            ),
+            const SizedBox(height: 8),
+            DropdownButtonFormField<String>(
+              value: data['level'],
+              isExpanded: true,
+              borderRadius: BorderRadius.circular(12),
+              dropdownColor: Colors.white,
+              icon: const Icon(Icons.keyboard_arrow_down_rounded,
+                  color: Color(0xFF94A3B8)),
+              hint: const Text(
+                'Select level',
+                style: TextStyle(
+                    color: Color(0xFF0F172A),
+                    fontSize: 16,
+                    fontFamily: 'Inter'),
+              ),
+              items: gradeMap.keys
+                  .map((level) => DropdownMenuItem(
+                        value: level,
+                        child: Text(level,
+                            style: const TextStyle(
+                                color: Color(0xFF1f2937),
+                                fontSize: 14,
+                                fontFamily: 'Inter')),
+                      ))
+                  .toList(),
+              onChanged: (value) {
+                // Reset grade when level changes
+                onChanged({...data, 'level': value, 'grade': null});
+              },
+              decoration: InputDecoration(
+                prefixIcon: const Icon(Icons.school_outlined,
+                    color: Color(0xFF94A3B8)),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide:
+                      const BorderSide(color: Color(0xFFE0E0E0), width: 2),
+                ),
+                filled: true,
+                fillColor: const Color(0xFFF9F9F9),
+              ),
+            ),
+
+            if (data['level'] != null) ...[ //to show grade only after select level
+              const SizedBox(height: 16),
+              const Text(
+                "Grade",
+                style: TextStyle(
+                  fontFamily: "Inter",
+                fontSize: 14,
+                fontWeight: FontWeight.w700,
+                color: Color(0xFF334155),
+                ),
+              ),
+              const SizedBox(height: 8),
+              // Horizontally scrollable chip row
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: grades
+                      .map(
+                        (grade) => Padding(
+                          padding: const EdgeInsets.only(right: 8),
+                          child: ChoiceChip(
+                            label: Text(grade),
+                            checkmarkColor: Colors.white,
+                            selected: data['grade'] == grade,
+                            onSelected: (_) {
+                              onChanged({...data, 'grade': grade});
+                            },
+                            selectedColor: const Color(0xFF000080),
+                            backgroundColor: const Color(0xFFF9F9F9),
+                            side: const BorderSide(color: Color(0xFFE0E0E0)),
+                            labelStyle: TextStyle(
+                              fontFamily: "Inter",
+                              fontSize: 13,
+                              fontWeight: FontWeight.w700,
+                              color: data['grade'] == grade? Colors.white : const Color(0xFF475569),
+                            ),
+                          ),
+                        ),
+                      )
+                      .toList(),
+                ),
+              ),
+            ],
+
+            if (data['level'] == 'High' && data['grade'] != null) ...[ //to show grade only after select level
+              const SizedBox(height: 16),
+              const Text(
+                "Speciality",
+                style: TextStyle(
+                  fontFamily: "Inter",
+                fontSize: 14,
+                fontWeight: FontWeight.w700,
+                color: Color(0xFF334155),
+                ),
+              ),
+              const SizedBox(height: 8),
+              // Horizontally scrollable chip row
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: (SpecialityMap[data['grade']] ?? []).map((speciality) => Padding(
+                          padding: const EdgeInsets.only(right: 8),
+                          child: ChoiceChip(
+                            label: Text(speciality),
+                            checkmarkColor: Colors.white,
+                            selected: data['speciality'] == speciality,
+                            onSelected: (_) {
+                              onChanged({...data, 'speciality': speciality});
+                            },
+                            selectedColor: const Color(0xFF000080),
+                            backgroundColor: const Color(0xFFF9F9F9),
+                            side: const BorderSide(color: Color(0xFFE0E0E0)),
+                            labelStyle: TextStyle(
+                              fontFamily: "Inter",
+                              fontSize: 13,
+                              fontWeight: FontWeight.w700,
+                              color: data['speciality'] == speciality? Colors.white : const Color(0xFF475569),
+                            ),
+                          ),
+                        ),
+                      )
+                      .toList(),
+                ),
+              ),
+            ],
+          
+             if (data['grade'] != null) ...[ //to show grade only after select level
+              const SizedBox(height: 16),
+              const Text(
+                "Interests / Subjects of Focus",
+                style: TextStyle(
+                  fontFamily: "Inter",
+                fontSize: 14,
+                fontWeight: FontWeight.w700,
+                color: Color(0xFF334155),
+                ),
+              ),
+              const SizedBox(height: 8),
+               SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+    children: subjectLists[getRealIndex()].map((subject) {
+      final List<String> selected = List<String>.from(data['subjects'] ?? []);
+      final bool isSelected = selected.contains(subject);
+      return FilterChip(
+        label: Text(subject),
+        selected: isSelected,
+        checkmarkColor: Colors.white,
+        selectedColor: const Color(0xFF000080),
+        backgroundColor: const Color(0xFFF9F9F9),
+        side: const BorderSide(color: Color(0xFFE0E0E0)),
+        labelStyle: TextStyle(
+          fontFamily: "Inter",
+          fontSize: 13,
+          fontWeight: FontWeight.w700,
+          color: isSelected ? Colors.white : const Color(0xFF475569),
+        ),
+        onSelected: (_) {
+          final List<String> updated = List<String>.from(data['subjects'] ?? []);
+          if (isSelected) {
+            updated.remove(subject);  // deselect
+          } else {
+            updated.add(subject);     // select
+          }
+          onChanged({...data, 'subjects': updated});
+        },
+      );
+    }).toList(),
+  ),
+        ),],
+          ],
+        ),
+      ),
+    );
   }
 }
