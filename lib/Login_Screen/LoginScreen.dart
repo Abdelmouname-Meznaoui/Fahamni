@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-
+import 'package:fahamni/user_infos/ipersonal_info.dart';
+import '../Pass_recov_page/passRec.dart';
 class LoginScreenPage extends StatelessWidget {
   const LoginScreenPage({super.key});
 
@@ -230,7 +231,12 @@ class _LoginScreenState extends State<LoginScreen> {
                   Align(
                     alignment: Alignment.centerRight,
                     child: TextButton(
-                      onPressed: () {},
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => const passRec()),
+                        );
+                      },
                       child: const Text(
                         "Forgot Password?",
                         style: TextStyle(
@@ -350,6 +356,16 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                   const SizedBox(height: 14),
                   /// New to Fahamni
+                  /// 
+                  /// 
+                  GestureDetector(
+  onTap: () {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const IpersonalInfo()),
+    );
+  },
+  child:  
                   Text.rich(
                     const TextSpan(
                       text: "New to Fahamni? ",
@@ -370,8 +386,9 @@ class _LoginScreenState extends State<LoginScreen> {
                       ],
                     ),
                   ),
-                  const SizedBox(height: 40),
-                ],
+                  ),
+                const SizedBox(height: 40),
+              ],
               ),
             ),
           ],
