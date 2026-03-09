@@ -16,8 +16,6 @@ class _SplashScreenState extends State<SplashScreen>
   late Animation<double> _logoSlideLeft;
   late Animation<double> _textSlideAnim;
   late Animation<double> _textFadeAnim;
-  late Animation<double> _sloganFade;
-  late Animation<double> _sloganSlideUp;
 
   @override
   void initState() {
@@ -42,7 +40,6 @@ class _SplashScreenState extends State<SplashScreen>
       ),
     );
 
-    // Logo slides left by roughly half the name's width to balance the row
     _logoSlideLeft = Tween<double>(begin: 0, end: -52).animate(
       CurvedAnimation(
         parent: _controller,
@@ -50,7 +47,6 @@ class _SplashScreenState extends State<SplashScreen>
       ),
     );
 
-    // Name starts right behind the logo (small offset) and slides to its place
     _textSlideAnim = Tween<double>(begin: -30, end: 0).animate(
       CurvedAnimation(
         parent: _controller,
@@ -65,20 +61,10 @@ class _SplashScreenState extends State<SplashScreen>
       ),
     );
 
-    _sloganFade = Tween<double>(begin: 0, end: 1).animate(
-      CurvedAnimation(
-        parent: _controller,
-        curve: const Interval(0.75, 1.0, curve: Curves.easeIn),
-      ),
-    );
+  
 
-    _sloganSlideUp = Tween<double>(begin: 40, end: 0).animate(
-      CurvedAnimation(
-        parent: _controller,
-        curve: const Interval(0.75, 1.0, curve: Curves.easeOutCubic),
-      ),
-    );
     _controller.forward();
+
     Future.delayed(const Duration(milliseconds: 4000), () {
       if (!mounted) return;
       Navigator.pushReplacement(
@@ -92,26 +78,18 @@ class _SplashScreenState extends State<SplashScreen>
       );
     });
   }
+
   @override
   void dispose() {
     _controller.dispose();
     super.dispose();
   }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              Color(0xFFF0F4FF),
-              Color(0xFFE8F0FE),
-              Color(0xFFF5F0FF),
-            ],
-          ),
-        ),
+        color: const Color(0xFFFAFAFA),
         child: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -122,14 +100,15 @@ class _SplashScreenState extends State<SplashScreen>
                   return Stack(
                     alignment: Alignment.center,
                     children: [
+                      // Invisible ghost row to reserve layout size
                       Opacity(
                         opacity: 0,
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const SizedBox(width: 150, height: 150),
-                            const SizedBox(width: 8),
-                            const Text(
+                          children: const [
+                            SizedBox(width: 150, height: 150),
+                            SizedBox(width: 8),
+                            Text(
                               'Fahamni',
                               style: TextStyle(
                                 fontFamily: 'Lexend',
@@ -140,6 +119,8 @@ class _SplashScreenState extends State<SplashScreen>
                           ],
                         ),
                       ),
+
+                      // Logo slides left
                       Transform.translate(
                         offset: Offset(_logoSlideLeft.value, 0),
                         child: Opacity(
@@ -154,6 +135,8 @@ class _SplashScreenState extends State<SplashScreen>
                           ),
                         ),
                       ),
+
+                      // Name slides right
                       Positioned(
                         right: 0,
                         child: Transform.translate(
@@ -177,19 +160,11 @@ class _SplashScreenState extends State<SplashScreen>
                   );
                 },
               ),
+
               const SizedBox(height: 12),
-              AnimatedBuilder(
-                animation: _controller,
-                builder: (context, child) {
-                  return Transform.translate(
-                    offset: Offset(0, _sloganSlideUp.value),
-                    child: Opacity(
-                      opacity: _sloganFade.value,
-                      child: child,
-                    ),
-                  );
-                },
-              ),
+
+              // Slogan slides up + fades in
+              
             ],
           ),
         ),

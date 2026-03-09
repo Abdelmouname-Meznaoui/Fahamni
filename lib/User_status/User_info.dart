@@ -4,7 +4,7 @@ import 'package:fahamni/widgets/widgets.dart';
 import 'Student_widget/Student_widg.dart';
 import 'Parent_widget/Parent_widg.dart';
 import 'Tutor_widget/Tutor_widg.dart';
-import '../Registration_Completed_Screen/RegistraionCompleteScreen.dart';
+import 'package:fahamni/otp_verification_Screen/phoneverif.dart';
 
 class studentinfo extends StatefulWidget {
   const studentinfo({super.key});
@@ -49,7 +49,7 @@ class _studentinfoState extends State<studentinfo> {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                    builder: (context) => const RegistrationComplete()),
+                    builder: (context) => const PhoneVerificationPage()),
               );
             }
           },
