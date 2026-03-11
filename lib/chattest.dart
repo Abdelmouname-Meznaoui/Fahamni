@@ -1,3 +1,4 @@
+import 'package:fahamni/messaging/Message_input.dart';
 import 'package:fahamni/models/chat_model.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -22,7 +23,7 @@ class MyWidget extends StatelessWidget {
   
   final List<MessageModel> messages = [
   MessageModel(
-    content: "Hi!",
+    content: "Hi! hjhdzfhjsdjfhskjdfhjsfzkjdhfjzdhfkzjdhfjfhefhehfhdjfhhfjdhfdf",
     senderId: "user2",
     receiverId: "user1",
     sendingDateTime: DateTime.now().subtract(Duration(minutes: 5)),
@@ -50,7 +51,14 @@ class MyWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      
       backgroundColor: Color (0xFFFAFAFA),
+      
+    
+      bottomNavigationBar: Container(
+        margin: const EdgeInsets.all(20),
+        
+        child: MessageInput()),
       appBar: AppBar(title: Text("Chat Test")),
       body: ListView.builder(
       

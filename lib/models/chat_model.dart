@@ -1,37 +1,47 @@
-
-
 class ConversationModel {
+  final String conversationName;
   final String conversationId;
+
   final List<String> participants;
+  final List<MessageModel> messages;
   final DateTime createdAt;
   final String status;
 
   ConversationModel({
     required this.conversationId,
+    required this.conversationName,
+    required this.messages,
     required this.participants,
     required this.createdAt,
-    this.status = 'active',
+    required this.status,
   });
 
   Map<String, dynamic> toMap() {
     return {
+      'conversation_name': conversationName,
       'conversation_id': conversationId,
       'participants': participants,
       'createdAt': createdAt,
       'status': status,
+      'messages': messages.map((m) => m.toMap()).toList(),
     };
   }
 
   factory ConversationModel.fromMap(Map<String, dynamic> map) {
     return ConversationModel(
+      conversationName: map['conversation_name'] ?? '',
       conversationId: map['conversation_id'] ?? '',
       participants: List<String>.from(map['participants'] ?? []),
+      messages: List<MessageModel>.from(
+        (map['messages'] as List<dynamic>? ?? []).map(
+          (x) => MessageModel.fromMap(x),
+        ),
+      ),
       createdAt: (map['createdAt'] as dynamic).toDate(),
       status: map['status'] ?? 'active',
     );
   }
 }
-
 
 class MessageModel {
   final String messageId;
