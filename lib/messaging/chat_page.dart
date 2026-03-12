@@ -1,6 +1,8 @@
+import 'package:fahamni/messaging/chat_buttons.dart';
 import 'package:flutter/material.dart';
 import 'dart:ui';
 import 'package:google_fonts/google_fonts.dart';
+import 'chat_buttons.dart';
 
 class ChatPage extends StatelessWidget {
   const ChatPage({super.key});
@@ -9,16 +11,21 @@ class ChatPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Color(0xFFFAFAFA),
+      
       appBar: AppBar(
         backgroundColor: Color(0xFFFAFAFA),
-        title: Text(
-          'Message',
-          style: GoogleFonts.inter(
-            color: const Color(0xFF1F2937),
-            fontSize: 32.0,
-            fontWeight: FontWeight.w700,
+        elevation: 0,
+        centerTitle: true,
+        title: Padding(
+          padding: const EdgeInsets.fromLTRB(0, 8, 0, 0),
+          child: Text(
+            'Messages',
+            style: GoogleFonts.inter(
+              color: const Color(0xFF1F2937),
+              fontSize: 32.0,
+              fontWeight: FontWeight.w700,
+            ),
           ),
-          textAlign: TextAlign.center,
         ),
       ),
       body: Column(
@@ -63,6 +70,7 @@ class ChatPage extends StatelessWidget {
               ),
             ),
           ),
+          ChatButtons(),
         ],
       ),
     );
