@@ -3,12 +3,37 @@ import 'package:flutter/material.dart';
 import 'dart:ui';
 import 'package:google_fonts/google_fonts.dart';
 import 'chat_buttons.dart';
+import 'ConversationBox.dart';
+import '../models/chat_model.dart';
 
 class ChatPage extends StatelessWidget {
-  const ChatPage({super.key});
+  ChatPage({super.key});
+  final String myId = "user1";
+  final Map<String, String> otherUser = {
+    "id": "user2",
+    "name": "Patrick",
+    "avatar": "https://anniversaire-celebrite.com/images/celebrites/patrick-etoile-de-mer.jpg",
+  };
 
   @override
   Widget build(BuildContext context) {
+    final mockConversation = ConversationModel(
+      conversationId: "conv1",
+      conversationName: otherUser["name"]!,
+      participants: [myId, otherUser["id"]!],
+      status: "active",
+      createdAt: DateTime.now(),
+      messages: [
+        MessageModel(
+          messageId: "m1",
+          conversationId: "conv1",
+          senderId: "user2",
+          receiverId: "user1",
+          content: "Hi! Check out this long message test...",
+          sendingDateTime: DateTime.now().subtract(const Duration(minutes: 10)),
+        ),
+      ],
+    );
     return Scaffold(
       backgroundColor: Color(0xFFFAFAFA),
       
@@ -71,6 +96,20 @@ class ChatPage extends StatelessWidget {
             ),
           ),
           ChatButtons(),
+          Conversationbox(
+            conversation: mockConversation,
+            imageUrl: otherUser["avatar"]!,
+            currentUserId: myId,
+          ),
+          
+          
+          const Divider(height: 1, indent: 80), 
+          
+          Conversationbox(
+            conversation: mockConversation,
+            imageUrl: otherUser["avatar"]!,
+            currentUserId: myId,
+          ),
         ],
       ),
     );
