@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:fahamni/user_infos/ipersonal_info.dart';
 import '../Pass_recov_page/passRec.dart';
-
+import '../Student_homepage.dart';
 class LoginScreenPage extends StatelessWidget {
   const LoginScreenPage({super.key});
   
@@ -230,20 +230,20 @@ final _passwordController = TextEditingController();
                           controller: _passwordController,
                           obscureText: _obscurePassword,
                           validator: (value) {
-          if (value == null || value.isEmpty) {
-            return 'Password is required';
-          }
-          if (value.length < 8) {
-            return 'Minimum 8 characters';
-          }
-          if (!value.contains(RegExp(r'[A-Z]'))) {
-            return 'Must contain at least one uppercase letter';
-          }
-          if (!value.contains(RegExp(r'[0-9]'))) {
-            return 'Must contain at least one number';
-          }
-          return null;
-        },
+                          if (value == null || value.isEmpty) {
+                          return 'Password is required';
+                            }
+                        if (value.length < 8) {
+                         return 'Minimum 8 characters';
+                          }
+                        if (!value.contains(RegExp(r'[A-Z]'))) {
+                          return 'Must contain at least one uppercase letter';
+                           }
+                         if (!value.contains(RegExp(r'[0-9]'))) {
+                          return 'Must contain at least one number';
+                            }
+                           return null;
+                           },
                           decoration: InputDecoration(
                             hintText: 'Enter password',
                             hintStyle: const TextStyle(
@@ -349,7 +349,11 @@ final _passwordController = TextEditingController();
                                 borderRadius: BorderRadius.circular(24),
                                 onTap: () {
                                   if (_formKey.currentState!.validate()) {
-                                    // all fields valid → proceed with login
+                                      Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                    builder: (context) => const Studentpage()),
+                              );
                                   }
                                 },
                                 child: const Center(

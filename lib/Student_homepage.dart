@@ -1,7 +1,7 @@
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:untitled/customnavbar.dart';
+import 'package:fahamni/customnavbar.dart';
 import 'dart:ui';
 
 class Studentpage extends StatelessWidget {
@@ -28,9 +28,9 @@ class Studenthomepage extends StatefulWidget {
 
 class _StudenthomepageState extends State<Studenthomepage> {
   List<String> images = [
-    'assets/slide2.png',
-    'assets/slide0.png',
-    'assets/slide1.png',
+    'assets/images/slide2.png',
+    'assets/images/slide0.png',
+    'assets/images/slide1.png',
   ];
   final List<Map<String, dynamic>> teachers = [
     {
@@ -76,7 +76,7 @@ class _StudenthomepageState extends State<Studenthomepage> {
                 children: [
                   CircleAvatar(
                     radius: 25,
-                    backgroundImage: AssetImage('assets/profile.jpg'),
+                    backgroundImage: AssetImage('assets/images/profile.jpg'),
                   ),
                   SizedBox(width: 5),
                   Expanded( // Wrap with Expanded to take available space
@@ -111,7 +111,7 @@ class _StudenthomepageState extends State<Studenthomepage> {
                   IconButton(
                     onPressed: () {},
                     icon: ImageIcon(
-                      AssetImage('assets/bell.png'),
+                      AssetImage('assets/images/bell.png'),
                       color: Colors.black,
         ),
                     iconSize: 35,
@@ -171,7 +171,7 @@ class _StudenthomepageState extends State<Studenthomepage> {
                       child: IconButton(
                           onPressed: (){},
                           icon: ImageIcon(
-                              AssetImage('assets/search.png'),
+                              AssetImage('assets/images/search.png'),
                             color: Colors.black,
                           ),
                           iconSize: 40,
@@ -340,7 +340,7 @@ class _StudenthomepageState extends State<Studenthomepage> {
                                      ),
                                      child: Center(
                                        child: SvgPicture.asset(
-                                        "assets/heart.svg",
+                                        "assets/images/heart.svg",
                                   
                                         
                                        ),
@@ -493,7 +493,7 @@ class _StudenthomepageState extends State<Studenthomepage> {
                         crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
                             SvgPicture.asset(
-                                "assets/person.svg",
+                                "assets/images/person.svg",
                               height: 20,
                               width: 20,
                               color: Color(0xFF475569),
@@ -515,7 +515,7 @@ class _StudenthomepageState extends State<Studenthomepage> {
                         crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
                           SvgPicture.asset(
-                            "assets/time.svg",
+                            "assets/images/time.svg",
                             height: 20,
                             width: 20,
                             color: Color(0xFF475569),
@@ -538,7 +538,7 @@ class _StudenthomepageState extends State<Studenthomepage> {
                         child: ElevatedButton.icon(
                           onPressed: () {},
                           icon: ImageIcon(
-                            AssetImage('assets/Icon.png'),
+                            AssetImage('assets/images/Icon.png'),
 
                           ),
 
