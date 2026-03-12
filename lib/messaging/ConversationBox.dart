@@ -6,7 +6,7 @@ class Conversationbox extends StatelessWidget {
     super.key,
     required this.conversation,
     required this.imageUrl,
-    required this.currentUserId, // Added this to know when to say "You"
+    required this.currentUserId, 
   });
 
   final ConversationModel conversation;
