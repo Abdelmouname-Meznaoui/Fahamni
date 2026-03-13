@@ -1,3 +1,5 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 class ChildModel {
   final String id;
   final String firstName;
@@ -20,7 +22,7 @@ class ChildModel {
       'id': id,
       'first_name': firstName,
       'last_name': lastName,
-      'birthday': birthday,
+      'birthday': Timestamp.fromDate(birthday),
       'school_level': schoolLevel,
 
     };

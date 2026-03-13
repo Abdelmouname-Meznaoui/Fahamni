@@ -1,3 +1,5 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 class SessionModel {
   final String sessionId;
   final String serviceId;
@@ -33,9 +35,9 @@ class SessionModel {
       'status': status,
       'type': type,
       'modality': modality,
-      'date': date,
-      'start_time': startTime,
-      'end_time': endTime,
+      'date': Timestamp.fromDate(date),
+      'start_time': Timestamp.fromDate(startTime),
+      'end_time': Timestamp.fromDate(endTime),
     };
   }
 

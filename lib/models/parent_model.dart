@@ -1,3 +1,5 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 import 'user_model.dart';
 
 class ParentModel extends UserModel {
@@ -30,7 +32,7 @@ class ParentModel extends UserModel {
       'phone': phone,
       'location': location,
       'gender': gender.name,
-      'birthday': birthday,
+      'birthday': Timestamp.fromDate(birthday),
       'role': role.name,
       'account_status':accountStatus,
 
@@ -49,7 +51,7 @@ class ParentModel extends UserModel {
       location: map['location'] ?? '',
       gender: Gender.values.byName(map['gender'] ?? 'male'),
       birthday: (map['birthday'] as dynamic).toDate(),
-      accountStatus: map['account_status'] ?? 'pending',
+      accountStatus: AccountStatus.values.byName(map['account_status'] ?? 'pending'),
 
 
       childrenUids: List<String>.from(map['children_uids'] ?? []),

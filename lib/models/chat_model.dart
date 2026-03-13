@@ -1,5 +1,7 @@
 
 
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 class ConversationModel {
   final String conversationId;
   final List<String> participants;
@@ -59,7 +61,7 @@ class MessageModel {
       'sender_id': senderId,
       'receiver_id': receiverId,
       'content': content,
-      'sending_date_time': sendingDateTime,
+      'sending_date_time': Timestamp.fromDate(sendingDateTime),
       'is_read': isRead,
     };
   }
@@ -67,12 +69,12 @@ class MessageModel {
   factory MessageModel.fromMap(Map<String, dynamic> map) {
     return MessageModel(
       messageId: map['message_id'] ?? '',
-      conversationId: map['conversation_id'] ?? '', //
+      conversationId: map['conversation_id'] ?? '',
       senderId: map['sender_id'] ?? '',
       receiverId: map['receiver_id'] ?? '',
       content: map['content'] ?? '',
-      sendingDateTime: (map['sending_date_time'] as dynamic).toDate(), //
-      isRead: map['is_read'] ?? false, //
+      sendingDateTime: (map['sending_date_time'] as dynamic).toDate(),
+      isRead: map['is_read'] ?? false,
     );
   }
 }

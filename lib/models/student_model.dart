@@ -1,3 +1,5 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 import 'user_model.dart';
 
 class StudentModel extends UserModel {
@@ -33,7 +35,7 @@ class StudentModel extends UserModel {
       'phone': phone,
       'location': location,
       'gender': gender.name,
-      'birthday': birthday,
+      'birthday': Timestamp.fromDate(birthday),
       'role': role.name,
       'account_status':accountStatus,
 
@@ -57,7 +59,7 @@ class StudentModel extends UserModel {
       schoolLevel: map['school_level'] ?? '',
       learningObjectives: map['learning_objectives'] ?? '',
       preferredSubjects: List<String>.from(map['preferred_subjects'] ?? []),
-      accountStatus: map['account_status'] ?? 'pending',
+      accountStatus: AccountStatus.values.byName(map['account_status'] ?? 'pending'),
     );
   }
 }

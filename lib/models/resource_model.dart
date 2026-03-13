@@ -1,3 +1,5 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 abstract class ResourceModel {
   final String resourceId;
   final String tutorId;
@@ -75,7 +77,7 @@ class DocumentResource extends ResourceModel {
       'access_level': accessLevel,
       'allowed_users': allowedUsers,
       'is_public': isPublic,
-      'added_at': addedAt,
+      'added_at': Timestamp.fromDate(addedAt),
       'file_url': fileUrl,
       'doc_type': docType,
     };
