@@ -56,7 +56,7 @@ class _IpersonalInfoState extends State<IpersonalInfo> {
               'firstName' : _firstNameController.text.trim(),
               'lastName'  : _lastNameController.text.trim(),
               'email'     : _emailController.text.trim(),
-              'phone'     : _phoneController.text.trim(),
+              'phone'     : toE164(_phoneController.text.trim(), '213'),
               'password'  : _passwordController.text.trim(),
               'gender'    : _selectedGender,   // Gender enum value
               'birthday'  : _selectedBirthday, // DateTime value
@@ -843,4 +843,9 @@ class _ROW2State extends State<ROW2> {
       ],
     );
   }
+}
+String toE164(String phone, String countryCode) {
+  final digits = phone.replaceAll(RegExp(r'\D'), '');
+  final local = digits.startsWith('0') ? digits.substring(1) : digits;
+  return '+$countryCode$local';
 }

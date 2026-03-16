@@ -100,4 +100,108 @@ String _handleAuthError(FirebaseAuthException e) {
     default:
       return e.message ?? 'An unexpected error occurred. Please try again later.';
   }
-}}
+}
+Future<void> sendOtp({
+  required String phoneNumber,      
+  required void Function(String verificationId) onCodeSent,
+  required void Function(String error)  onError,
+}) async {
+  await _auth.verifyPhoneNumber(
+    phoneNumber: phoneNumber,
+    timeout: const Duration(seconds: 60),
+    verificationCompleted: (PhoneAuthCredential credential) async {
+    },
+    verificationFailed: (FirebaseAuthException e) {
+      onError(_handleAuthError(e));
+    },
+    codeSent: (String verificationId, int? resendToken) {
+      onCodeSent(verificationId);       
+    },
+    codeAutoRetrievalTimeout: (_) {},
+  );
+}
+
+Future<UserModel> verifyOtpAndRegister({
+  required String verificationId,
+  required String smsCode,
+  required String email,
+  required String password,
+  required UserModel userModel,
+}) async {
+
+  final phoneCredential = PhoneAuthProvider.credential(
+    verificationId: verificationId,
+    smsCode: smsCode,
+  );
+
+  final credential = await _auth.createUserWithEmailAndPassword(
+    email: email,
+    password: password,
+  );
+  final uid = credential.user!.uid;
+
+  try {
+    await credential.user!.linkWithCredential(phoneCredential);
+  } on FirebaseAuthException catch (e) {
+    await credential.user!.delete();
+    throw _handleAuthError(e);
+  }
+  final data = userModel.toMap();
+  data['uid'] = uid;
+  final collection = _collectionForRole(userModel.role);
+  await _db.collection(collection).doc(uid).set(data);
+  await _db.collection('users').doc(uid).set({
+    'uid': uid,
+    'email': email,
+    'role': userModel.role.name,
+  });
+
+  return _buildModelWithUid(userModel, uid);
+}
+
+UserModel _buildModelWithUid(UserModel model, String uid) {
+  if (model is StudentModel) {
+    return StudentModel(
+      uid: uid,
+      firstName: model.firstName, lastName: model.lastName,
+      email: model.email,         phone: model.phone,
+      location: model.location,   gender: model.gender,
+      birthday: model.birthday,   accountStatus: model.accountStatus,
+      schoolLevel: model.schoolLevel,
+      learningObjectives: model.learningObjectives,
+      preferredSubjects: model.preferredSubjects,
+    );
+  } else if (model is TutorModel) {
+    return TutorModel(
+      uid: uid,
+      firstName: model.firstName, lastName: model.lastName,
+      email: model.email,         phone: model.phone,
+      location: model.location,   gender: model.gender,
+      birthday: model.birthday,   accountStatus: model.accountStatus,
+      expertiseDomain: model.expertiseDomain,
+      levelsTaught: model.levelsTaught,
+      teachingMode: model.teachingMode,
+      isAvailable: model.isAvailable,
+      Certified: model.Certified,
+      pedagogicalDescription: model.pedagogicalDescription,
+      averageRating: model.averageRating,
+      yearsOfExperience: model.yearsOfExperience,
+      academicDescription: model.academicDescription,
+    );
+  } else {
+    final p = model as ParentModel;
+    return ParentModel(
+      uid: uid,
+      firstName: p.firstName, lastName: p.lastName,
+      email: p.email,         phone: p.phone,
+      location: p.location,   gender: p.gender,
+      birthday: p.birthday,   accountStatus: p.accountStatus,
+      childrenUids: p.childrenUids,
+    );
+  }
+}
+
+}
+
+
+

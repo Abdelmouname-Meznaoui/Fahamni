@@ -6,6 +6,7 @@ import 'package:fahamni/models/student_model.dart';
 import 'package:fahamni/models/tutor_model.dart';
 import 'package:fahamni/models/parent_model.dart';
 import 'package:fahamni/Services/auth_.service.dart';
+import 'package:flutter/scheduler.dart';
 
 class PhoneVerificationPage extends StatefulWidget {
   final Map<String, dynamic> data;
@@ -17,64 +18,91 @@ class PhoneVerificationPage extends StatefulWidget {
 }
 
 class _PhoneVerificationPageState extends State<PhoneVerificationPage> {
-  // One controller + focusNode per box
   final List<TextEditingController> _controllers =
       List.generate(6, (_) => TextEditingController());
   final List<FocusNode> _focusNodes =
-      List.generate(6, (_) => FocusNode());
-      String? _errorMessage;
-      bool    _isLoading = false;
+ List.generate(6, (_) => FocusNode());
+  final _authService = AuthService();
+
+  String? _verificationId;   // received from Firebase after SMS is sent
+  String? _errorMessage;
+  bool _isSending  = true;   // true while we're waiting for SMS to be dispatched
+  bool _isVerifying = false; 
+
+   @override
+void initState() {
+  super.initState();
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    _sendOtp();
+  });
+}
 
   @override
   void dispose() {
-    for (final c in _controllers) {
-      c.dispose();
-    }
-    for (final f in _focusNodes) {
-      f.dispose();
+    for (final c in _controllers) { c.dispose();  }
+    for (final f in _focusNodes) {  f.dispose();
     }
     super.dispose();
   }
 
-  String get _otpCode =>
-      _controllers.map((c) => c.text).join();
-
-      Future<void> _completeRegistration() async {
-    final data        = widget.data;
-    final authService = AuthService();
+  String get _otpCode => _controllers.map((c) => c.text).join();
+  Future<void> _sendOtp() async {
+    setState(() {
+      _isSending    = true;
+      _errorMessage = null;
+    });
+    final phone = widget.data['phone'] as String;
+    await _authService.sendOtp(
+      phoneNumber: phone,     
+      onCodeSent: (verificationId) {
+        if (!mounted) return;
+        setState(() {
+          _verificationId = verificationId;
+          _isSending      = false;
+        });
+      },
+      onError: (error) {
+        if (!mounted) return;
+        setState(() {
+          _errorMessage = error;
+          _isSending    = false;
+        });
+      },
+    );
+  }
+  Future<void> _verifyAndRegister() async {
+    if (_verificationId == null) {
+      setState(() => _errorMessage = 'OTP not sent yet. Tap "Resend Code".');
+      return;
+    }
+    if (_otpCode.length < 6) {
+      setState(() => _errorMessage = 'Please enter the full 6-digit code.');
+      return;
+    }
+    setState(() {
+      _isVerifying  = true;
+      _errorMessage = null;
+    });
     try {
-      setState(() => _isLoading = true);
-
-      UserModel model;
-      final role = data['role'] as UserRole;
-
+      final data  = widget.data;
+      final role  = data['role'] as UserRole;
+      final UserModel userModel;
       if (role == UserRole.student) {
-        model = StudentModel(
-          uid:                '',  
-          firstName:          data['firstName'],
-          lastName:           data['lastName'],
-          email:              data['email'],
-          phone:              data['phone'],
-          location:           data['location'],
-          gender:             data['gender'],
-          birthday:           data['birthday'],
-          accountStatus:      AccountStatus.validated,
+        userModel = StudentModel(
+          uid: '', firstName: data['firstName'], lastName: data['lastName'],
+          email: data['email'], phone: data['phone'],
+          location: data['location'], gender: data['gender'],
+          birthday: data['birthday'], accountStatus: AccountStatus.validated,
           schoolLevel:        data['schoolLevel']        ?? '',
           learningObjectives: data['learningObjectives'] ?? '',
           preferredSubjects:  List<String>.from(data['preferredSubjects'] ?? []),
         );
-
       } else if (role == UserRole.tutor) {
-        model = TutorModel(
-          uid:                    '',
-          firstName:              data['firstName'],
-          lastName:               data['lastName'],
-          email:                  data['email'],
-          phone:                  data['phone'],
-          location:               data['location'],
-          gender:                 data['gender'],
-          birthday:               data['birthday'],
-          accountStatus:          AccountStatus.pending,
+        userModel = TutorModel(
+          uid: '', firstName: data['firstName'], lastName: data['lastName'],
+          email: data['email'], phone: data['phone'],
+          location: data['location'], gender: data['gender'],
+          birthday: data['birthday'], accountStatus: AccountStatus.pending,
           expertiseDomain:        data['expertiseDomain']        ?? '',
           levelsTaught:           List<String>.from(data['levelsTaught'] ?? []),
           teachingMode:           data['teachingMode']           ?? '',
@@ -85,39 +113,38 @@ class _PhoneVerificationPageState extends State<PhoneVerificationPage> {
           yearsOfExperience:      data['yearsOfExperience']      ?? 0,
           academicDescription:    data['academicDescription']    ?? '',
         );
-
       } else {
-        model = ParentModel(
-          uid:          '',
-          firstName:    data['firstName'],
-          lastName:     data['lastName'],
-          email:        data['email'],
-          phone:        data['phone'],
-          location:     data['location'],
-          gender:       data['gender'],
-          birthday:     data['birthday'],
-          accountStatus: AccountStatus.validated,
+        userModel = ParentModel(
+          uid: '', firstName: data['firstName'], lastName: data['lastName'],
+          email: data['email'], phone: data['phone'],
+          location: data['location'], gender: data['gender'],
+          birthday: data['birthday'], accountStatus: AccountStatus.validated,
           childrenUids: List<String>.from(data['childrenUids'] ?? []),
         );
       }
-
-      await authService.signUp(data['email'], data['password'], model);
-
+      await _authService.verifyOtpAndRegister(
+        verificationId: _verificationId!,
+        smsCode:        _otpCode,
+        email:          data['email'],
+        password:       data['password'],
+        userModel:      userModel,
+      );
       if (!mounted) return;
       Navigator.pushAndRemoveUntil(
         context,
-        MaterialPageRoute(builder: (context) => const RegistrationComplete()),
+        MaterialPageRoute(builder: (_) => const RegistrationComplete()),
         (route) => false,
       );
     } catch (e) {
       setState(() => _errorMessage = e.toString());
     } finally {
-      if (mounted) setState(() => _isLoading = false);
+      if (mounted) setState(() => _isVerifying = false);
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final isLoading = _isSending || _isVerifying;
     return Scaffold(
       backgroundColor: const Color(0xFFFAFAFA),
 
@@ -183,12 +210,12 @@ class _PhoneVerificationPageState extends State<PhoneVerificationPage> {
 
               const SizedBox(height: 6),
 
-              const Text(
-                "Enter the code that we have sent you",
-                style: TextStyle(
-                  fontFamily: "Inter",
-                  fontSize: 16,
-                  color: Color(0xff64748B),
+              Text(
+                _isSending
+                    ? "Sending code to ${widget.data['phone']}…"
+                    : "Enter the code sent to ${widget.data['phone']}",
+                style: const TextStyle(
+                  fontFamily: "Inter", fontSize: 16, color: Color(0xff64748B),
                 ),
                 textAlign: TextAlign.center,
               ),
@@ -213,17 +240,18 @@ class _PhoneVerificationPageState extends State<PhoneVerificationPage> {
               const SizedBox(height: 40),
 
               
-  if (_errorMessage != null)
-    Text(
-      _errorMessage!,
-      style: const TextStyle(
-        color: Color(0xFFE53935),
-        fontSize: 14,
-        fontFamily: "Inter",
-        fontWeight: FontWeight.w500,
-      ),
-      textAlign: TextAlign.center,
-    ),
+    if (_errorMessage != null)
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  child: Text(
+                    _errorMessage!,
+                    style: const TextStyle(
+                      color: Color(0xFFE53935), fontSize: 14,
+                      fontFamily: "Inter", fontWeight: FontWeight.w500,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
            const SizedBox(height: 8),
 
             SizedBox(
@@ -249,45 +277,40 @@ class _PhoneVerificationPageState extends State<PhoneVerificationPage> {
                           ),
                         ],
                       ),
-                      child: Material(
-                        color: Colors.transparent,
-                        child: InkWell(
-                          borderRadius: BorderRadius.circular(24),
-                         onTap: _isLoading ? null : () async {
-                        if (_otpCode.length < 6) {
-                          setState(() => _errorMessage = 'Please enter the full 6-digit code');
-                          return;
-                        }
-                        // OTP is complete — save to Firebase
-                        await _completeRegistration();
-                      },
-                          child: const Center(
-                            child: Text(
-                              "Send Code",
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 16,
-                                fontWeight: FontWeight.w700,
+                     child: Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(24),
+                      onTap: isLoading ? null : _verifyAndRegister,
+                      child: Center(
+                        child: isLoading
+                            ? const SizedBox(
+                                width: 22, height: 22,
+                                child: CircularProgressIndicator(
+                                  color: Colors.white, strokeWidth: 2.5,
+                                ),
+                              )
+                            : const Text(
+                                "Verify Code",
+                                style: TextStyle(
+                                  color: Colors.white, fontSize: 16,
+                                  fontWeight: FontWeight.w700,
+                                ),
                               ),
-                            ),
-                          ),
-                        ),
                       ),
                     ),
                   ),
+                ),
+              ),
               const SizedBox(height: 15),
 
               TextButton(
-                onPressed: () {
-                  // resend code logic
-                },
-                child: const Text(
-                  "Resend Code",
-                  style: TextStyle(
-                    fontFamily: "Inter",
-                    color: Color(0xBF000080),
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
+                onPressed:  isLoading ? null : _sendOtp,
+                child: Text(
+                  _isSending ? "Sending…" : "Resend Code",
+                  style: const TextStyle(
+                    fontFamily: "Inter", color: Color(0xBF000080),
+                    fontSize: 16, fontWeight: FontWeight.w600,
                   ),
                 ),
               ),
