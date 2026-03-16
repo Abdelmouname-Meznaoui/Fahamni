@@ -5,6 +5,7 @@ import 'Splash_Screen/splash.dart';
 import 'messaging/chat_page.dart';
 import 'chattest.dart';
 import 'messaging/chat_buttons.dart';
+import 'messaging/conversation_doc_page.dart';
 
 
 void main() async {
@@ -20,7 +21,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      home: ChatPage(),
+      home: ConversationDocPage() ,
     );
   }
 }
