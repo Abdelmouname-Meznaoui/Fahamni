@@ -69,11 +69,11 @@ class _CustomBottomNavbarState extends State<CustomBottomNavbar> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
-          navItem("assets/fi-rr-home.svg", "Home", 0),
-          navItem("assets/explore.svg", "explore", 1),
-          navItem("assets/course.svg", "Courses", 2),
-          navItem("assets/chat.svg", "Chat", 3),
-          navItem("assets/profile.svg", "Profile", 4),
+          navItem("assets/images/fi-rr-home.svg", "Home", 0),
+          navItem("assets/images/explore.svg", "explore", 1),
+          navItem("assets/images/course.svg", "Courses", 2),
+          navItem("assets/images/chat.svg", "Chat", 3),
+          navItem("assets/images/profile.svg", "Profile", 4),
         ],
       ),
     );
