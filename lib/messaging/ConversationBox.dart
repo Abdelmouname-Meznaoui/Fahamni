@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/chat_model.dart';
+import 'conversation_page.dart';
 
 class Conversationbox extends StatelessWidget {
   const Conversationbox({
@@ -23,8 +24,17 @@ class Conversationbox extends StatelessWidget {
 
     return InkWell(
       onTap: () {
-        // Navigate to chat room
-      },
+  Navigator.push(
+    context,
+    MaterialPageRoute(
+      builder: (context) => ConversationPage(
+        conversation: conversation,
+        imageUrl: imageUrl,
+        currentUserId: currentUserId,
+      ),
+    ),
+  );
+},
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
         child: Row(

@@ -1,22 +1,24 @@
-import 'package:fahamni/messaging/chat_buttons.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
-import 'dart:ui';
 import 'package:google_fonts/google_fonts.dart';
-import 'chat_buttons.dart';
-import 'ConversationBox.dart';
-import '../models/chat_model.dart';
 import 'inside_conversation_buttons.dart';
-import 'Conversation_media.dart';
-
+import '../models/chat_model.dart';
 
 class ConversationDocPage extends StatelessWidget {
-  const ConversationDocPage({super.key});
+  final String imageUrl;
+  final String name;
+  final ConversationModel conversation;
+
+  const ConversationDocPage({
+    super.key,
+    required this.imageUrl,
+    required this.name,
+    required this.conversation,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Color(0xFFFAFAFA),
+      backgroundColor: const Color(0xFFFAFAFA),
       appBar: AppBar(
         backgroundColor: const Color(0xFFFAFAFA),
         leading: IconButton(
@@ -25,8 +27,9 @@ class ConversationDocPage extends StatelessWidget {
         ),
         actions: [
           PopupMenuButton<int>(
+            color: const Color(0xFFFFFFFF),
             icon: const Icon(Icons.menu, color: Color(0xFF1F2937)),
-            offset: const Offset(0, 50), // Positions the menu below the bar
+            offset: const Offset(0, 50),
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
             onSelected: (value) {},
             itemBuilder: (context) => [
@@ -35,28 +38,27 @@ class ConversationDocPage extends StatelessWidget {
               const PopupMenuItem(value: 3, child: Text("Report Conversation")),
             ],
           ),
-          const SizedBox(width: 8), 
-        ],  
+          const SizedBox(width: 8),
+        ],
       ),
       body: Column(
         children: [
           CircleAvatar(
             radius: 40.0,
-            backgroundImage:NetworkImage('https://anniversaire-celebrite.com/images/celebrites/patrick-etoile-de-mer.jpg'),
+            backgroundImage: NetworkImage(imageUrl),
           ),
-          SizedBox(height: 6.0),
+          const SizedBox(height: 6.0),
           Text(
-            'Mr Mohamed',
+            name,
             textAlign: TextAlign.center,
             style: GoogleFonts.inter(
               fontSize: 16.0,
               fontWeight: FontWeight.bold,
             ),
           ),
-          SizedBox(height: 10.0),
-          InsideConversationButtons(),
-          SizedBox(height: 8.0),
-          ConversationDocPage(),
+          const SizedBox(height: 10.0),
+          const InsideConversationButtons(),
+          const SizedBox(height: 8.0),
         ],
       ),
     );

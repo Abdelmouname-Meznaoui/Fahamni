@@ -1,7 +1,4 @@
-import 'package:fahamni/messaging/chat_buttons.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
-import 'dart:ui';
 import 'package:google_fonts/google_fonts.dart';
 
 class ConversationMembers extends StatelessWidget {
@@ -9,7 +6,7 @@ class ConversationMembers extends StatelessWidget {
 
   final List<String> conversation_members = [
     'Mohamed djamel',
-    'Hamza Benrabah', 
+    'Hamza Benrabah',
     'Mohamed djamel',
     'Mohamed djamel',
   ];
@@ -17,6 +14,8 @@ class ConversationMembers extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListView.builder(
+      shrinkWrap: true,
+      physics: const ClampingScrollPhysics(),
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       itemCount: conversation_members.length,
       itemBuilder: (context, index) {
@@ -28,9 +27,7 @@ class ConversationMembers extends StatelessWidget {
                 backgroundImage: NetworkImage('https://anniversaire-celebrite.com/images/celebrites/patrick-etoile-de-mer.jpg'),
                 radius: 24.0,
               ),
-
               const SizedBox(width: 8.0),
-
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -48,13 +45,12 @@ class ConversationMembers extends StatelessWidget {
                       style: GoogleFonts.inter(
                         fontSize: 14.0,
                         fontWeight: FontWeight.w500,
-                        color: const Color(0xFF000080), 
+                        color: const Color(0xFF000080),
                       ),
                     ),
                   ],
                 ),
               ),
-              
               Container(
                 width: 45,
                 height: 45,
@@ -63,7 +59,7 @@ class ConversationMembers extends StatelessWidget {
                   shape: BoxShape.circle,
                 ),
                 child: const Icon(
-                  Icons.chat_bubble_outline, 
+                  Icons.chat_bubble_outline,
                   color: Colors.white,
                   size: 20,
                 ),

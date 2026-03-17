@@ -1,5 +1,7 @@
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:fahamni/StudentHomePage/studenthome_service.dart';
+import 'package:fahamni/messaging/chat_page.dart';
+import 'package:fahamni/messaging/conversation_doc_page.dart';
 import 'package:fahamni/models/session_model.dart';
 import 'package:fahamni/models/student_model.dart';
 import 'package:fahamni/models/tutor_model.dart';
@@ -12,6 +14,7 @@ import 'package:intl/intl.dart';
 
 class Studentpage extends StatelessWidget {
   const Studentpage({super.key});
+  
 
   @override
   Widget build(BuildContext context) {
@@ -73,11 +76,21 @@ class _StudenthomepageState extends State<Studenthomepage> {
   List<TutorModel> ? favoriteTutors = [];
   List<SessionModel> ? courses = [];
   @override
-  void initState() {
-    // TODO: implement initState
-    super.initState();
-    loadStudent();
-  }
+  int _selectedIndex = 0;
+late List<Widget> _pages;
+
+@override
+void initState() {
+  super.initState();
+  loadStudent();
+  _pages = [
+    const Studenthomepage(), 
+    const Placeholder(),
+    const Placeholder(),
+    ChatPage(),
+    const Placeholder(),
+  ];
+}
   Future<void> loadStudent() async{
     final data = await studenthomepage_service().getStudentData();
     final tutors = await studenthomepage_service().getFavoriteTeachers(data.favoriteTeachers);
@@ -706,7 +719,21 @@ class _StudenthomepageState extends State<Studenthomepage> {
         ),
         child: Padding(
               padding: EdgeInsetsGeometry.symmetric(horizontal: 15 , vertical: 10),
-              child:const CustomBottomNavbar(),
+              child:CustomBottomNavbar(
+  selectedIndex: _selectedIndex,
+  onTap: (index) {
+    if (index == 3) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => ChatPage()),
+      );
+    } else {
+      setState(() {
+        _selectedIndex = index;
+      });
+    }
+  },
+)
             ),
       ),
     ),
