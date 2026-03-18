@@ -7,7 +7,13 @@ import 'package:flutter/material.dart';
 
 class MediaGrid extends StatelessWidget {
   final List<String> images;
-  const MediaGrid({super.key, required this.images});
+
+  const MediaGrid({
+    super.key,
+    required this.images,
+  });
+
+  //MediaGrid({super.key});
 
   @override
   Widget build(BuildContext context) {

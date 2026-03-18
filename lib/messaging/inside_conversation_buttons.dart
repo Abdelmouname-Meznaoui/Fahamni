@@ -1,27 +1,24 @@
+import 'package:fahamni/models/chat_model.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'media_grid.dart';
+import 'conversation_members.dart';
+import 'conversation_doc_page.dart';
 
 class InsideConversationButtons extends StatefulWidget {
-  const InsideConversationButtons({super.key});
+  final ConversationModel conversation;
+
+  const InsideConversationButtons({super.key, required this.conversation});
 
   @override
-  State<InsideConversationButtons> createState() => _InsideConversationButtonsState();
+  State<InsideConversationButtons> createState() =>
+      _InsideConversationButtonsState();
 }
 
 class _InsideConversationButtonsState extends State<InsideConversationButtons>
     with SingleTickerProviderStateMixin {
-
   late TabController _tabController;
-
-  final List<String> mediaFiles = [
-    'https://anniversaire-celebrite.com/images/celebrites/patrick-etoile-de-mer.jpg',
-    'https://anniversaire-celebrite.com/images/celebrites/patrick-etoile-de-mer.jpg',
-    'https://anniversaire-celebrite.com/images/celebrites/patrick-etoile-de-mer.jpg',
-    'https://anniversaire-celebrite.com/images/celebrites/patrick-etoile-de-mer.jpg',
-    'https://anniversaire-celebrite.com/images/celebrites/patrick-etoile-de-mer.jpg',
-  ];
 
   @override
   void initState() {
@@ -121,9 +118,9 @@ class _InsideConversationButtonsState extends State<InsideConversationButtons>
             child: TabBarView(
               controller: _tabController,
               children: [
-                MediaGrid(images: mediaFiles),
+                  MediaGrid(images: widget.conversation.media),
                 const Center(child: Text("Attachment Content")),
-                const Center(child: Text("Groups Content")),
+                ConversationMembers(participants: widget.conversation.participants),
               ],
             ),
           ),

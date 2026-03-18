@@ -24,24 +24,24 @@ class Conversationbox extends StatelessWidget {
 
     return InkWell(
       onTap: () {
-  Navigator.push(
-    context,
-    MaterialPageRoute(
-      builder: (context) => ConversationPage(
-        conversation: conversation,
-        imageUrl: imageUrl,
-        currentUserId: currentUserId,
-      ),
-    ),
-  );
+        Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => ConversationPage(
+            conversation: conversation,
+            imageUrl: imageUrl,
+            currentUserId: currentUserId,
+          ),
+        ),
+    );
 },
       child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
+        padding: const EdgeInsets.fromLTRB(16,8,16,8),
         child: Row(
           children: [
             CircleAvatar(
               backgroundImage: NetworkImage(imageUrl),
-              radius: 28,
+              radius: 24,
             ),
             const SizedBox(width: 16),
             Expanded(
@@ -82,7 +82,7 @@ class Conversationbox extends StatelessWidget {
                   Container(
                     padding: const EdgeInsets.all(6),
                     decoration: const BoxDecoration(
-                      color: Colors.blue,
+                      color: Color(0xFF000080),
                       shape: BoxShape.circle,
                     ),
                     child: Text(

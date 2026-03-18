@@ -35,7 +35,7 @@ class _MyMessagesWidgetState extends State<ChatButtons>
   @override
   Widget build(BuildContext context) {
     return Container(
-      color: Colors.white,
+      color: Color(0xFFFAFAFA),
       width: double.infinity,
       child: Column(
         mainAxisSize: MainAxisSize.min,

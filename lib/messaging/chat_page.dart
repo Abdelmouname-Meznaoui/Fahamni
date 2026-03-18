@@ -7,7 +7,7 @@ import '../models/chat_model.dart';
 class ChatPage extends StatelessWidget {
   ChatPage({super.key});
 
-  final String myId = "user1";
+  final String myId = "moh";
 
   final List<Map<String, dynamic>> mockConversations = [
     {
@@ -41,7 +41,7 @@ class ChatPage extends StatelessWidget {
     return ConversationModel(
       conversationId: "conv_${user['id']}",
       conversationName: user['name'],
-      participants: [myId, user['id']],
+      participants: [myId, user['name']],
       status: "active",
       createdAt: DateTime.now(),
       messages: [
@@ -54,6 +54,13 @@ class ChatPage extends StatelessWidget {
           sendingDateTime: DateTime.now().subtract(const Duration(minutes: 10)),
         ),
       ],
+      media : [
+        'https://anniversaire-celebrite.com/images/celebrites/patrick-etoile-de-mer.jpg',
+        'https://anniversaire-celebrite.com/images/celebrites/patrick-etoile-de-mer.jpg',
+        'https://anniversaire-celebrite.com/images/celebrites/patrick-etoile-de-mer.jpg',
+        'https://anniversaire-celebrite.com/images/celebrites/patrick-etoile-de-mer.jpg',
+        'https://anniversaire-celebrite.com/images/celebrites/patrick-etoile-de-mer.jpg',
+      ]
     );
   }
 

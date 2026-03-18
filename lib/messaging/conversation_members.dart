@@ -2,14 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class ConversationMembers extends StatelessWidget {
-  ConversationMembers({super.key});
 
-  final List<String> conversation_members = [
-    'Mohamed djamel',
-    'Hamza Benrabah',
-    'Mohamed djamel',
-    'Mohamed djamel',
-  ];
+  final List<String> participants;
+  ConversationMembers({super.key,required this.participants});
+
 
   @override
   Widget build(BuildContext context) {
@@ -17,7 +13,7 @@ class ConversationMembers extends StatelessWidget {
       shrinkWrap: true,
       physics: const ClampingScrollPhysics(),
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      itemCount: conversation_members.length,
+      itemCount: participants.length,
       itemBuilder: (context, index) {
         return Padding(
           padding: const EdgeInsets.symmetric(vertical: 8.0),
@@ -25,7 +21,7 @@ class ConversationMembers extends StatelessWidget {
             children: [
               const CircleAvatar(
                 backgroundImage: NetworkImage('https://anniversaire-celebrite.com/images/celebrites/patrick-etoile-de-mer.jpg'),
-                radius: 24.0,
+                radius: 22.0,
               ),
               const SizedBox(width: 8.0),
               Expanded(
@@ -33,13 +29,14 @@ class ConversationMembers extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      conversation_members[index],
+                      participants[index],
                       style: GoogleFonts.inter(
                         fontSize: 14.0,
                         fontWeight: FontWeight.bold,
                         color: const Color(0xFF1F2937),
                       ),
                     ),
+                    SizedBox(height: 4.0),
                     Text(
                       'Student',
                       style: GoogleFonts.inter(
@@ -52,8 +49,8 @@ class ConversationMembers extends StatelessWidget {
                 ),
               ),
               Container(
-                width: 45,
-                height: 45,
+                width: 40,
+                height: 40,
                 decoration: const BoxDecoration(
                   color: Color(0xFF000080),
                   shape: BoxShape.circle,

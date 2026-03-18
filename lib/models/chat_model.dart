@@ -5,6 +5,7 @@ class ConversationModel {
   final String conversationId;
   final List<String> participants;
   final List<MessageModel> messages;
+  final List<String> media;
   final DateTime createdAt;
   final String status;
 
@@ -12,24 +13,26 @@ class ConversationModel {
     required this.conversationId,
     required this.conversationName,
     required this.messages,
+    required this.media,
     required this.participants,
     required this.createdAt,
     required this.status,
   });
 
   // --- GETTERS FOR UI ---
-  
+
   // Gets the last message safely
-  
+
   MessageModel? get _lastMessage => messages.isNotEmpty ? messages.last : null;
-// Inside your ConversationModel class
+  // Inside your ConversationModel class
   String get lastSenderName {
-  if (messages.isEmpty) return "No messages";
-  
-  // Logic: If the senderId is mine, return "You", otherwise return the conversation name
-  // Note: You'll need to pass your own userId to this logic or handle it in the UI
-  return messages.last.senderId; 
-   }
+    if (messages.isEmpty) return "No messages";
+
+    // Logic: If the senderId is mine, return "You", otherwise return the conversation name
+    // Note: You'll need to pass your own userId to this logic or handle it in the UI
+    return messages.last.senderId;
+  }
+
   String get lastMessageText => _lastMessage?.content ?? "No messages yet";
 
   String get lastMessageTime {
@@ -58,16 +61,20 @@ class ConversationModel {
       conversationName: map['conversation_name'] ?? '',
       conversationId: map['conversation_id'] ?? '',
       participants: List<String>.from(map['participants'] ?? []),
-      messages: (map['messages'] as List<dynamic>?)
+      messages:
+          (map['messages'] as List<dynamic>?)
               ?.map((x) => MessageModel.fromMap(x as Map<String, dynamic>))
-              .toList() ?? [],
-      createdAt: map['createdAt'] is DateTime 
-          ? map['createdAt'] 
+              .toList() ??
+          [],
+      media: List<String>.from(map['media'] ?? []),
+      createdAt: map['createdAt'] is DateTime
+          ? map['createdAt']
           : (map['createdAt'] as dynamic)?.toDate() ?? DateTime.now(),
       status: map['status'] ?? 'active',
     );
   }
 }
+
 class MessageModel {
   final String messageId;
   final String conversationId;
@@ -107,7 +114,8 @@ class MessageModel {
       'sender_id': senderId,
       'receiver_id': receiverId,
       'content': content,
-      'sending_date_time': sendingDateTime, // Firestore handles DateTime directly
+      'sending_date_time':
+          sendingDateTime, // Firestore handles DateTime directly
       'is_read': isRead,
     };
   }
@@ -120,8 +128,8 @@ class MessageModel {
       receiverId: map['receiver_id'] ?? '',
       content: map['content'] ?? '',
       // Safely handle both DateTime and Firestore Timestamp
-      sendingDateTime: map['sending_date_time'] is DateTime 
-          ? map['sending_date_time'] 
+      sendingDateTime: map['sending_date_time'] is DateTime
+          ? map['sending_date_time']
           : (map['sending_date_time'] as dynamic)?.toDate() ?? DateTime.now(),
       isRead: map['is_read'] ?? false,
     );

@@ -53,11 +53,12 @@ class ConversationDocPage extends StatelessWidget {
             textAlign: TextAlign.center,
             style: GoogleFonts.inter(
               fontSize: 16.0,
+              color: Color(0xFF1F2937),
               fontWeight: FontWeight.bold,
             ),
           ),
           const SizedBox(height: 10.0),
-          const InsideConversationButtons(),
+          InsideConversationButtons(conversation: conversation),
           const SizedBox(height: 8.0),
         ],
       ),
