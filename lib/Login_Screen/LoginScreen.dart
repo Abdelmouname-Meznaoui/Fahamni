@@ -73,7 +73,7 @@ class _LoginScreenState extends State<LoginScreen> {
       MaterialPageRoute(builder: (context) => const Studentpage()),
     );
     break;
-  case UserRole.tutor:
+  case UserRole.tutor: 
     break;
   case UserRole.parent:
     break;

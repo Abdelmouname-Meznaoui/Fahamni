@@ -1,24 +1,23 @@
-const functions = require("firebase-functions");
+const { onCall, HttpsError } = require("firebase-functions/v2/https");
 const admin = require("firebase-admin");
 admin.initializeApp();
 
-exports.resetPassword = functions
-  .runWith({ invoker: "public" })  // ← allows unauthenticated calls
-  .https.onCall(async (data, context) => {
-    const { email, newPassword } = data;
+exports.resetPassword = onCall({ allowUnauthenticated: true }, async (request) => {
+  // v2 uses request.data instead of just data
+  const { email, newPassword } = request.data;
 
-    if (!email || !newPassword) {
-      throw new functions.https.HttpsError("invalid-argument", "Missing fields.");
-    }
-    if (newPassword.length < 6) {
-      throw new functions.https.HttpsError("invalid-argument", "Password must be at least 6 characters.");
-    }
+  if (!email || !newPassword) {
+    throw new HttpsError("invalid-argument", "Missing fields.");
+  }
+  if (newPassword.length < 6) {
+    throw new HttpsError("invalid-argument", "Password must be at least 6 characters.");
+  }
 
-    try {
-      const user = await admin.auth().getUserByEmail(email);
-      await admin.auth().updateUser(user.uid, { password: newPassword });
-      return { success: true };
-    } catch (e) {
-      throw new functions.https.HttpsError("internal", e.message);
-    }
-  });
+  try {
+    const user = await admin.auth().getUserByEmail(email);
+    await admin.auth().updateUser(user.uid, { password: newPassword });
+    return { success: true };
+  } catch (e) {
+    throw new HttpsError("internal", e.message);
+  }
+});

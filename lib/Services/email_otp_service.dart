@@ -2,7 +2,6 @@ import 'dart:convert';
 import 'dart:math';
 import 'package:http/http.dart' as http;
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'auth_.service.dart';
 
 class EmailOtpService {
   static const _resendApiKey = 're_Kt6BAQMX_EE3exnYUTqm3Xpqd92vA7fnJ'; // ← your Resend API key

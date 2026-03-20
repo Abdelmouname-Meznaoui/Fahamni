@@ -9,7 +9,7 @@
       "client_info": {
         "mobilesdk_app_id": "1:235961023298:android:d17b88c2ffb15750d566db",
         "android_client_info": {
-          "package_name": "com.T32.Fahamni"
+          "package_name": "com.t32.fahamni"
         }
       },
       "oauth_client": [
@@ -49,6 +49,14 @@
         }
       },
       "oauth_client": [
+        {
+          "client_id": "235961023298-s1v2f64e9tvfjl72rqr52m4djnpm1jp1.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.fahamni",
+            "certificate_hash": "0a2ba0ffb4193ee4392215dafe0622a32abb0900"
+          }
+        },
         {
           "client_id": "235961023298-dhv95c7amn7jthicdl31nefpgf6klkjs.apps.googleusercontent.com",
           "client_type": 3

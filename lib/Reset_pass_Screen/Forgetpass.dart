@@ -34,6 +34,8 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
       );
   
   Future<void> _confirm() async {
+     print('email: ${widget.verifiedEmail}');
+  print('password: ${_newPasswordController.text}');
     if (!_formKey.currentState!.validate()) return;
     setState(() { _isLoading = true; _errorMessage = null; });
     try {

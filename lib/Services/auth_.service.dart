@@ -8,6 +8,8 @@ import '../models/user_model.dart';
 import '../models/tutor_model.dart';
 import '../models/student_model.dart';
 import '../models/parent_model.dart'; 
+import 'package:google_sign_in/google_sign_in.dart';
+import 'phone_auth_service.dart';
 
 
 class AuthService {
@@ -122,22 +124,17 @@ String _handleAuthError(FirebaseAuthException e) {
     }
   }
 Future<void> sendOtp({
-  required String phoneNumber,      
+  required String phoneNumber,
   required void Function(String verificationId) onCodeSent,
-  required void Function(String error)  onError,
+  required void Function(String error) onError,
 }) async {
-  await _auth.verifyPhoneNumber(
+  await PhoneAuthService.sendOtp(
     phoneNumber: phoneNumber,
-    timeout: const Duration(seconds: 60),
-    verificationCompleted: (PhoneAuthCredential credential) async {
+    onCodeSent: onCodeSent,
+    onError: onError,
+    onAutoVerified: () {
+      // auto-verified on Android — handle if needed
     },
-    verificationFailed: (FirebaseAuthException e) {
-      onError(_handleAuthError(e));
-    },
-    codeSent: (String verificationId, int? resendToken) {
-      onCodeSent(verificationId);       
-    },
-    codeAutoRetrievalTimeout: (_) {},
   );
 }
 
@@ -315,6 +312,46 @@ Future<void> updatePasswordWithOtp({
       .limit(1)
       .get();
   if (query.docs.isEmpty) throw 'No account found with this email.';
+}
+
+final GoogleSignIn _googleSignIn = GoogleSignIn();
+Future<Map<String, dynamic>?> signInWithGoogle() async {
+  try {
+    final googleUser = await _googleSignIn.signIn();
+    if (googleUser == null) return null; 
+
+    final googleAuth = await googleUser.authentication;
+    final credential = GoogleAuthProvider.credential(
+      accessToken: googleAuth.accessToken,
+      idToken:     googleAuth.idToken,
+    );
+    final result = await _auth.signInWithCredential(credential);
+    final uid    = result.user!.uid;
+    final email  = result.user!.email ?? '';
+    final name   = result.user!.displayName ?? '';
+    final userDoc = await _db.collection('users').doc(uid).get();
+
+    if (userDoc.exists) {
+      final role = UserRole.values.byName(userDoc['role']);
+      final profile = await _fetchUserProfile(uid, role);
+      return {
+        'isNewUser': false,
+        'userModel': profile,
+      };
+    } else {
+      return {
+        'isNewUser': true,
+        'uid':       uid,
+        'email':     email,
+        'firstName': name.contains(' ') ? name.split(' ').first : name,
+        'lastName':  name.contains(' ') ? name.split(' ').last  : '',
+      };
+    }
+  } on FirebaseAuthException catch (e) {
+    throw _handleAuthError(e);
+  } catch (e) {
+    throw 'Google sign-in failed: ${e.toString()}';
+  }
 }
 
 }

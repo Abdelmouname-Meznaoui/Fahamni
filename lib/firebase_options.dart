@@ -50,13 +50,13 @@ class DefaultFirebaseOptions {
     measurementId: 'G-QP611EM7LY',
   );
 
-static const FirebaseOptions android = FirebaseOptions(
-  apiKey: 'AIzaSyAy-fb1VTMKL5ikeATWTxH5tTfiFX9uQN0',
-  appId: '1:235961023298:android:cde146cf7839fed0d566db',
-  messagingSenderId: '235961023298',
-  projectId: 'fahamni-dev',
-  storageBucket: 'fahamni-dev.firebasestorage.app',
-);
+  static const FirebaseOptions android = FirebaseOptions(
+    apiKey: 'AIzaSyAy-fb1VTMKL5ikeATWTxH5tTfiFX9uQN0',
+    appId: '1:235961023298:android:d17b88c2ffb15750d566db',
+    messagingSenderId: '235961023298',
+    projectId: 'fahamni-dev',
+    storageBucket: 'fahamni-dev.firebasestorage.app',
+  );
 
   static const FirebaseOptions ios = FirebaseOptions(
     apiKey: 'AIzaSyDZrL2N5MMl3zTwbYC0P2KL4BqCyK22vrA',
@@ -64,6 +64,8 @@ static const FirebaseOptions android = FirebaseOptions(
     messagingSenderId: '235961023298',
     projectId: 'fahamni-dev',
     storageBucket: 'fahamni-dev.firebasestorage.app',
+    androidClientId: '235961023298-00s61lc1bntjnjcvffuv0pcpqolf3urg.apps.googleusercontent.com',
+    iosClientId: '235961023298-4oigsehs105sdnmamn8je9nb73otk9mv.apps.googleusercontent.com',
     iosBundleId: 'com.example.fahamni',
   );
 
@@ -73,6 +75,8 @@ static const FirebaseOptions android = FirebaseOptions(
     messagingSenderId: '235961023298',
     projectId: 'fahamni-dev',
     storageBucket: 'fahamni-dev.firebasestorage.app',
+    androidClientId: '235961023298-00s61lc1bntjnjcvffuv0pcpqolf3urg.apps.googleusercontent.com',
+    iosClientId: '235961023298-4oigsehs105sdnmamn8je9nb73otk9mv.apps.googleusercontent.com',
     iosBundleId: 'com.example.fahamni',
   );
 
