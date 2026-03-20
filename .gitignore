@@ -43,3 +43,26 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+# Android build files
+android/app/build/
+android/.gradle/
+android/local.properties
+android/app/*.apk
+android/app/*.so
+android/app/**/*.so
+android/app/**/*.apk
+
+# Large binary files
+*.apk
+*.so
+*.a
+*.o
+*.dill
+*.bin
+
+# Flutter build cache
+**/build/
+**/ios/Flutter/Generated.xcconfig
+**/ios/Flutter/flutter_export_environment.sh
+**/ios/Pods/
+**/ios/ServiceDefinitions.json
