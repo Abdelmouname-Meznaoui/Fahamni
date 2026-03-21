@@ -53,6 +53,14 @@ class ChatPage extends StatelessWidget {
           content: "Hey! How are you doing?",
           sendingDateTime: DateTime.now().subtract(const Duration(minutes: 10)),
         ),
+        MessageModel(
+          messageId: "m1",
+          conversationId: "conv_${user['id']}",
+          senderId: myId,
+          receiverId: user['id'],
+          content: "Hey! How are you doing?",
+          sendingDateTime: DateTime.now().subtract(const Duration(minutes: 10)),
+        ),
       ],
       media : [
         'https://anniversaire-celebrite.com/images/celebrites/patrick-etoile-de-mer.jpg',

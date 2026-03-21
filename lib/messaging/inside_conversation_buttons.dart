@@ -5,6 +5,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'media_grid.dart';
 import 'conversation_members.dart';
 import 'conversation_doc_page.dart';
+import 'conversation_attachements.dart';
 
 class InsideConversationButtons extends StatefulWidget {
   final ConversationModel conversation;
@@ -118,8 +119,8 @@ class _InsideConversationButtonsState extends State<InsideConversationButtons>
             child: TabBarView(
               controller: _tabController,
               children: [
-                  MediaGrid(images: widget.conversation.media),
-                const Center(child: Text("Attachment Content")),
+                MediaGrid(images: widget.conversation.media),
+                AttachmentsList(),
                 ConversationMembers(participants: widget.conversation.participants),
               ],
             ),

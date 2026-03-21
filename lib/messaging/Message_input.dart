@@ -39,15 +39,18 @@ class _MessageInputState extends State<MessageInput> {
           margin: const EdgeInsets.all(16),
           padding: const EdgeInsets.symmetric(horizontal: 12),
           decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.2),
+            color: const Color.fromARGB(20, 0, 0, 128),
             borderRadius: BorderRadius.circular(28),
             border: Border.all(color: Colors.white.withOpacity(0.3), width: 1),
           ),
           child: Row(
             children: [
-              const Icon(
-                Icons.sentiment_satisfied_alt_outlined,
-                color: Color(0xFF000080),
+              GestureDetector(
+                onTap: (){},
+                child: const Icon(
+                  Icons.sentiment_satisfied_alt_outlined,
+                  color: Color(0xFF000080),
+                ),
               ),
               const SizedBox(width: 8),
               Expanded(
@@ -63,16 +66,22 @@ class _MessageInputState extends State<MessageInput> {
               ),
 
               if (_isTextEmpty) ...[
-                const Icon(
-                  Icons.attach_file_outlined,
-                  color: Color(0xFF1F2937),
-                  size: 24,
+                GestureDetector(
+                  onTap: (){},
+                  child: const Icon(
+                    Icons.attach_file_outlined,
+                    color: Color(0xFF1F2937),
+                    size: 24,
+                  ),
                 ),
                 const SizedBox(width: 10),
-                const Icon(
-                  Icons.mic_none_outlined,
-                  color: Color(0xFF1F2937),
-                  size: 24,
+                GestureDetector(
+                  onTap: (){},
+                  child: const Icon(
+                    Icons.mic_none_outlined,
+                    color: Color(0xFF1F2937),
+                    size: 24,
+                  ),
                 ),
               ] else
                 Transform.rotate(
