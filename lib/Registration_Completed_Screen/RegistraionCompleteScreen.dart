@@ -1,3 +1,4 @@
+import 'package:fahamni/StudentHomePage/Student_homepage.dart';
 import 'package:flutter/material.dart';
 
 
@@ -90,7 +91,11 @@ class RegistrationComplete extends StatelessWidget {
                     borderRadius: BorderRadius.circular(12),
                   ),
                 ),
-                onPressed: () {},
+                onPressed: () {
+                  Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => Studentpage()));
+                },
                 child: const Text(
                   'Go to Dashboard',
                   style: TextStyle(

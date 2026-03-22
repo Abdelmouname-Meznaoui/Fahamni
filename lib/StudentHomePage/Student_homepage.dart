@@ -1,5 +1,6 @@
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:fahamni/StudentHomePage/studenthome_service.dart';
+import 'package:fahamni/explorepage.dart';
 import 'package:fahamni/models/session_model.dart';
 import 'package:fahamni/models/student_model.dart';
 import 'package:fahamni/models/tutor_model.dart';
@@ -72,11 +73,19 @@ class _StudenthomepageState extends State<Studenthomepage> {
   TutorModel ? sessiontutor;
   List<TutorModel> ? favoriteTutors = [];
   List<SessionModel> ? courses = [];
+  int _selectedIndex = 0;
+  late List<Widget> _pages;
   @override
   void initState() {
     // TODO: implement initState
     super.initState();
     loadStudent();
+    _pages = [
+      const Studenthomepage(),
+      const Explorepage(),
+      const Placeholder(),
+      const Placeholder(),
+    ];
   }
   Future<void> loadStudent() async{
     final data = await studenthomepage_service().getStudentData();
@@ -687,31 +696,22 @@ class _StudenthomepageState extends State<Studenthomepage> {
           ),
         ),
       ),
-      bottomNavigationBar: Container(
-        margin: EdgeInsets.fromLTRB(8, 0, 8, 20),
-        height: 70,
-        width: 400,
-        decoration: BoxDecoration(
-          color: Color(0xFF94A3B8).withOpacity(0.2),
-          borderRadius: BorderRadius.circular(30),
-        ),
-            child:ClipRRect(
-    borderRadius: BorderRadius.circular(30),
-    child: BackdropFilter(
-      filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10), // the glass blur
-      child: Container(
-        decoration: BoxDecoration(
-          color: Colors.grey.withOpacity(0.2), // grey glass tint
-          borderRadius: BorderRadius.circular(30),
-        ),
-        child: Padding(
-              padding: EdgeInsetsGeometry.symmetric(horizontal: 15 , vertical: 10),
-              child:const CustomBottomNavbar(),
-            ),
-      ),
-    ),
-  ),
-        ),
+      bottomNavigationBar: CustomBottomNavbar(selectedIndex: _selectedIndex,
+          onTap: (index) {
+            setState(() {
+              _selectedIndex = index;
+            });
+            if (index == 1) {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => Explorepage()),
+              ).then((_){
+                setState(() {
+                  _selectedIndex = 0 ;
+                });
+              });
+            }
+          },),
     );
   }
 }

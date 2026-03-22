@@ -8,6 +8,9 @@ class ServiceModel {
   final String description;
   final double price;
   final int duration;
+  final int sessionsnum;
+  final int maxnum;
+  final int enrollednum;
   final bool isActive;
 
   ServiceModel({
@@ -21,6 +24,9 @@ class ServiceModel {
     required this.price,
     required this.duration,
     required this.isActive,
+    required this.maxnum,
+    required this.enrollednum,
+    required this.sessionsnum,
 
   });
 
@@ -36,6 +42,9 @@ class ServiceModel {
       'price': price,
       'duration': duration,
       'is_active': isActive,
+      'sessions_num' : sessionsnum,
+      'enrolled_num' : enrollednum,
+      'maxstudents' : maxnum
     };
   }
   factory ServiceModel.fromMap(Map<String, dynamic> map) {
@@ -49,6 +58,9 @@ class ServiceModel {
       description: map['description'] ?? '',
       price: (map['price'] ?? 0.0).toDouble(),
       duration: map['duration'] ?? 0,
+      maxnum: map['maxstudents'] ?? 0,
+      enrollednum: map['enrolled_num'] ?? 0,
+      sessionsnum: map['sessions_num'] ?? 0,
       isActive: map['is_active'] ?? false,
     );
   }
