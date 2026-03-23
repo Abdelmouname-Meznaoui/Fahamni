@@ -22,6 +22,7 @@ class TutorModel extends UserModel {
     required super.location,
     required super.gender,
     required super.birthday,
+    required super.picture,
     required super.accountStatus,
     required this.expertiseDomain,
     required this.levelsTaught,
@@ -45,6 +46,7 @@ class TutorModel extends UserModel {
       'location':     location,
       'gender':       gender.name,
       'birthday':     Timestamp.fromDate(birthday), // FIXED
+      'picture':      picture,
       'role':         role.name,
       'account_status': accountStatus.name,
       'expertise_domain':        expertiseDomain,
@@ -69,6 +71,7 @@ class TutorModel extends UserModel {
       location:     map['location']   ?? '',
       gender:       Gender.values.byName(map['gender'] ?? 'male'),
       birthday:     (map['birthday'] as Timestamp).toDate(), // FIXED
+      picture:      map['picture'],
       accountStatus: AccountStatus.values.byName(map['account_status'] ?? 'pending'),
       expertiseDomain:        map['expertise_domain']        ?? '',
       levelsTaught:           List<String>.from(map['levels_taught'] ?? []),

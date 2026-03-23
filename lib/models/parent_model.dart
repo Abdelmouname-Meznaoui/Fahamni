@@ -14,6 +14,7 @@ class ParentModel extends UserModel {
     required super.location,
     required super.gender,
     required super.birthday,
+    required super.picture,
     required super.accountStatus,
     required this.childrenUids,
   }) : super(role: UserRole.parent);
@@ -29,6 +30,7 @@ class ParentModel extends UserModel {
       'location':     location,
       'gender':       gender.name,
       'birthday':     Timestamp.fromDate(birthday), // FIXED
+      'picture':      picture,
       'role':         role.name,
       'account_status': accountStatus.name,
       'children_uids':  childrenUids,
@@ -45,6 +47,7 @@ class ParentModel extends UserModel {
       location:     map['location']   ?? '',
       gender:       Gender.values.byName(map['gender'] ?? 'male'),
       birthday:     (map['birthday'] as Timestamp).toDate(), // FIXED
+      picture:      map['picture'],
       accountStatus: AccountStatus.values.byName(map['account_status'] ?? 'pending'),
       childrenUids:  List<String>.from(map['children_uids'] ?? []),
     );

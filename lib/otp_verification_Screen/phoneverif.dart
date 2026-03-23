@@ -162,6 +162,25 @@ class _PhoneVerificationPageState extends State<PhoneVerificationPage> {
     );
   }
 
+  String _defaultPicture() {
+    final role   = widget.data['role']   as UserRole;
+    final gender = widget.data['gender'] as Gender;
+
+    if (role == UserRole.tutor) {
+      return gender == Gender.female
+          ? 'assets/images/tutorfemale.png'
+          : 'assets/images/tutormale.png';
+    } else if (role == UserRole.student) {
+      return gender == Gender.female
+          ? 'assets/images/studentfemale.png'
+          : 'assets/images/studentmale.png';
+    } else {
+      return gender == Gender.female
+          ? 'assets/images/parentfemale.png'
+          : 'assets/images/parentmale.png';
+    }
+  }
+
   UserModel _buildUserModel() {
     final data = widget.data;
     final role = data['role'] as UserRole;
@@ -174,6 +193,9 @@ class _PhoneVerificationPageState extends State<PhoneVerificationPage> {
         schoolLevel:        data['schoolLevel']        ?? '',
         learningObjectives: data['learningObjectives'] ?? '',
         preferredSubjects:  List<String>.from(data['preferredSubjects'] ?? []),
+        favoriteTeachers:   List<String>.from(data['favoriteTeachers'] ?? []),  // ADD
+        Courses:            List<String>.from(data['courses'] ?? []), 
+        picture: data['picture'] ?? _defaultPicture(),
       );
     } else if (role == UserRole.tutor) {
       return TutorModel(
@@ -190,6 +212,7 @@ class _PhoneVerificationPageState extends State<PhoneVerificationPage> {
         averageRating:          data['averageRating']          ?? 0.0,
         yearsOfExperience:      data['yearsOfExperience']      ?? 0,
         academicDescription:    data['academicDescription']    ?? '',
+        picture: data['picture'] ?? _defaultPicture(),
       );
     } else {
       return ParentModel(
@@ -198,6 +221,7 @@ class _PhoneVerificationPageState extends State<PhoneVerificationPage> {
         location: data['location'], gender: data['gender'],
         birthday: data['birthday'], accountStatus: AccountStatus.validated,
         childrenUids: List<String>.from(data['childrenUids'] ?? []),
+        picture: data['picture'] ?? _defaultPicture(),
       );
     }
   }

@@ -20,6 +20,7 @@
         "flutter_svg",
         "google_sign_in",
         "http",
+        "intl",
         "recaptcha_enterprise_flutter"
       ],
       "devDependencies": [
@@ -50,6 +51,15 @@
         "stream_channel",
         "test_api",
         "vector_math"
+      ]
+    },
+    {
+      "name": "intl",
+      "version": "0.20.2",
+      "dependencies": [
+        "clock",
+        "meta",
+        "path"
       ]
     },
     {

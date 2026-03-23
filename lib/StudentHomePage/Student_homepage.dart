@@ -1,8 +1,14 @@
 import 'package:carousel_slider/carousel_slider.dart';
+import 'package:fahamni/StudentHomePage/studenthome_service.dart';
+import 'package:fahamni/models/session_model.dart';
+import 'package:fahamni/models/student_model.dart';
+import 'package:fahamni/models/tutor_model.dart';
+import 'package:fahamni/models/user_model.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:fahamni/Home_Screens/Student_HS/customnavbar.dart';
+import 'package:fahamni/widgets/customnavbar.dart';
 import 'dart:ui';
+import 'package:intl/intl.dart';
 
 class Studentpage extends StatelessWidget {
   const Studentpage({super.key});
@@ -60,8 +66,59 @@ class _StudenthomepageState extends State<Studenthomepage> {
   ];
   int currentindex=0;
   int counter = 0;
+  int minutes = 0;
+  String ? mode ;
+  StudentModel ? student ;
+  TutorModel ? sessiontutor;
+  List<TutorModel> ? favoriteTutors = [];
+  List<SessionModel> ? courses = [];
+  @override
+  void initState() {
+    // TODO: implement initState
+    super.initState();
+    loadStudent();
+  }
+  Future<void> loadStudent() async {
+  try {
+    final data = await studenthomepage_service().getStudentData();
+    final tutors = await studenthomepage_service().getFavoriteTeachers(data.favoriteTeachers);
+    final sessions = await studenthomepage_service().getCourses(data.Courses);
+    TutorModel? tutor;
+    if (sessions.isNotEmpty) {
+      tutor = await studenthomepage_service().getTutorData(sessions[0].tutorId);
+    }
+    if (!mounted) return;
+    setState(() {
+      student = data;
+      favoriteTutors = tutors;
+      courses = sessions;
+      sessiontutor = tutor;
+    });
+    if (sessions.isNotEmpty) {
+      minutes = courses![0].endTime.difference(courses![0].startTime).inMinutes;
+    }
+  } catch (e) {
+    if (!mounted) return;
+    setState(() {
+      student = StudentModel(  // set a fallback so spinner stops
+        uid: '', firstName: 'Error', lastName: '',
+        email: '', phone: '', location: '',
+        gender: Gender.male, birthday: DateTime.now(),
+        accountStatus: AccountStatus.validated,
+        picture: '', schoolLevel: '', learningObjectives: '',
+        preferredSubjects: [], favoriteTeachers: [], Courses: [],
+      );
+    });
+    debugPrint('loadStudent error: $e');
+  }
+}
   @override
   Widget build(BuildContext context) {
+    if (student == null) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
@@ -74,10 +131,23 @@ class _StudenthomepageState extends State<Studenthomepage> {
               Row(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
+                  if(student!.picture != "")
                   CircleAvatar(
                     radius: 25,
-                    backgroundImage: AssetImage('assets/images/profile.jpg'),
-                  ),
+                    backgroundImage: AssetImage(student!.picture),
+                  )
+                  else
+                    if (student!.gender == Gender.male)
+                    CircleAvatar(
+                      radius: 25,
+                      backgroundImage: AssetImage('assets/images/studentmale.png'),
+                     )
+                    else
+                     CircleAvatar(
+                       radius: 25,
+                       backgroundImage: AssetImage('assets/images/studentfemale.png'),
+                       backgroundColor: Colors.white,
+                     ),
                   SizedBox(width: 5),
                   Expanded( // Wrap with Expanded to take available space
                     child: Column(
@@ -86,7 +156,7 @@ class _StudenthomepageState extends State<Studenthomepage> {
                         ConstrainedBox(
                           constraints: BoxConstraints(maxWidth: 300),
                           child: Text(
-                            'Bedoui Wassim',
+                            '${student?.firstName} ${student?.lastName} ',
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(
                               color: const Color(0xFF1F2937),
@@ -97,7 +167,7 @@ class _StudenthomepageState extends State<Studenthomepage> {
                           ),
                         ),
                         Text(
-                          'Student',
+                          '${student?.role.name}',
                           style: TextStyle(
                             color: const Color(0xFF000080),
                             fontFamily: 'Inter',
@@ -214,7 +284,6 @@ class _StudenthomepageState extends State<Studenthomepage> {
                             top: 140 ,
                             left: 23,
                             child: Container(
-                             // padding: EdgeInsets.fromLTRB(8, 0, 8, 0),
                              height: 35,
                              width: 100,
                              decoration: BoxDecoration(
@@ -308,8 +377,29 @@ class _StudenthomepageState extends State<Studenthomepage> {
                child: ListView.builder(
                  scrollDirection: Axis.horizontal,
                  shrinkWrap: true,
-                 itemCount: teachers.length,
+                 itemCount: favoriteTutors?.length,
                  itemBuilder: (context, index) {
+                   if(favoriteTutors?.length == 0){
+                     return Container(
+                       height: 500,
+                       child: Row(
+                         mainAxisAlignment: MainAxisAlignment.center,
+                         children: [
+                           SizedBox(width: 80 ,),
+                           Text(
+                               'NO Favorite Teachers :(',
+                               style: TextStyle(
+                                 fontFamily: 'Nunito',
+                                 fontWeight: FontWeight.w700,
+                                 fontSize: 20,
+                                 color: Colors.grey,
+                               ),
+                           ),
+                         ],
+                       ),
+
+                     );
+                   }
                    return Column(
                        children: [
                          Padding(
@@ -324,7 +414,7 @@ class _StudenthomepageState extends State<Studenthomepage> {
                                    decoration: BoxDecoration(
                                    shape: BoxShape.circle,
                                    image: DecorationImage(
-                                       image: NetworkImage(teachers[index]['image']),
+                                       image: NetworkImage((favoriteTutors?[index].picture).toString()),
                                        fit : BoxFit.cover ),
                                    ),
                                  ),
@@ -353,7 +443,7 @@ class _StudenthomepageState extends State<Studenthomepage> {
                            )
                          ),
                          Text(
-                             teachers[index]['name'],
+                           (favoriteTutors?[index].firstName).toString(),
                              style: TextStyle(
                               color: Colors.black,
                              fontFamily: "Nunito",
@@ -397,46 +487,90 @@ class _StudenthomepageState extends State<Studenthomepage> {
                   )
                 ],
               ),
-              Container(
-                margin: EdgeInsets.fromLTRB(0, 10, 0, 10),
-                height: 230,
-                width: 400,
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(20),
-                    border: Border(
-                      left: BorderSide(
-                        color: Color(0xFF000080), // Your custom color
-                        width: 5, // Border width
-                        style: BorderStyle.solid, // solid is default
-                      ),
-                    ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Color(0xFF000080).withOpacity(0.5),
-                      spreadRadius: 2,
-                      blurRadius: 5,
-                      offset: Offset(2, 3),
-                    )
-                  ]
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Container(
-                            height: 20,
-                            width: 120,
-                            decoration: BoxDecoration(
-                              color: Color(0xFF6324EB).withOpacity(0.2),
-                              borderRadius: BorderRadius.circular(5),
+              if(courses?.length==0)
+                Row(
+                  children: [
+                    SizedBox(width: 100 ,),
+                    Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        SizedBox(height: 50,),
+                        Text(
+                            "Start your Journey",
+                          style: TextStyle(
+                            fontFamily: 'Nunito',
+                            fontWeight: FontWeight.w700,
+                            fontSize: 20,
+                            color: Colors.grey,
+                          ),
+                        ),
+                        SizedBox(height: 10,),
+                        ElevatedButton(
+                            onPressed:(){},
+                            style: ElevatedButton.styleFrom(
+                                backgroundColor: Color(0xFF000080),
+                                foregroundColor: Colors.white,
+                                minimumSize: Size(100, 50),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                 )
                             ),
-                            child: Padding(
-                              padding: const EdgeInsets.fromLTRB(5, 0, 0, 0),
                               child: Text(
+                                  'Book a Session',
+                                style: TextStyle(
+                                  fontFamily: 'Nunito',
+                                  fontWeight: FontWeight.w700,
+                                  color: Colors.white,
+                                  fontSize: 18
+
+                                ),
+                              ),
+                        )
+                      ],
+                    ),
+                  ],
+                )
+              else if(sessiontutor != null)
+                Container(
+                  margin: EdgeInsets.fromLTRB(0, 10, 0, 10),
+                  height: 230,
+                  width: 400,
+                  decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border(
+                        left: BorderSide(
+                          color: Color(0xFF000080), // Your custom color
+                          width: 5, // Border width
+                          style: BorderStyle.solid, // solid is default
+                        ),
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Color(0xFF000080).withOpacity(0.5),
+                          spreadRadius: 2,
+                          blurRadius: 5,
+                          offset: Offset(2, 3),
+                        )
+                      ]
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Container(
+                              height: 20,
+                              width: 120,
+                              decoration: BoxDecoration(
+                                color: Color(0xFF6324EB).withOpacity(0.2),
+                                borderRadius: BorderRadius.circular(5),
+                              ),
+                              child: Padding(
+                                padding: const EdgeInsets.fromLTRB(5, 0, 0, 0),
+                                child: Text(
                                   'NEXT COURSE',
                                   style: TextStyle(
                                     fontFamily: "Nunito",
@@ -444,128 +578,132 @@ class _StudenthomepageState extends State<Studenthomepage> {
                                     color: Color(0xFF000080),
                                     letterSpacing: 1,
                                   ),
+                                ),
                               ),
                             ),
-                          ),
-                          SizedBox(width: 150,),
-                          Container(
-                            height: 25,
-                            width:70,
-                            decoration: BoxDecoration(
-                              color: Color(0xFFDCFCE7),
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            child: Padding(
-                              padding: const EdgeInsets.fromLTRB(4, 4, 4, 4),
-                              child: Center(
-                                child: Text(
-                                    '•Online',
-                                  style: TextStyle(
-                                    fontFamily: "Nunito",
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w700,
-                                    color: Color(0xFF16A34A),
-                                    height: 1.25,
-                                  ),
-
+                            SizedBox(width: 150,),
+                            Container(
+                              height: 25,
+                              width:70,
+                              decoration: BoxDecoration(
+                                color: mode == "•Online" ? Color(0xFFDCFCE7) : Colors.black,
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: Padding(
+                                padding: const EdgeInsets.fromLTRB(4, 4, 4, 4),
+                                child: Center(
+                                  child: Text(
+                                    sessiontutor!.teachingMode,
+                                    style: TextStyle(
+                                      fontFamily: "Nunito",
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w700,
+                                      color: mode == "•Online" ? Color(0xFF16A34A) : Colors.white,
+                                      height: 1.25,
                                     ),
+
+                                  ),
+                                ),
                               ),
-                            ),
-                          )
-                        ],
-                      ),
-                      SizedBox(height: 10,),
-                      SizedBox(
-                        width: 200,
-                        height: 28,
-                        child: Text(
-                            'Mathématiques',
+                            )
+                          ],
+                        ),
+                        SizedBox(height: 10,),
+                        SizedBox(
+                          width: 200,
+                          height: 28,
+                          child: Text(
+                            sessiontutor!.expertiseDomain,
                             style: TextStyle(
                               color: Colors.black,
                               fontFamily: "Inter",
                               fontSize: 20,
                               fontWeight: FontWeight.w700,
                             ),
+                          ),
                         ),
-                      ),
-                      SizedBox(height: 10,),
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: [
+                        SizedBox(height: 10,),
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
                             SvgPicture.asset(
-                                "assets/images/person.svg",
+                              "assets/images/person.svg",
                               height: 20,
                               width: 20,
                               color: Color(0xFF475569),
                             ),
 
-                          SizedBox(width: 10,),
-                          Text('Dr.Zegour',
-                          style: TextStyle(
-                            color: Color(0xFF475569),
-                            fontFamily: "Lexend",
-                            fontWeight: FontWeight.w400,
-                            fontSize: 15,
-                          ),
-                          )
-                        ],
-                      ),
-                      SizedBox(height: 15,),
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: [
-                          SvgPicture.asset(
-                            "assets/images/time.svg",
-                            height: 20,
-                            width: 20,
-                            color: Color(0xFF475569),
-                          ),
-                          SizedBox(width: 10,),
-                          Text('14:00 - 15:30 (90 min)',
-                            style: TextStyle(
+                            SizedBox(width: 10,),
+                            Text(
+                              sessiontutor!.firstName,
+                              style: TextStyle(
+                                color: Color(0xFF475569),
+                                fontFamily: "Lexend",
+                                fontWeight: FontWeight.w400,
+                                fontSize: 15,
+                              ),
+                            )
+                          ],
+                        ),
+                        SizedBox(height: 15,),
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            SvgPicture.asset(
+                              "assets/images/time.svg",
+                              height: 20,
+                              width: 20,
                               color: Color(0xFF475569),
-                              fontFamily: "Lexend",
-                              fontWeight: FontWeight.w400,
-                              fontSize: 15,
                             ),
-                          )
-                        ],
-                      ),
-                      SizedBox(height: 28,),
-                      Container(
-                        height: 48,
-                        width: 370,
-                        child: ElevatedButton.icon(
-                          onPressed: () {},
-                          icon: ImageIcon(
-                            AssetImage('assets/images/Icon.png'),
+                            SizedBox(width: 10,),
+                            Text(
+                              DateFormat('HH:mm').format(courses![0].startTime)+ "-"+
+                              DateFormat('HH:mm').format(courses![0].endTime)+" ("+
+                              '$minutes min)',
+                              style: TextStyle(
+                                color: Color(0xFF475569),
+                                fontFamily: "Lexend",
+                                fontWeight: FontWeight.w400,
+                                fontSize: 15,
+                              ),
+                            )
+                          ],
+                        ),
+                        SizedBox(height: 28,),
+                        Container(
+                          height: 48,
+                          width: 370,
+                          child: ElevatedButton.icon(
+                            onPressed: () {},
+                            icon: ImageIcon(
+                              AssetImage('assets/images/Icon.png'),
 
-                          ),
+                            ),
 
-                          label: Text(
+                            label: Text(
                               'Join the course',
                               style: TextStyle(
-                                fontFamily: "Lexend",
-                                fontSize: 16,
-                                fontWeight: FontWeight.w700
+                                  fontFamily: "Lexend",
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w700
                               ),
-                          ),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Color(0xFF000080), // Your dark color
-                            foregroundColor: Colors.white,
-                            padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8),
                             ),
-                          //  minimumSize: Size(324, 48), // Minimum width and height
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Color(0xFF000080), // Your dark color
+                              foregroundColor: Colors.white,
+                              padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              //  minimumSize: Size(324, 48), // Minimum width and height
+                            ),
                           ),
-                        ),
-                      )
-                    ],
-                  
+                        )
+                      ],
+
+                    ),
                   ),
                 ),
-              ),
             ],
           ),
         ),
@@ -581,10 +719,10 @@ class _StudenthomepageState extends State<Studenthomepage> {
             child:ClipRRect(
     borderRadius: BorderRadius.circular(30),
     child: BackdropFilter(
-      filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10), // 👈 the glass blur
+      filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10), // the glass blur
       child: Container(
         decoration: BoxDecoration(
-          color: Colors.grey.withOpacity(0.2), // 👈 grey glass tint
+          color: Colors.grey.withOpacity(0.2), // grey glass tint
           borderRadius: BorderRadius.circular(30),
         ),
         child: Padding(

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:fahamni/user_infos/ipersonal_info.dart';
 import '../Pass_recov_page/passRec.dart';
-import '../Home_Screens/Student_HS/Student_homepage.dart';
+import '../StudentHomePage/Student_homepage.dart';
 import '../Services/auth_.service.dart';
 import '../models/user_model.dart'; 
 

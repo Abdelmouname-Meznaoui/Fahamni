@@ -57,7 +57,7 @@ class _studentinfoState extends State<studentinfo> {
             }
             else if (selectedIndex == 1){
               data['role'] = UserRole.parent;
-              data['childrensUids'] = <String>[];
+              data['childrenUids'] = <String>[];
             }
             else if (selectedIndex == 2){
               final t = _tutorKey.currentState!;

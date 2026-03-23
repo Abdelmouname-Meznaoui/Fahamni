@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
-import '../Home_Screens/Student_HS/Student_homepage.dart';
+import '../StudentHomePage/Student_homepage.dart';
 import '../Services/email_otp_service.dart';
+import 'package:firebase_auth/firebase_auth.dart'; 
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 
 
 class RegistrationComplete extends StatefulWidget {
@@ -18,6 +21,33 @@ class _RegistrationCompleteState extends State<RegistrationComplete> {
     super.initState();
     EmailOtpService().sendWelcomeEmail(email: widget.email, firstName: widget.firstName);
   }
+
+   Future<void> _goToDashboard() async {
+  await FirebaseAuth.instance.authStateChanges().first;
+  if (!mounted) return;
+
+  final uid = FirebaseAuth.instance.currentUser!.uid;
+  final doc = await FirebaseFirestore.instance.collection('users').doc(uid).get();
+  final role = doc['role'] as String;
+
+  if (!mounted) return;
+
+  Widget page;
+  if (role == 'student') {
+    page = const Studentpage();
+  } else if (role == 'tutor') {
+    page = const Studentpage();       //to be replaced with tutor homepage when it's ready
+  } else {
+    page = const Studentpage();      // to be replaced with a generic homepage or error page when it's ready
+  }
+
+  Navigator.pushAndRemoveUntil(
+    context,
+    MaterialPageRoute(builder: (_) => page),
+    (route) => false,
+  );
+}
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -33,12 +63,7 @@ class _RegistrationCompleteState extends State<RegistrationComplete> {
             Icons.close,
             color: Color(0xFF0F172A),
           ),
-          onPressed: () {
-            Navigator.push(
-                                context,
-                                MaterialPageRoute(builder: (context) => const Studentpage()),
-                              );
-          },
+          onPressed: _goToDashboard, 
         ),
         title: const Text(
           "Registration Complete",
@@ -107,12 +132,7 @@ class _RegistrationCompleteState extends State<RegistrationComplete> {
                     borderRadius: BorderRadius.circular(12),
                   ),
                 ),
-                onPressed: () {
-                  Navigator.push(
-                                context,
-                                MaterialPageRoute(builder: (context) => const Studentpage()),
-                              );
-                },
+                onPressed: _goToDashboard, 
                 child: const Text(
                   'Go to Dashboard',
                   style: TextStyle(

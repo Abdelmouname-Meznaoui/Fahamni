@@ -15,6 +15,7 @@ abstract class UserModel {
   final String location;
   final Gender gender;
   final DateTime birthday;
+  final String picture;
   final UserRole role;
   AccountStatus accountStatus;
 
@@ -29,6 +30,7 @@ abstract class UserModel {
     required this.gender,
     required this.birthday,
     required this.role,
+    required this.picture,
     required this.accountStatus,
   });
 

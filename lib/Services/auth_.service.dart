@@ -127,6 +127,7 @@ Future<void> sendOtp({
   required String phoneNumber,
   required void Function(String verificationId) onCodeSent,
   required void Function(String error) onError,
+  
 }) async {
   await PhoneAuthService.sendOtp(
     phoneNumber: phoneNumber,
@@ -218,6 +219,9 @@ UserModel _buildModelWithUid(UserModel model, String uid) {
       schoolLevel: model.schoolLevel,
       learningObjectives: model.learningObjectives,
       preferredSubjects: model.preferredSubjects,
+      favoriteTeachers: model.favoriteTeachers,      
+      Courses: model.Courses,
+      picture: model.picture,
     );
   } else if (model is TutorModel) {
     return TutorModel(
@@ -235,6 +239,7 @@ UserModel _buildModelWithUid(UserModel model, String uid) {
       averageRating: model.averageRating,
       yearsOfExperience: model.yearsOfExperience,
       academicDescription: model.academicDescription,
+      picture: model.picture, 
     );
   } else {
     final p = model as ParentModel;
@@ -245,6 +250,7 @@ UserModel _buildModelWithUid(UserModel model, String uid) {
       location: p.location,   gender: p.gender,
       birthday: p.birthday,   accountStatus: p.accountStatus,
       childrenUids: p.childrenUids,
+      picture: model.picture, 
     );
   }
 }
@@ -350,5 +356,3 @@ Future<UserModel?> loginWithGoogle() async {
 
   
 }
-
-
