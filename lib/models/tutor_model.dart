@@ -26,6 +26,7 @@ class TutorModel extends UserModel {
     required super.gender,
     required super.birthday,
     required super.accountStatus,
+    required super.picture,
     required this.expertiseDomain,
     required this.levelsTaught,
     required this.teachingMode,
@@ -54,6 +55,7 @@ class TutorModel extends UserModel {
       'birthday': birthday,
       'role': role.name,
       'account_status':accountStatus,
+      'picture':      picture,
 
 
       'expertise_domain' : expertiseDomain,
@@ -79,6 +81,7 @@ class TutorModel extends UserModel {
       location: map['location'] ?? '',
       gender: Gender.values.byName(map['gender'] ?? 'male'),
       birthday: (map['birthday'] as dynamic).toDate(),
+      picture:map['picture'],
       accountStatus: map['account_status'] ?? 'pending',
 
       expertiseDomain: map['expertise_domain'] ?? '',

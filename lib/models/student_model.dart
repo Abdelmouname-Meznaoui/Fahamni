@@ -17,6 +17,7 @@ class StudentModel extends UserModel {
     required super.gender,
     required super.birthday,
     required super.accountStatus,
+    required super.picture,
 
     required this.schoolLevel,
     required this.learningObjectives,
@@ -34,6 +35,7 @@ class StudentModel extends UserModel {
       'location': location,
       'gender': gender.name,
       'birthday': birthday,
+      'picture' : picture,
       'role': role.name,
       'account_status':accountStatus,
 
@@ -54,6 +56,7 @@ class StudentModel extends UserModel {
       location: map['location'] ?? '',
       gender: Gender.values.byName(map['gender'] ?? 'male'),
       birthday: (map['birthday'] as dynamic).toDate(),
+      picture:map['picture'],
       schoolLevel: map['school_level'] ?? '',
       learningObjectives: map['learning_objectives'] ?? '',
       preferredSubjects: List<String>.from(map['preferred_subjects'] ?? []),

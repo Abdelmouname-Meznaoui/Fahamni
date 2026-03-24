@@ -15,6 +15,7 @@ class ParentModel extends UserModel {
     required super.gender,
     required super.birthday,
     required super.accountStatus,
+    required super.picture,
 
     required this.childrenUids,
 
@@ -31,6 +32,7 @@ class ParentModel extends UserModel {
       'location': location,
       'gender': gender.name,
       'birthday': birthday,
+      'picture' : picture,
       'role': role.name,
       'account_status':accountStatus,
 
@@ -49,6 +51,7 @@ class ParentModel extends UserModel {
       location: map['location'] ?? '',
       gender: Gender.values.byName(map['gender'] ?? 'male'),
       birthday: (map['birthday'] as dynamic).toDate(),
+      picture:map['picture'],
       accountStatus: map['account_status'] ?? 'pending',
 
 
