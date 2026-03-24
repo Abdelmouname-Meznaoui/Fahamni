@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:fahamni/Login_Screen/LoginScreen.dart';
+import '../Onboarding/onboarding.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -74,7 +74,7 @@ class _SplashScreenState extends State<SplashScreen>
         if (mounted) {
           Navigator.pushReplacement(
             context,
-            MaterialPageRoute(builder: (context) => const LoginScreenPage()),
+            MaterialPageRoute(builder: (context) => const OnboardingScreen()),
           );
         }
       });
