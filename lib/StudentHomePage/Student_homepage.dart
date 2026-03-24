@@ -1,7 +1,6 @@
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:fahamni/StudentHomePage/studenthome_service.dart';
-import 'package:fahamni/messaging/chat_page.dart';
-import 'package:fahamni/messaging/conversation_doc_page.dart';
+import 'package:fahamni/explorepage.dart';
 import 'package:fahamni/models/session_model.dart';
 import 'package:fahamni/models/student_model.dart';
 import 'package:fahamni/models/tutor_model.dart';
@@ -75,6 +74,8 @@ class _StudenthomepageState extends State<Studenthomepage> {
   TutorModel ? sessiontutor;
   List<TutorModel> ? favoriteTutors = [];
   List<SessionModel> ? courses = [];
+  int _selectedIndex = 0;
+  late List<Widget> _pages;
   @override
   int _selectedIndex = 0;
 late List<Widget> _pages;
