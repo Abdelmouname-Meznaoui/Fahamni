@@ -13,6 +13,7 @@ import 'package:intl/intl.dart';
 
 class Studentpage extends StatelessWidget {
   const Studentpage({super.key});
+  
 
   @override
   Widget build(BuildContext context) {
@@ -76,17 +77,21 @@ class _StudenthomepageState extends State<Studenthomepage> {
   int _selectedIndex = 0;
   late List<Widget> _pages;
   @override
-  void initState() {
-    // TODO: implement initState
-    super.initState();
-    loadStudent();
-    _pages = [
-      const Studenthomepage(),
-      const Explorepage(),
-      const Placeholder(),
-      const Placeholder(),
-    ];
-  }
+  int _selectedIndex = 0;
+late List<Widget> _pages;
+
+@override
+void initState() {
+  super.initState();
+  loadStudent();
+  _pages = [
+    const Studenthomepage(), 
+    const Placeholder(),
+    const Placeholder(),
+    ChatPage(),
+    const Placeholder(),
+  ];
+}
   Future<void> loadStudent() async{
     final data = await studenthomepage_service().getStudentData();
     final tutors = await studenthomepage_service().getFavoriteTeachers(data.favoriteTeachers);
@@ -696,22 +701,45 @@ class _StudenthomepageState extends State<Studenthomepage> {
           ),
         ),
       ),
-      bottomNavigationBar: CustomBottomNavbar(selectedIndex: _selectedIndex,
-          onTap: (index) {
-            setState(() {
-              _selectedIndex = index;
-            });
-            if (index == 1) {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => Explorepage()),
-              ).then((_){
-                setState(() {
-                  _selectedIndex = 0 ;
-                });
-              });
-            }
-          },),
+      bottomNavigationBar: Container(
+        margin: EdgeInsets.fromLTRB(8, 0, 8, 20),
+        height: 70,
+        width: 400,
+        decoration: BoxDecoration(
+          color: Color(0xFF94A3B8).withOpacity(0.2),
+          borderRadius: BorderRadius.circular(30),
+        ),
+            child:ClipRRect(
+    borderRadius: BorderRadius.circular(30),
+    child: BackdropFilter(
+      filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10), // the glass blur
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.grey.withOpacity(0.2), // grey glass tint
+          borderRadius: BorderRadius.circular(30),
+        ),
+        child: Padding(
+              padding: EdgeInsetsGeometry.symmetric(horizontal: 15 , vertical: 10),
+              child:CustomBottomNavbar(
+  selectedIndex: _selectedIndex,
+  onTap: (index) {
+    if (index == 3) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => ChatPage()),
+      );
+    } else {
+      setState(() {
+        _selectedIndex = index;
+      });
+    }
+  },
+)
+            ),
+      ),
+    ),
+  ),
+        ),
     );
   }
 }

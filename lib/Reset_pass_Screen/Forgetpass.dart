@@ -22,17 +22,20 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
     super.dispose();
   }
 
-  OutlineInputBorder _border([Color color = const Color(0xFFE0E0E0), double width = 1]) =>
-      OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(color: color, width: width),
-      );
+  OutlineInputBorder _border([
+    Color color = const Color(0xFFE0E0E0),
+    double width = 1,
+  ]) => OutlineInputBorder(
+    borderRadius: BorderRadius.circular(12),
+    borderSide: BorderSide(color: color, width: width),
+  );
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFFAFAFA),
       appBar: AppBar(
+        backgroundColor: Color(0xFFFFFFF),
         leading: IconButton(
           onPressed: () => Navigator.pop(context),
           icon: const Icon(Icons.arrow_back_ios_new_outlined),
@@ -100,7 +103,11 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
                         fontSize: 17,
                         fontFamily: "Lexend",
                       ),
-                      prefixIcon: const Icon(Icons.lock_outline, size: 22, color: Color(0xFF94A3B8)),
+                      prefixIcon: const Icon(
+                        Icons.lock_outline,
+                        size: 22,
+                        color: Color(0xFF94A3B8),
+                      ),
                       suffixIcon: IconButton(
                         icon: Icon(
                           _showConfirmPassword
@@ -108,7 +115,9 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
                               : Icons.visibility_off_outlined,
                           color: const Color(0xFF94A3B8),
                         ),
-                        onPressed: () => setState(() => _showConfirmPassword = !_showConfirmPassword),
+                        onPressed: () => setState(
+                          () => _showConfirmPassword = !_showConfirmPassword,
+                        ),
                       ),
                       enabledBorder: _border(),
                       focusedBorder: _border(const Color(0xFFE0E0E0), 2),
@@ -132,8 +141,18 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
                     color: const Color(0xFF000080),
                     borderRadius: BorderRadius.circular(24),
                     boxShadow: const [
-                      BoxShadow(color: Color(0x33137FEC), offset: Offset(0, 8), blurRadius: 10, spreadRadius: -6),
-                      BoxShadow(color: Color(0x33137FEC), offset: Offset(0, 20), blurRadius: 25, spreadRadius: -5),
+                      BoxShadow(
+                        color: Color(0x33137FEC),
+                        offset: Offset(0, 8),
+                        blurRadius: 10,
+                        spreadRadius: -6,
+                      ),
+                      BoxShadow(
+                        color: Color(0x33137FEC),
+                        offset: Offset(0, 20),
+                        blurRadius: 25,
+                        spreadRadius: -5,
+                      ),
                     ],
                   ),
                   child: Material(

@@ -11,9 +11,9 @@ class CustomBottomNavbar extends StatefulWidget {
     required this.selectedIndex,
     required this.onTap});
 
-  @override
-  State<CustomBottomNavbar> createState() => _CustomBottomNavbarState();
-}
+class CustomBottomNavbar extends StatelessWidget {
+  final int selectedIndex;
+  final Function(int) onTap;
 
 class _CustomBottomNavbarState extends State<CustomBottomNavbar> {
   Widget navItem(String iconpath, String label, int index) {
@@ -26,7 +26,7 @@ class _CustomBottomNavbarState extends State<CustomBottomNavbar> {
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 300),
         curve: Curves.easeInOut,
-        padding: selected ? const EdgeInsets.symmetric(horizontal: 16, vertical: 10) : const EdgeInsets.symmetric(horizontal: 10, vertical: 10) ,
+        padding: selected ? const EdgeInsets.symmetric(horizontal: 16, vertical: 10) : const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
         decoration: BoxDecoration(
           color: selected ? Color(0xFF000080) : Colors.white,
           borderRadius: BorderRadius.circular(25),
@@ -34,10 +34,11 @@ class _CustomBottomNavbarState extends State<CustomBottomNavbar> {
         child: Row(
           children: [
             SvgPicture.asset(
-                iconpath,
-                height: 24,
-                width: 24,
-                color: selected ? Colors.white : Color(0xFF000080)),
+              iconpath,
+              height: 24,
+              width: 24,
+              color: selected ? Colors.white : Color(0xFF000080),
+            ),
             AnimatedSize(
               duration: Duration(milliseconds: 300),
               curve: Curves.easeInOut,
