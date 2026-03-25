@@ -2,12 +2,16 @@ import 'package:fahamni/models/tutor_model.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'teacher_about_section.dart';
+import 'package:fahamni/models/service_model.dart';
+import 'teacher_service_section.dart';
 
 class TeacherProfileButtons extends StatefulWidget {
   final TutorModel tutor;
+  final List<ServiceModel> services;
   const TeacherProfileButtons({
     super.key,
     required this.tutor,
+    required this.services,
   });
 
   @override
@@ -95,6 +99,7 @@ class _InsideConversationButtonsState extends State<TeacherProfileButtons>
               controller: _tabController,
               children: [
                 TeacherAboutSection(tutor: widget.tutor),
+                TeacherServiceSection(tutor: widget.tutor, services: widget.services),
               ],
             ),
           ),

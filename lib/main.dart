@@ -4,6 +4,7 @@ import 'firebase_options.dart';
 import 'teacher_profile/teacher_profile_page.dart';
 import 'models/tutor_model.dart';
 import 'package:fahamni/models/user_model.dart';
+import 'models/service_model.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -41,9 +42,44 @@ class MyApp extends StatelessWidget {
       accountStatus: AccountStatus.pending,
       Certified: true,
     );
+
+    final List<ServiceModel> services = [
+      ServiceModel(
+        serviceId: "service_001",
+        tutorId: "tutor_123",
+        name: "Math Basics",
+        area: "Online",
+        level: "Middle School",
+        subject: "Mathematics",
+        description: "Learn fundamental math concepts.",
+        price: 1000.0,
+        duration: 45,
+        isActive: true,
+        maxnum: 15,
+        enrollednum: 5,
+        sessionsnum: 8,
+        type: 'Online',
+      ),
+      ServiceModel(
+        serviceId: "service_002",
+        tutorId: "tutor_456",
+        name: "Algebra 1 - Vector Space",
+        area: "Offline",
+        level: "High School",
+        subject: "Physics",
+        description: "Introduction to mechanics and motion.",
+        price: 2000.0,
+        duration: 90,
+        isActive: true,
+        maxnum: 10,
+        enrollednum: 7,
+        sessionsnum: 12,
+        type: 'Hybrid',
+      ),
+    ];
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      home: TeacherProfilePage(tutor: tutor),
+      home: TeacherProfilePage(tutor: tutor, services: services),
     );
   }
 }

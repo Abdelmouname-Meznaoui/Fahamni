@@ -1,3 +1,4 @@
+import 'package:fahamni/models/service_model.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:fahamni/models/tutor_model.dart';
@@ -5,12 +6,9 @@ import 'teacher_profile_buttons.dart';
 
 class TeacherProfilePage extends StatelessWidget {
   final TutorModel tutor;
+  final List<ServiceModel> services;
 
-
-  const TeacherProfilePage({
-    super.key,
-    required this.tutor,
-    });
+  const TeacherProfilePage({super.key, required this.tutor, required this.services});
 
   @override
   Widget build(BuildContext context) {
@@ -53,9 +51,7 @@ class TeacherProfilePage extends StatelessWidget {
         children: [
           SizedBox(height: 16.0),
           CircleAvatar(
-            backgroundImage: AssetImage(
-              tutor.picture,
-              ),
+            backgroundImage: AssetImage(tutor.picture),
             radius: 55.0,
           ),
           SizedBox(height: 4.0),
@@ -90,11 +86,15 @@ class TeacherProfilePage extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16.0),
             child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween, 
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Row(
                   children: [
-                    const Icon(Icons.star_border_outlined, color: Color(0xFFEAB308), size: 18),
+                    const Icon(
+                      Icons.star_border_outlined,
+                      color: Color(0xFFEAB308),
+                      size: 18,
+                    ),
                     const SizedBox(width: 4),
                     Text(
                       '${tutor.averageRating} Rating',
@@ -106,7 +106,14 @@ class TeacherProfilePage extends StatelessWidget {
                     ),
                   ],
                 ),
-                const Text('•', style: TextStyle(color: Color(0xFF64748B),fontWeight: FontWeight.bold,fontSize: 16)),
+                const Text(
+                  '•',
+                  style: TextStyle(
+                    color: Color(0xFF64748B),
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
+                ),
 
                 Text(
                   '${tutor.yearsOfExperience} Years Experience',
@@ -117,12 +124,21 @@ class TeacherProfilePage extends StatelessWidget {
                   ),
                 ),
 
-                const Text('•', style: TextStyle(color: Color(0xFF64748B),fontWeight: FontWeight.bold,fontSize: 16)),
+                const Text(
+                  '•',
+                  style: TextStyle(
+                    color: Color(0xFF64748B),
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
+                ),
 
                 Text(
                   tutor.isAvailable ? 'Available' : 'Away',
                   style: GoogleFonts.nunito(
-                    color: tutor.isAvailable ? const Color(0xFF16A34A) : const Color(0xFFDD0D0D),
+                    color: tutor.isAvailable
+                        ? const Color(0xFF16A34A)
+                        : const Color(0xFFDD0D0D),
                     fontSize: 14.0,
                     fontWeight: FontWeight.w700,
                   ),
@@ -130,8 +146,7 @@ class TeacherProfilePage extends StatelessWidget {
               ],
             ),
           ),
-          Expanded(child: TeacherProfileButtons(tutor: tutor)),
-        
+          Expanded(child: TeacherProfileButtons(tutor: tutor, services: services)),
         ],
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
@@ -140,56 +155,62 @@ class TeacherProfilePage extends StatelessWidget {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-          Expanded(
-            child: SizedBox(
-              height: 56,
-              child: FloatingActionButton.extended(
-                heroTag: "Message",
-                onPressed: () {},
-                backgroundColor: const Color.fromARGB(255, 194, 194, 209),
-                elevation: 4,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(56/2),
-                ),
-                icon: const Icon(Icons.chat_outlined, color: Color(0xFF1F2937)),
-                label: Text(
-                  "Message",
-                  style: GoogleFonts.nunito(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
+            Expanded(
+              child: SizedBox(
+                height: 56,
+                child: FloatingActionButton.extended(
+                  heroTag: "Message",
+                  onPressed: () {},
+                  backgroundColor: const Color.fromARGB(255, 194, 194, 209),
+                  elevation: 4,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(56 / 2),
+                  ),
+                  icon: const Icon(
+                    Icons.chat_outlined,
                     color: Color(0xFF1F2937),
                   ),
-                ),
-              ),
-            ),
-          ),
-          SizedBox(width: 8.0),
-          Expanded(
-            child: SizedBox(
-              height: 56,
-              child: FloatingActionButton.extended(
-                heroTag: "Quote Request",
-                onPressed: () {},
-                backgroundColor: const Color(0xFF000080),
-                elevation: 4,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(56/2),
-                ),
-                icon: const Icon(Icons.edit_calendar_outlined, color: Colors.white),
-                label: Text(
-                  "Quote Request",
-                  style: GoogleFonts.nunito(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
+                  label: Text(
+                    "Message",
+                    style: GoogleFonts.nunito(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF1F2937),
+                    ),
                   ),
                 ),
               ),
             ),
-          ),
-        ],
+            SizedBox(width: 8.0),
+            Expanded(
+              child: SizedBox(
+                height: 56,
+                child: FloatingActionButton.extended(
+                  heroTag: "Quote Request",
+                  onPressed: () {},
+                  backgroundColor: const Color(0xFF000080),
+                  elevation: 4,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(56 / 2),
+                  ),
+                  icon: const Icon(
+                    Icons.edit_calendar_outlined,
+                    color: Colors.white,
+                  ),
+                  label: Text(
+                    "Quote Request",
+                    style: GoogleFonts.nunito(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
-    ),
     );
   }
 }

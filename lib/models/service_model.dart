@@ -8,7 +8,11 @@ class ServiceModel {
   final String description;
   final double price;
   final int duration;
+  final int sessionsnum;
+  final int maxnum;
+  final int enrollednum;
   final bool isActive;
+  final String type;
 
   ServiceModel({
     required this.serviceId,
@@ -21,7 +25,10 @@ class ServiceModel {
     required this.price,
     required this.duration,
     required this.isActive,
-
+    required this.maxnum,
+    required this.enrollednum,
+    required this.sessionsnum,
+    required this.type,
   });
 
   Map<String, dynamic> toMap() {
@@ -29,15 +36,20 @@ class ServiceModel {
       'service_id': serviceId,
       'tutor_id': tutorId,
       'name': name,
-      'area':area,
-      'level':level,
+      'area': area,
+      'level': level,
       'subject': subject,
       'description': description,
       'price': price,
       'duration': duration,
       'is_active': isActive,
+      'sessions_num': sessionsnum,
+      'enrolled_num': enrollednum,
+      'maxstudents': maxnum,
+      'type': type,
     };
   }
+
   factory ServiceModel.fromMap(Map<String, dynamic> map) {
     return ServiceModel(
       serviceId: map['service_id'] ?? '',
@@ -49,7 +61,11 @@ class ServiceModel {
       description: map['description'] ?? '',
       price: (map['price'] ?? 0.0).toDouble(),
       duration: map['duration'] ?? 0,
+      maxnum: map['maxstudents'] ?? 0,
+      enrollednum: map['enrolled_num'] ?? 0,
+      sessionsnum: map['sessions_num'] ?? 0,
       isActive: map['is_active'] ?? false,
+      type: map['type'] ?? '',
     );
   }
 }
