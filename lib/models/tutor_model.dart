@@ -81,8 +81,8 @@ class TutorModel extends UserModel {
       location: map['location'] ?? '',
       gender: Gender.values.byName(map['gender'] ?? 'male'),
       birthday: (map['birthday'] as dynamic).toDate(),
-      accountStatus: AccountStatus.values.byName(map['account_status'] ?? 'pending'),
 
+      accountStatus: AccountStatus.values.byName(map['account_status'] ?? 'pending'),
       expertiseDomain: map['expertise_domain'] ?? '',
       levelsTaught: List<String>.from(map['levels_taught'] ?? []),
       teachingMode: map['teaching_mode'] ?? '',

@@ -64,6 +64,8 @@ class DefaultFirebaseOptions {
     messagingSenderId: '235961023298',
     projectId: 'fahamni-dev',
     storageBucket: 'fahamni-dev.firebasestorage.app',
+    androidClientId: '235961023298-00s61lc1bntjnjcvffuv0pcpqolf3urg.apps.googleusercontent.com',
+    iosClientId: '235961023298-4oigsehs105sdnmamn8je9nb73otk9mv.apps.googleusercontent.com',
     iosBundleId: 'com.example.fahamni',
   );
 
@@ -73,6 +75,8 @@ class DefaultFirebaseOptions {
     messagingSenderId: '235961023298',
     projectId: 'fahamni-dev',
     storageBucket: 'fahamni-dev.firebasestorage.app',
+    androidClientId: '235961023298-00s61lc1bntjnjcvffuv0pcpqolf3urg.apps.googleusercontent.com',
+    iosClientId: '235961023298-4oigsehs105sdnmamn8je9nb73otk9mv.apps.googleusercontent.com',
     iosBundleId: 'com.example.fahamni',
   );
 
@@ -85,4 +89,5 @@ class DefaultFirebaseOptions {
     storageBucket: 'fahamni-dev.firebasestorage.app',
     measurementId: 'G-B8RSRX965G',
   );
+
 }
