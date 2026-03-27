@@ -132,17 +132,17 @@ class _NotificationPageState extends State<NotificationPage> {
         child:
         ClipRRect(
 
-          borderRadius: BorderRadius.circular(40), // Rounded edges for the "floating" look
+          borderRadius: BorderRadius.circular(40),
           child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20), // The magic blur
+            filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
             child: Container(
               height: 70,
               padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 8),
               decoration: BoxDecoration(
-                color: Color(0xFF000080).withOpacity(0.15), // Ultra-low opacity white
+                color: Color(0xFF000080).withOpacity(0.15),
                 borderRadius: BorderRadius.circular(40),
                 border: Border.all(
-                  color: Colors.white.withOpacity(0.2), // Light border to catch highlights
+                  color: Colors.white.withOpacity(0.2),
                   width: 1.5,
                 ),
                 boxShadow: [

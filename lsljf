@@ -1,0 +1,23 @@
+[33m7097ec9[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32maimed_notifications[m[33m, [m[1;31morigin/aimed_notifications[m[33m, [m[1;32mmain[m[33m)[m Update of database models
+[33m896af06[m[33m ([m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m)[m database models +firebase configuration + login pages UI
+[33mb26de1d[m Merge pull request #2 from Abdelmouname-Meznaoui/feature-login-mou7
+[33me968ec3[m Merge branch 'main' into feature-login-mou7
+[33me72be7a[m passreset and phone verif plus some splash screen background changes
+[33me8edba7[m errors handaling
+[33mc4782fa[m splash screen
+[33m23e04b5[m Merge pull request #1 from Abdelmouname-Meznaoui/feature/database-models
+[33m60481f7[m Phase 1 : Implementation of firebase collections and DB models in Flutter
+[33mcad95c3[m password recovery page
+[33m3895344[m alicia's work (tutor status) /linking pages
+[33mba25da6[m Merge branch 'main'
+[33mb60b02d[m i have done the parent status.
+[33m2ac1d35[m Setup firebase connexion and file configurations
+[33meb84238[m i have orgonised the files and folders after alicia pushed her work
+[33m00d860b[m Ajout des dossiers page_1 et page_6
+[33m4ca7e0a[m Merge branch 'mouh/iPersonal_Info' of https://github.com/Abdelmouname-Meznaoui/Fahamni into mouh/iPersonal_Info
+[33mf2b4971[m i have finished coding the student page, i made it as a widget and i finished all it's features that was in the UI
+[33m56d6bd5[m I removed some widgets from here and made them reusebale , those widgets will be in a separate folder called widgets
+[33mc6e7581[m Add file to new branch
+[33m22ab397[m Add Student_info widget and update main.dart
+[33m2f1b3c2[m Add the file of the iPersonal_info Task/login to lib folder
+[33maf2354a[m creation of repo
