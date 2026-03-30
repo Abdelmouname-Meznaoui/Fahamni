@@ -8,7 +8,6 @@ import 'package:fahamni/models/user_model.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:fahamni/customnavbar.dart';
-import 'dart:ui';
 import 'package:intl/intl.dart';
 
 class Studentpage extends StatelessWidget {
@@ -91,6 +90,7 @@ class _StudenthomepageState extends State<Studenthomepage> {
     final data = await studenthomepage_service().getStudentData();
     final tutors = await studenthomepage_service().getFavoriteTeachers(data.favoriteTeachers);
     final sessions = await studenthomepage_service().getCourses(data.Courses);
+    sessions.sort((a,b) => a.date.compareTo(b.date));
     final tutor = await studenthomepage_service().getTutorData(sessions[0].tutorId);
     setState(() {
       student = data ;
@@ -338,9 +338,10 @@ class _StudenthomepageState extends State<Studenthomepage> {
                     child: Text(
                         'Favorite Teachers',
                          style: TextStyle(
-                          color: Colors.black,
+                           color: Colors.black,
+                           fontFamily: "Inter",
                            fontSize: 20,
-                           fontWeight: FontWeight.bold,
+                           fontWeight: FontWeight.w600,
                          ),
 
                     ),
@@ -574,19 +575,19 @@ class _StudenthomepageState extends State<Studenthomepage> {
                               height: 25,
                               width:70,
                               decoration: BoxDecoration(
-                                color: mode == "•Online" ? Color(0xFFDCFCE7) : Colors.black,
+                                color: courses![0].type == "online" ? Color(0xFFDCFCE7) : Colors.black,
                                 borderRadius: BorderRadius.circular(10),
                               ),
                               child: Padding(
                                 padding: const EdgeInsets.fromLTRB(4, 4, 4, 4),
                                 child: Center(
                                   child: Text(
-                                    sessiontutor!.teachingMode,
+                                    courses![0].type,
                                     style: TextStyle(
                                       fontFamily: "Nunito",
                                       fontSize: 13,
                                       fontWeight: FontWeight.w700,
-                                      color: mode == "•Online" ? Color(0xFF16A34A) : Colors.white,
+                                      color: courses![0].type == "online" ? Color(0xFF16A34A) : Colors.white,
                                       height: 1.25,
                                     ),
 

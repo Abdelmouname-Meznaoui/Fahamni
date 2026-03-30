@@ -28,8 +28,15 @@ class ServiceCard extends StatelessWidget {
                     Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
+                        if(service.picture != "")
+                          Image.network(
+                            service.picture,
+                            height: 120,
+                            width: double.infinity,
+                            fit: BoxFit.cover,
+                          ),
                         Image.asset(
-                          "assets/images/slide1.png",
+                          "assets/images/default_service_img.png",
                           height: 120,
                           width: double.infinity,
                           fit: BoxFit.cover,

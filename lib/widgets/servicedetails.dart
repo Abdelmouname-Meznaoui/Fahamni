@@ -53,8 +53,15 @@ class _ServicedetailsState extends State<Servicedetails> {
           ),
           child: Column(
             children: [
+              if(widget.service.picture != "")
+                Image.network(
+                  widget.service.picture,
+                  height: 180,
+                  width: double.infinity,
+                  fit: BoxFit.cover,
+                ),
               Image.asset(
-                "assets/images/slide1.png",
+                "assets/images/default_service_img.png",
                 height: 180,
                 width: double.infinity,
                 fit: BoxFit.cover,
@@ -472,7 +479,7 @@ class _ServicedetailsState extends State<Servicedetails> {
                                   ),
                                 ],
                               ),
-                              SizedBox(width: 115 ,),
+                              SizedBox(width: 65 ,),
                               ElevatedButton(onPressed:(){},
                                   style: ElevatedButton.styleFrom(
                                     padding: EdgeInsetsGeometry.fromLTRB(15,10,15,10),
@@ -671,7 +678,7 @@ class _ServicedetailsState extends State<Servicedetails> {
                             ],
                           )
                         ],
-                      ) ,
+                      ),
                     ),
                     SizedBox(height: 20,),
                     Row(

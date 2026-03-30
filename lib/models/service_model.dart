@@ -12,6 +12,7 @@ class ServiceModel {
   final int maxnum;
   final int enrollednum;
   final bool isActive;
+  final String picture;
 
   ServiceModel({
     required this.serviceId,
@@ -27,6 +28,7 @@ class ServiceModel {
     required this.maxnum,
     required this.enrollednum,
     required this.sessionsnum,
+    required this.picture,
 
   });
 
@@ -44,7 +46,8 @@ class ServiceModel {
       'is_active': isActive,
       'sessions_num' : sessionsnum,
       'enrolled_num' : enrollednum,
-      'maxstudents' : maxnum
+      'maxstudents' : maxnum,
+      'picture' : picture,
     };
   }
   factory ServiceModel.fromMap(Map<String, dynamic> map) {
@@ -62,6 +65,7 @@ class ServiceModel {
       enrollednum: map['enrolled_num'] ?? 0,
       sessionsnum: map['sessions_num'] ?? 0,
       isActive: map['is_active'] ?? false,
+      picture: map['picture'] ?? '',
     );
   }
 }

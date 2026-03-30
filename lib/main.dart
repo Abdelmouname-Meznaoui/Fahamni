@@ -1,5 +1,6 @@
 import 'package:fahamni/StudentHomePage/Student_homepage.dart';
 import 'package:fahamni/explorepage.dart';
+import 'package:fahamni/map.dart';
 import 'package:fahamni/models/user_model.dart';
 import 'package:fahamni/widgets/servicecard.dart';
 import 'package:flutter/material.dart';
@@ -46,8 +47,7 @@ class MyApp extends StatelessWidget {
     );
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      home: Studenthomepage(),
-
+      home: Mappage(),
 
       /* Scaffold(
         backgroundColor: Colors.white,

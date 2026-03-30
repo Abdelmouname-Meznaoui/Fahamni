@@ -1,15 +1,22 @@
+import 'package:fahamni/map.dart';
+import 'package:fahamni/models/student_model.dart';
 import 'package:fahamni/models/tutor_model.dart';
-import 'package:fahamni/models/user_model.dart';
 import 'package:fahamni/widgets/explore_service.dart';
 import 'package:fahamni/widgets/servicedetails.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:fahamni/customnavbar.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'StudentHomePage/Student_homepage.dart';
 import 'models/service_model.dart';
 import 'package:fahamni/widgets/servicecard.dart';
 class Explorepage extends StatefulWidget {
-  const Explorepage({super.key});
+  final StudentModel student ;
+  const Explorepage({
+    super.key,
+    required this.student,
+    });
 
   @override
   State<Explorepage> createState() => _ExplorepageState();
@@ -18,6 +25,8 @@ class Explorepage extends StatefulWidget {
 class _ExplorepageState extends State<Explorepage> {
 
   final TextEditingController _searchController = TextEditingController();
+  Position? _currentPosition ;
+  GoogleMapController? _controller;
 
 
   String? selectedSubject;
@@ -29,13 +38,14 @@ class _ExplorepageState extends State<Explorepage> {
   List<TutorModel> allTutors = [];
   List<String> op = ['Subject','Price','Rating','Mode'];
   List<List<String>> options = [
-    ['Mathematics', 'Physics', 'English'],
-    ['<1000', '<2000', '<2500'],
-    ['3,5','4','4,5'],
-    ['online', 'onSite'],
+    ['Mathematics', 'Physics', 'English',],
+    ['<1000', '<2000', '<2500',],
+    ['3,5','4','4,5',],
+    ['online', 'onSite',],
     ];
   @override
   int _selectedIndex = 1;
+  int _selectedIndex2 = 0 ;
   late List<Widget> _pages;
   List<TutorModel> ? tutors ;
   List<ServiceModel> ? services ;
@@ -48,12 +58,28 @@ class _ExplorepageState extends State<Explorepage> {
   void initState(){
      super.initState();
      loadTutorsServices();
+     _getCurrentLocation();
     _pages = [
       const Studenthomepage(),
-      const Explorepage(),
+      const Placeholder(),
       const Placeholder(),
       const Placeholder(),
     ];
+  }
+  Future<void> _getCurrentLocation() async {
+    LocationPermission permission = await Geolocator.requestPermission();
+    if (permission == LocationPermission.denied) return;
+
+    final position = await Geolocator.getCurrentPosition();
+    setState(() {
+      _currentPosition = position;
+    });
+
+    _controller?.animateCamera(
+      CameraUpdate.newLatLng(
+        LatLng(position.latitude, position.longitude),
+      ),
+    );
   }
   Future<void> loadTutorsServices()async{
     final teachers = await Explore_service().getAllTutors();
@@ -70,7 +96,7 @@ class _ExplorepageState extends State<Explorepage> {
     });
   }
   Widget build(BuildContext context) {
-    if (services == null || tutors == null) {
+    if (services == null || tutors == null || _currentPosition == null) {
       return const Scaffold(
         body: Center(child: CircularProgressIndicator()),
       );
@@ -119,6 +145,11 @@ class _ExplorepageState extends State<Explorepage> {
                         ),
                         child: TextField(
                           controller: _searchController,
+                          onTap: (){
+                            setState(() {
+                              _selectedIndex2 = 0 ;
+                            });
+                          },
                           onChanged: (value) {
                             applyFilters();
                           },
@@ -153,7 +184,7 @@ class _ExplorepageState extends State<Explorepage> {
               ),
               SizedBox(height: 15,),
               SizedBox(
-                height: 80,
+                height: 50,
                 child: ListView.builder(
                     scrollDirection: Axis.horizontal,
                     shrinkWrap: true,
@@ -167,15 +198,15 @@ class _ExplorepageState extends State<Explorepage> {
                             child: DropdownButtonFormField<String>(
                               value: [selectedSubject, selectedPrice, selectedRating, selectedMode][index],
                               icon: Icon(Icons.keyboard_arrow_down_sharp),
-                              iconEnabledColor: Colors.white,
+                              iconEnabledColor: _selectedIndex2 == index ? Colors.white : Colors.black,
                               iconSize: 20,
                               isExpanded: true,
                               selectedItemBuilder: (context) {
                                 return options[index].map((e) => Center(
-                                  child: Text(
+                                  child:  Text(
                                     e,
                                     style: TextStyle(
-                                      color: Colors.white,
+                                      color: _selectedIndex2 == index ? Colors.white : Colors.black,
                                       fontFamily: "Nunito",
                                       fontWeight: FontWeight.w700,
                                     ),
@@ -186,7 +217,7 @@ class _ExplorepageState extends State<Explorepage> {
                                 child: Text(
                                   op[index],
                                   style: TextStyle(
-                                      color: Colors.white,
+                                      color: _selectedIndex2 == index ? Colors.white : Colors.black,
                                       fontFamily: "Nunito",
                                       fontWeight: FontWeight.w700
                                   ),
@@ -195,20 +226,21 @@ class _ExplorepageState extends State<Explorepage> {
                               borderRadius: BorderRadius.circular(20),
                               autofocus: true,
                               dropdownColor: Colors.white,
-                              focusColor: Color(0xFF000080),
+                              focusColor: Color(0xFF000080) ,
                               decoration: InputDecoration(
                                   filled: true,
-                                  fillColor: Color(0xFF000080),
+                                  fillColor: _selectedIndex2 == index ? Color(0xFF000080) : Colors.white,
                                   contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 0),
                                   border: OutlineInputBorder(
                                       borderRadius: BorderRadius.circular(99),
-                                      borderSide: BorderSide.none
+                                      borderSide: _selectedIndex2 == index ? BorderSide.none : const BorderSide(color: Colors.red , style: BorderStyle.none),
                                   ),
                               ),
                               items: options[index]
                                   .map((e) => DropdownMenuItem(value: e, child: Text(e)))
                                   .toList(),
                               onChanged: (value) {
+                                _selectedIndex2 = index ;
                                 if (index == 0) selectedSubject = value;
                                 else if (index == 1) selectedPrice = value;
                                 else if (index == 2) selectedRating = value;
@@ -221,7 +253,7 @@ class _ExplorepageState extends State<Explorepage> {
                     }
                 ),
               ),
-              SizedBox(height: 0,),
+              SizedBox(height: 16,),
               Container(
                 clipBehavior: Clip.antiAlias,
                 decoration: BoxDecoration(
@@ -236,12 +268,35 @@ class _ExplorepageState extends State<Explorepage> {
                 ),
                 child: Stack(
                   children: [
-                     Image.asset(
-                       "assets/images/map.png",
-                       height: 200,
-                       width: double.infinity,
-                       fit: BoxFit.cover,
-                     ),
+                      if (_currentPosition != null)
+                        Image.asset(
+                          "assets/images/map.png",
+                          height: 200,
+                          width: double.infinity,
+                          fit: BoxFit.cover,
+                        ),
+                      Container(
+                        height: 200,
+                        child: GoogleMap(
+                          onMapCreated: (controller) async{
+                            _controller = controller;
+                            _controller!.setMapStyle(
+                                await DefaultAssetBundle.of(context).loadString('assets/map_style.json')
+                            );
+                          },
+                          initialCameraPosition: CameraPosition(
+                          target: LatLng(
+                            _currentPosition!.latitude,
+                            _currentPosition!.longitude,
+                          ),
+                          zoom: 14,
+                        ),
+                          myLocationEnabled: true,
+                          myLocationButtonEnabled: false,
+                          zoomControlsEnabled: false,
+
+                        ),
+                      ),
                     Positioned(
                       top: 150,
                       left: 25,
@@ -274,7 +329,11 @@ class _ExplorepageState extends State<Explorepage> {
                               ),
                               SizedBox(width: 20,),
                               GestureDetector(
-                                onTap: (){},
+                                onTap: (){
+                                  Navigator.push( context,
+                                    MaterialPageRoute(builder: (context) => Mappage()),
+                                  );
+                                },
                                 child: Text(
                                   'VIEW FULL MAP',
                                   style: TextStyle(
@@ -369,8 +428,8 @@ class _ExplorepageState extends State<Explorepage> {
                                         borderRadius: BorderRadius.circular(12)
                                       ),
                                       clipBehavior: Clip.antiAlias,
-                                      child: Image.asset(
-                                          'assets/images/profile.jpg',
+                                      child: Image.network(
+                                          tutors![index].picture,
                                            fit: BoxFit.cover,
                                       ),
                                     ),
