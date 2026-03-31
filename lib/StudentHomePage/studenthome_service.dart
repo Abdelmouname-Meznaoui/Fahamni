@@ -10,9 +10,10 @@ class studenthomepage_service {
 
   // Get current student data
   Future<StudentModel> getStudentData() async {
-    final uid ="9zkATIGDeeNmWBKHvmv8VikNlJj1";  //_auth.currentUser!.uid;
-
-    final doc = await _db.collection('students').doc(uid).get();
+    //final uid ="8Gy2hIY4DUWBwlgOaZs0yEaGdt73";  //_auth.currentUser!.uid;
+    final user = _auth.currentUser;
+  if (user == null) throw Exception('User not logged in');
+    final doc = await _db.collection('students').doc(user.uid).get();
     try {
       return StudentModel.fromMap(doc.data()!);
     } catch (e) {

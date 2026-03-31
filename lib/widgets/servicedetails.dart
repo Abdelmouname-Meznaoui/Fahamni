@@ -1,4 +1,4 @@
-import 'package:fahamni/customnavbar.dart';
+import 'package:fahamni/widgets/customnavbar.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 import '../StudentHomePage/Student_homepage.dart';
@@ -193,7 +193,7 @@ class _ServicedetailsState extends State<Servicedetails> {
                                   ),
                                   SizedBox(height: 10,),
                                   Text(
-                                    widget.service.price.toInt().toString()+"DA",
+                                    "${widget.service.price.toInt()}DA",
                                     style: TextStyle(
                                         color: Color(0xFF000080),
                                         fontFamily: "Nunito",
@@ -219,7 +219,7 @@ class _ServicedetailsState extends State<Servicedetails> {
                           ),
                           SizedBox(width: 5,),
                           Text(
-                              (widget.service.maxnum - widget.service.enrollednum).toString() + " places left",
+                              "${widget.service.maxnum - widget.service.enrollednum} places left",
                             style: TextStyle(
                               color: const Color(0xFFDD0D0D),
                               fontSize: 14,
@@ -384,7 +384,7 @@ class _ServicedetailsState extends State<Servicedetails> {
                                     ),
                                   ),
                                   SizedBox(height: 5,),
-                                  Text(widget.service.duration.toString()+"min/session",
+                                  Text("${widget.service.duration}min/session",
                                     style: TextStyle(
                                       fontFamily: "Nunito",
                                       fontWeight: FontWeight.w600,

@@ -1,13 +1,13 @@
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:fahamni/StudentHomePage/studenthome_service.dart';
-import 'package:fahamni/explorepage.dart';
 import 'package:fahamni/models/session_model.dart';
 import 'package:fahamni/models/student_model.dart';
 import 'package:fahamni/models/tutor_model.dart';
 import 'package:fahamni/models/user_model.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:fahamni/customnavbar.dart';
+import 'package:fahamni/widgets/customnavbar.dart';
+import 'dart:ui';
 import 'package:intl/intl.dart';
 
 class Studentpage extends StatelessWidget {
@@ -72,34 +72,48 @@ class _StudenthomepageState extends State<Studenthomepage> {
   TutorModel ? sessiontutor;
   List<TutorModel> ? favoriteTutors = [];
   List<SessionModel> ? courses = [];
-  int _selectedIndex = 0;
-  late List<Widget> _pages;
   @override
   void initState() {
     // TODO: implement initState
     super.initState();
     loadStudent();
-    _pages = [
-      const Studenthomepage(),
-      const Explorepage(),
-      const Placeholder(),
-      const Placeholder(),
-    ];
   }
-  Future<void> loadStudent() async{
+  Future<void> loadStudent() async {
+  try {
     final data = await studenthomepage_service().getStudentData();
     final tutors = await studenthomepage_service().getFavoriteTeachers(data.favoriteTeachers);
     final sessions = await studenthomepage_service().getCourses(data.Courses);
     sessions.sort((a,b) => a.date.compareTo(b.date));
     final tutor = await studenthomepage_service().getTutorData(sessions[0].tutorId);
+    TutorModel? tutor;
+    if (sessions.isNotEmpty) {
+      tutor = await studenthomepage_service().getTutorData(sessions[0].tutorId);
+    }
+    if (!mounted) return;
     setState(() {
-      student = data ;
+      student = data;
       favoriteTutors = tutors;
       courses = sessions;
       sessiontutor = tutor;
     });
-    minutes = courses![0].endTime.difference(courses![0].startTime).inMinutes ;
+    if (sessions.isNotEmpty) {
+      minutes = courses![0].endTime.difference(courses![0].startTime).inMinutes;
+    }
+  } catch (e) {
+    if (!mounted) return;
+    setState(() {
+      student = StudentModel(  // set a fallback so spinner stops
+        uid: '', firstName: 'Error', lastName: '',
+        email: '', phone: '', location: '',
+        gender: Gender.male, birthday: DateTime.now(),
+        accountStatus: AccountStatus.validated,
+        picture: '', schoolLevel: '', learningObjectives: '',
+        preferredSubjects: [], favoriteTeachers: [], Courses: [],
+      );
+    });
+    debugPrint('loadStudent error: $e');
   }
+}
   @override
   Widget build(BuildContext context) {
     if (student == null) {
@@ -519,7 +533,7 @@ class _StudenthomepageState extends State<Studenthomepage> {
                     ),
                   ],
                 )
-              else
+              else if(sessiontutor != null)
                 Container(
                   margin: EdgeInsets.fromLTRB(0, 10, 0, 10),
                   height: 230,
@@ -697,22 +711,31 @@ class _StudenthomepageState extends State<Studenthomepage> {
           ),
         ),
       ),
-      bottomNavigationBar: CustomBottomNavbar(selectedIndex: _selectedIndex,
-          onTap: (index) {
-            setState(() {
-              _selectedIndex = index;
-            });
-            if (index == 1) {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => Explorepage()),
-              ).then((_){
-                setState(() {
-                  _selectedIndex = 0 ;
-                });
-              });
-            }
-          },),
+      bottomNavigationBar: Container(
+        margin: EdgeInsets.fromLTRB(8, 0, 8, 20),
+        height: 70,
+        width: 400,
+        decoration: BoxDecoration(
+          color: Color(0xFF94A3B8).withOpacity(0.2),
+          borderRadius: BorderRadius.circular(30),
+        ),
+            child:ClipRRect(
+    borderRadius: BorderRadius.circular(30),
+    child: BackdropFilter(
+      filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10), // the glass blur
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.grey.withOpacity(0.2), // grey glass tint
+          borderRadius: BorderRadius.circular(30),
+        ),
+        child: Padding(
+              padding: EdgeInsetsGeometry.symmetric(horizontal: 15 , vertical: 10),
+              child:const CustomBottomNavbar(),
+            ),
+      ),
+    ),
+  ),
+        ),
     );
   }
 }
