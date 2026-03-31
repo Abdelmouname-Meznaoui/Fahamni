@@ -1,19 +1,17 @@
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:fahamni/StudentHomePage/studenthome_service.dart';
-import 'package:fahamni/explorepage.dart';
 import 'package:fahamni/models/session_model.dart';
 import 'package:fahamni/models/student_model.dart';
 import 'package:fahamni/models/tutor_model.dart';
 import 'package:fahamni/models/user_model.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:fahamni/customnavbar.dart';
+import 'package:fahamni/widgets/customnavbar.dart';
 import 'dart:ui';
 import 'package:intl/intl.dart';
 
 class Studentpage extends StatelessWidget {
   const Studentpage({super.key});
-  
 
   @override
   Widget build(BuildContext context) {
@@ -74,37 +72,46 @@ class _StudenthomepageState extends State<Studenthomepage> {
   TutorModel ? sessiontutor;
   List<TutorModel> ? favoriteTutors = [];
   List<SessionModel> ? courses = [];
-  int _selectedIndex = 0;
-  late List<Widget> _pages;
   @override
-  int _selectedIndex = 0;
-late List<Widget> _pages;
-
-@override
-void initState() {
-  super.initState();
-  loadStudent();
-  _pages = [
-    const Studenthomepage(), 
-    const Placeholder(),
-    const Placeholder(),
-    ChatPage(),
-    const Placeholder(),
-  ];
-}
-  Future<void> loadStudent() async{
+  void initState() {
+    // TODO: implement initState
+    super.initState();
+    loadStudent();
+  }
+  Future<void> loadStudent() async {
+  try {
     final data = await studenthomepage_service().getStudentData();
     final tutors = await studenthomepage_service().getFavoriteTeachers(data.favoriteTeachers);
     final sessions = await studenthomepage_service().getCourses(data.Courses);
-    final tutor = await studenthomepage_service().getTutorData(sessions[0].tutorId);
+    TutorModel? tutor;
+    if (sessions.isNotEmpty) {
+      tutor = await studenthomepage_service().getTutorData(sessions[0].tutorId);
+    }
+    if (!mounted) return;
     setState(() {
-      student = data ;
+      student = data;
       favoriteTutors = tutors;
       courses = sessions;
       sessiontutor = tutor;
     });
-    minutes = courses![0].endTime.difference(courses![0].startTime).inMinutes ;
+    if (sessions.isNotEmpty) {
+      minutes = courses![0].endTime.difference(courses![0].startTime).inMinutes;
+    }
+  } catch (e) {
+    if (!mounted) return;
+    setState(() {
+      student = StudentModel(  // set a fallback so spinner stops
+        uid: '', firstName: 'Error', lastName: '',
+        email: '', phone: '', location: '',
+        gender: Gender.male, birthday: DateTime.now(),
+        accountStatus: AccountStatus.validated,
+        picture: '', schoolLevel: '', learningObjectives: '',
+        preferredSubjects: [], favoriteTeachers: [], Courses: [],
+      );
+    });
+    debugPrint('loadStudent error: $e');
   }
+}
   @override
   Widget build(BuildContext context) {
     if (student == null) {
@@ -523,7 +530,7 @@ void initState() {
                     ),
                   ],
                 )
-              else
+              else if(sessiontutor != null)
                 Container(
                   margin: EdgeInsets.fromLTRB(0, 10, 0, 10),
                   height: 230,
@@ -720,21 +727,7 @@ void initState() {
         ),
         child: Padding(
               padding: EdgeInsetsGeometry.symmetric(horizontal: 15 , vertical: 10),
-              child:CustomBottomNavbar(
-  selectedIndex: _selectedIndex,
-  onTap: (index) {
-    if (index == 3) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (context) => ChatPage()),
-      );
-    } else {
-      setState(() {
-        _selectedIndex = index;
-      });
-    }
-  },
-)
+              child:const CustomBottomNavbar(),
             ),
       ),
     ),

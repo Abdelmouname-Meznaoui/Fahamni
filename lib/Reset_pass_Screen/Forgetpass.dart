@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'PasswrdInput.dart';
 import 'package:fahamni/Login_Screen/LoginScreen.dart';
-
+import 'package:cloud_functions/cloud_functions.dart';
+import '../Services/email_otp_service.dart';
 class ResetPasswordPage extends StatefulWidget {
-  const ResetPasswordPage({super.key});
+  final String verifiedEmail;
+
+  const ResetPasswordPage({super.key, required this.verifiedEmail});
 
   @override
   State<ResetPasswordPage> createState() => _ResetPasswordPageState();
@@ -14,6 +17,8 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
   final _newPasswordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
   bool _showConfirmPassword = false;
+  bool _isLoading = false;
+  String? _errorMessage;
 
   @override
   void dispose() {
@@ -22,20 +27,48 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
     super.dispose();
   }
 
-  OutlineInputBorder _border([
-    Color color = const Color(0xFFE0E0E0),
-    double width = 1,
-  ]) => OutlineInputBorder(
-    borderRadius: BorderRadius.circular(12),
-    borderSide: BorderSide(color: color, width: width),
-  );
+  OutlineInputBorder _border([Color color = const Color(0xFFE0E0E0), double width = 1]) =>
+      OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(color: color, width: width),
+      );
+  
+  Future<void> _confirm() async {
+    if (!_formKey.currentState!.validate()) return;
+    setState(() { _isLoading = true; _errorMessage = null; });
+    try {
+      await FirebaseFunctions.instance
+          .httpsCallable('resetPassword')
+          .call({
+            'email':       widget.verifiedEmail,
+            'newPassword': _newPasswordController.text,
+          });
+       await EmailOtpService().sendPasswordChangedEmail(
+      email: widget.verifiedEmail,
+    );
+      if (!mounted) return;
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (_) => const LoginScreen()),
+        (route) => false,
+      );
+    } catch (e) {
+      setState(() => _errorMessage = e.toString());
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFFAFAFA),
       appBar: AppBar(
-        backgroundColor: Color(0xFFFFFFF),
+        backgroundColor: const Color(0xFFFAFAFA),
+        surfaceTintColor: const Color(0xFFFAFAFA),
+        shadowColor: Colors.transparent,
+        scrolledUnderElevation: 0,
         leading: IconButton(
           onPressed: () => Navigator.pop(context),
           icon: const Icon(Icons.arrow_back_ios_new_outlined),
@@ -103,11 +136,7 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
                         fontSize: 17,
                         fontFamily: "Lexend",
                       ),
-                      prefixIcon: const Icon(
-                        Icons.lock_outline,
-                        size: 22,
-                        color: Color(0xFF94A3B8),
-                      ),
+                      prefixIcon: const Icon(Icons.lock_outline, size: 22, color: Color(0xFF94A3B8)),
                       suffixIcon: IconButton(
                         icon: Icon(
                           _showConfirmPassword
@@ -115,9 +144,7 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
                               : Icons.visibility_off_outlined,
                           color: const Color(0xFF94A3B8),
                         ),
-                        onPressed: () => setState(
-                          () => _showConfirmPassword = !_showConfirmPassword,
-                        ),
+                        onPressed: () => setState(() => _showConfirmPassword = !_showConfirmPassword),
                       ),
                       enabledBorder: _border(),
                       focusedBorder: _border(const Color(0xFFE0E0E0), 2),
@@ -129,7 +156,25 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
                   ),
                 ],
               ),
-
+               if (_errorMessage != null)
+                Padding(
+                  padding: const EdgeInsets.only(top: 16),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.error_outline, color: Colors.red, size: 16),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: Text(
+                          _errorMessage!,
+                          style: const TextStyle(
+                              color: Colors.red,
+                              fontSize: 13,
+                              fontFamily: 'Inter'),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               const SizedBox(height: 30),
 
               SizedBox(
@@ -141,43 +186,30 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
                     color: const Color(0xFF000080),
                     borderRadius: BorderRadius.circular(24),
                     boxShadow: const [
-                      BoxShadow(
-                        color: Color(0x33137FEC),
-                        offset: Offset(0, 8),
-                        blurRadius: 10,
-                        spreadRadius: -6,
-                      ),
-                      BoxShadow(
-                        color: Color(0x33137FEC),
-                        offset: Offset(0, 20),
-                        blurRadius: 25,
-                        spreadRadius: -5,
-                      ),
+                      BoxShadow(color: Color(0x33137FEC), offset: Offset(0, 8), blurRadius: 10, spreadRadius: -6),
+                      BoxShadow(color: Color(0x33137FEC), offset: Offset(0, 20), blurRadius: 25, spreadRadius: -5),
                     ],
                   ),
                   child: Material(
                     color: Colors.transparent,
                     child: InkWell(
                       borderRadius: BorderRadius.circular(24),
-                      onTap: () {
-                        if (_formKey.currentState!.validate()) {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => const LoginScreenPage(),
-                            ),
-                          );
-                        }
-                      },
-                      child: const Center(
-                        child: Text(
-                          "Confirm",
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 16,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
+                      onTap: _isLoading ? null : _confirm,
+                      child: Center(
+                        child: _isLoading
+                            ? const SizedBox(
+                                width: 22,
+                                height: 22,
+                                child: CircularProgressIndicator(
+                                    color: Colors.white, strokeWidth: 2.5))
+                            : const Text(
+                                "Confirm",
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              )
                       ),
                     ),
                   ),

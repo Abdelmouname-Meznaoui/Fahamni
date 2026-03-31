@@ -49,6 +49,21 @@ class StudentModel extends UserModel {
     };
   }
 
+  @override
+  StudentModel copyWithUid(String uid) => StudentModel(
+    uid: uid,
+    firstName: firstName, lastName: lastName,
+    email: email, phone: phone,
+    location: location, gender: gender,
+    birthday: birthday, picture: picture,
+    accountStatus: accountStatus,
+    schoolLevel: schoolLevel,
+    learningObjectives: learningObjectives,
+    preferredSubjects: preferredSubjects,
+    favoriteTeachers: favoriteTeachers,
+    Courses: Courses,
+  );
+
   factory StudentModel.fromMap(Map<String, dynamic> map) {
     return StudentModel(
       uid:               map['uid']          ?? '',
@@ -58,7 +73,7 @@ class StudentModel extends UserModel {
       phone:             map['phone']        ?? '',
       location:          map['location']     ?? '',
       gender:            Gender.values.byName(map['gender'] ?? 'male'),
-      birthday:          (map['birthday'] as Timestamp).toDate(), // FIXED
+      birthday:          (map['birthday'] as Timestamp).toDate(), 
       picture:           map['picture'],
       accountStatus:     AccountStatus.values.byName(map['account_status'] ?? 'pending'),
       schoolLevel:       map['school_level']        ?? '',

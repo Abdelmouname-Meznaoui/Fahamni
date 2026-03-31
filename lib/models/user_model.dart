@@ -15,6 +15,7 @@ abstract class UserModel {
   final String location;
   final Gender gender;
   final DateTime birthday;
+  final String picture;
   final UserRole role;
   final String picture;
   AccountStatus accountStatus;
@@ -37,10 +38,14 @@ abstract class UserModel {
 
   Map<String, dynamic> toMap();
 
+  UserModel copyWithUid(String uid);
+
   factory UserModel.fromMap(Map<String, dynamic> map) {
     final roleString = map['role'] ?? 'student';
     final role = UserRole.values.byName(roleString);
-    final String status = map['accountStatus'] ?? 'pending';
+    final AccountStatus status = AccountStatus.values.byName(
+  map['account_status'] ?? 'pending'
+);
 
     //the from map depends on the role
     switch (role) {

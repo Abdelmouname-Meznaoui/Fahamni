@@ -3,10 +3,12 @@ import 'package:fahamni/widgets/widgets.dart';
 import 'Student_widget/Student_widg.dart';
 import 'Parent_widget/Parent_widg.dart';
 import 'Tutor_widget/Tutor_widg.dart';
-import 'package:fahamni/otp_verification_Screen/phoneverif.dart';
+import 'package:fahamni/otp_verification_Screen/verification_choice_page.dart';
+import 'package:fahamni/models/user_model.dart';
 
 class studentinfo extends StatefulWidget {
-  const studentinfo({super.key});
+  final Map<String, dynamic> data;
+  const studentinfo({super.key, required this.data });
 
   @override
   State<studentinfo> createState() => _studentinfoState();
@@ -44,13 +46,39 @@ class _studentinfoState extends State<studentinfo> {
               isValid = _tutorKey.currentState?.validate() ?? false;
             }
 
-            if (isValid) {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                    builder: (context) => const PhoneVerificationPage()),
-              );
+            if (!isValid) return;
+            final data = widget.data;
+            if (selectedIndex == 0){
+              final s = _studentKey.currentState!;
+              data['role'] = UserRole.student;
+              data['schoolLevel'] = s.levels[s.selectedIndex];
+              data['learningObjectives'] = s.schoolController.text.trim();
+              data['preferredSubjects'] = s.selectedSubjectsList;
             }
+            else if (selectedIndex == 1){
+              data['role'] = UserRole.parent;
+              data['childrenUids'] = <String>[];
+              data['children'] = _parentKey.currentState!.childrenData;
+            }
+            else if (selectedIndex == 2){
+              final t = _tutorKey.currentState!;
+              data['role'] = UserRole.tutor;
+              data['academicDescription']    = '${t.degreeController.text.trim()} — ${t.universityController.text.trim()}';
+              data['yearsOfExperience']      = int.tryParse(t.expController.text.trim()) ?? 0;
+              data['pedagogicalDescription'] = t.bioController.text.trim();
+              data['certified']              = (t.fileKey.currentState?.uploadedFiles.isNotEmpty) ?? false;
+              data['expertiseDomain']        = '';
+              data['levelsTaught']           = <String>[];
+              data['teachingMode']           = '';
+              data['isAvailable']            = false;
+              data['averageRating']          = 0.0;
+            }
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+               builder: (_) => VerificationChoicePage(data: data) 
+              ),
+            );
           },
           style: ElevatedButton.styleFrom(
             shadowColor: const Color(0xFF000080),
@@ -73,8 +101,11 @@ class _studentinfoState extends State<studentinfo> {
         ),
       ),
       appBar: AppBar(
+        elevation: 0,
         scrolledUnderElevation: 0,
         backgroundColor: const Color(0xfff9f9f9),
+        surfaceTintColor: const Color(0xfff9f9f9),
+        shadowColor: Colors.transparent,
         leading: IconButton(
           onPressed: () => Navigator.pop(context),
           iconSize: 24,
@@ -94,7 +125,7 @@ class _studentinfoState extends State<studentinfo> {
       ),
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(8, 0, 0, 8),
+          padding: const EdgeInsets.fromLTRB(8, 0, 8, 8),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -175,54 +206,95 @@ class Buttons extends StatelessWidget {
         borderRadius: BorderRadius.circular(30),
         color: const Color(0xFFFAFAFA),
       ),
-      padding: const EdgeInsets.fromLTRB(10, 5, 10, 5),
+      padding: const EdgeInsets.fromLTRB(6, 10, 6, 10),
       margin: const EdgeInsets.fromLTRB(10, 0, 18, 0),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
-          ElevatedButton(
-            onPressed: () => onSelectionChanged(selectedIndex == 0 ? -1 : 0),
-            style: ElevatedButton.styleFrom(
-              padding: const EdgeInsets.fromLTRB(25, 10, 25, 10),
-              backgroundColor: selectedIndex == 0 ? const Color(0xFF000080) : const Color(0xFFFAFAFA),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+          Expanded(
+            child: ElevatedButton(
+              onPressed: () => onSelectionChanged(selectedIndex == 0 ? -1 : 0),
+              style: ElevatedButton.styleFrom(
+                elevation: 0,
+                padding: const EdgeInsets.symmetric(vertical: 15),
+                backgroundColor: selectedIndex == 0
+                    ? const Color(0xFF000080)
+                    : const Color(0xFFFAFAFA),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(30)),
+              ),
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  "Student",
+                  style: TextStyle(
+                    fontFamily: "Inter",
+                    fontSize: 18,
+                    fontWeight: FontWeight.w500,
+                    color: selectedIndex == 0
+                        ? const Color(0xFFFAFAFA)
+                        : const Color(0xFF000080),
+                  ),
+                ),
+              ),
             ),
-            child: Text("Student",
-                style: TextStyle(
-                  fontFamily: "Inter", fontSize: 20, fontWeight: FontWeight.w500,
-                  color: selectedIndex == 0 ? const Color(0xFFFAFAFA) : const Color(0xFF000080),
-                  height: 24 / 16,
-                )),
           ),
-          SizedBox.fromSize(size: const Size(5, 0)),
-          ElevatedButton(
-            onPressed: () => onSelectionChanged(selectedIndex == 1 ? -1 : 1),
-            style: ElevatedButton.styleFrom(
-              padding: const EdgeInsets.fromLTRB(25, 10, 25, 10),
-              backgroundColor: selectedIndex == 1 ? const Color(0xFF000080) : const Color(0xFFFAFAFA),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+          const SizedBox(width: 4),
+          Expanded(
+            child: ElevatedButton(
+              onPressed: () => onSelectionChanged(selectedIndex == 1 ? -1 : 1),
+              style: ElevatedButton.styleFrom(
+                elevation: 0,
+                padding: const EdgeInsets.symmetric(vertical: 15),
+                backgroundColor: selectedIndex == 1
+                    ? const Color(0xFF000080)
+                    : const Color(0xFFFAFAFA),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(30)),
+              ),
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  "Parent",
+                  style: TextStyle(
+                    fontFamily: "Inter",
+                    fontSize: 18,
+                    fontWeight: FontWeight.w500,
+                    color: selectedIndex == 1
+                        ? const Color(0xFFFAFAFA)
+                        : const Color(0xFF000080),
+                  ),
+                ),
+              ),
             ),
-            child: Text("Parent",
-                style: TextStyle(
-                  fontFamily: "Inter", fontSize: 20, fontWeight: FontWeight.w500,
-                  color: selectedIndex == 1 ? const Color(0xFFFAFAFA) : const Color(0xFF000080),
-                  height: 24 / 16,
-                )),
           ),
-          SizedBox.fromSize(size: const Size(5, 0)),
-          ElevatedButton(
-            onPressed: () => onSelectionChanged(selectedIndex == 2 ? -1 : 2),
-            style: ElevatedButton.styleFrom(
-              padding: const EdgeInsets.fromLTRB(30, 10, 30, 10),
-              backgroundColor: selectedIndex == 2 ? const Color(0xFF000080) : const Color(0xFFFAFAFA),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+          const SizedBox(width: 4),
+          Expanded(
+            child: ElevatedButton(
+              onPressed: () => onSelectionChanged(selectedIndex == 2 ? -1 : 2),
+              style: ElevatedButton.styleFrom(
+                elevation: 0,
+                padding: const EdgeInsets.symmetric(vertical: 15),
+                backgroundColor: selectedIndex == 2
+                    ? const Color(0xFF000080)
+                    : const Color(0xFFFAFAFA),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(30)),
+              ),
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  "Tutor",
+                  style: TextStyle(
+                    fontFamily: "Inter",
+                    fontSize: 18,
+                    fontWeight: FontWeight.w500,
+                    color: selectedIndex == 2
+                        ? const Color(0xFFFAFAFA)
+                        : const Color(0xFF000080),
+                  ),
+                ),
+              ),
             ),
-            child: Text("Tutor",
-                style: TextStyle(
-                  fontFamily: "Inter", fontSize: 20, fontWeight: FontWeight.w500,
-                  color: selectedIndex == 2 ? const Color(0xFFFAFAFA) : const Color(0xFF000080),
-                  height: 24 / 16,
-                )),
           ),
         ],
       ),
