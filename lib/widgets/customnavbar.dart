@@ -2,24 +2,41 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
 class CustomBottomNavbar extends StatefulWidget {
-  const CustomBottomNavbar({super.key});
+  const CustomBottomNavbar({
+    super.key,
+    this.selectedIndex,
+    this.onTap,
+  });
+
+  final int? selectedIndex;
+  final Function(int)? onTap;
 
   @override
   State<CustomBottomNavbar> createState() => _CustomBottomNavbarState();
 }
 
 class _CustomBottomNavbarState extends State<CustomBottomNavbar> {
-  int selectedIndex = 0;
+  int? _internalIndex;
+
+  int get currentIndex => widget.selectedIndex ?? _internalIndex ?? 0;
+
+  void handleTap(int index) {
+    if (widget.onTap != null) {
+      widget.onTap!(index);
+      if (widget.selectedIndex == null) {
+        _internalIndex = index;
+        setState(() {});
+      }
+    } else {
+      setState(() => _internalIndex = index);
+    }
+  }
 
   Widget navItem(String iconpath, String label, int index) {
-    bool selected = selectedIndex == index;
+    bool selected = currentIndex == index;
 
     return GestureDetector(
-      onTap: () {
-        setState(() {
-          selectedIndex = index;
-        });
-      },
+      onTap: () => handleTap(index),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 300),
         curve: Curves.easeInOut,

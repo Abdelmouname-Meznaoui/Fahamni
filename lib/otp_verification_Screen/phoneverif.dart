@@ -207,7 +207,7 @@ class _PhoneVerificationPageState extends State<PhoneVerificationPage> {
         learningObjectives: data['learningObjectives'] ?? '',
         preferredSubjects:  List<String>.from(data['preferredSubjects'] ?? []),
         favoriteTeachers:   List<String>.from(data['favoriteTeachers'] ?? []),
-        courses:            List<String>.from(data['courses'] ?? []),
+        Courses:            List<String>.from(data['courses'] ?? []),
         picture: data['picture'] ?? _defaultPicture(),
       );
     } else if (role == UserRole.tutor) {
@@ -220,7 +220,7 @@ class _PhoneVerificationPageState extends State<PhoneVerificationPage> {
         levelsTaught:           List<String>.from(data['levelsTaught'] ?? []),
         teachingMode:           data['teachingMode']           ?? '',
         isAvailable:            data['isAvailable']            ?? false,
-        certified:              data['certified']              ?? false,
+        Certified:              data['certified']              ?? false,
         pedagogicalDescription: data['pedagogicalDescription'] ?? '',
         averageRating:          data['averageRating']          ?? 0.0,
         yearsOfExperience:      data['yearsOfExperience']      ?? 0,

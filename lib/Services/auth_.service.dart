@@ -28,13 +28,11 @@ class AuthService {
         'role': usermodel.role.name,
       });
       return usermodel;
-    }
-   on FirebaseAuthException catch(e){
+    } on FirebaseAuthException catch(e){
       throw _handleAuthError(e);
+    } catch (e) {
+      throw 'Registration failed: ${e.toString()}';
     }
-    catch (e) {
-    throw 'Registration failed: ${e.toString()}';
-  }
   }
 
 
@@ -43,10 +41,9 @@ Future<UserModel?> login(String emailOrPhone, String password) async {
   try {
     String email = emailOrPhone;
     if(!emailOrPhone.contains('@')){
-      final phone = emailOrPhone.startsWith('+') ? emailOrPhone : toE164(emailOrPhone, '213');
-    
-    email = await _getEmailFromPhone(phone);
-  }
+      final phone = emailOrPhone.startsWith('+') ? emailOrPhone : '+213${emailOrPhone.replaceAll(RegExp(r'[^0-9]'), '')}';
+      email = await _getEmailFromPhone(phone);
+    }
 
 
 
@@ -56,7 +53,8 @@ Future<UserModel?> login(String emailOrPhone, String password) async {
     if (!userDoc.exists) {
       throw Exception('User profile not found');
     }
-    final role = UserRole.values.byName(userDoc['role']);
+    final role = UserRole.values.firstWhere((r) => r.name == (userDoc['role'] ?? 'student'), orElse: () => UserRole.student);
+
 
     
     return await _fetchUserProfile(uid, role);
@@ -207,52 +205,7 @@ Future<UserModel> verifyOtpAndRegister({
 
 
 UserModel _buildModelWithUid(UserModel model, String uid) {
-  if (model is StudentModel) {
-    return StudentModel(
-      uid: uid,
-      firstName: model.firstName, lastName: model.lastName,
-      email: model.email,         phone: model.phone,
-      location: model.location,   gender: model.gender,
-      birthday: model.birthday,   accountStatus: model.accountStatus,
-      schoolLevel: model.schoolLevel,
-      learningObjectives: model.learningObjectives,
-      preferredSubjects: model.preferredSubjects,
-      favoriteTeachers: model.favoriteTeachers,      
-      courses: model.courses,
-      
-      picture: model.picture,
-    );
-  } else if (model is TutorModel) {
-    return TutorModel(
-      uid: uid,
-      firstName: model.firstName, lastName: model.lastName,
-      email: model.email,         phone: model.phone,
-      location: model.location,   gender: model.gender,
-      birthday: model.birthday,   accountStatus: model.accountStatus,
-      expertiseDomain: model.expertiseDomain,
-      levelsTaught: model.levelsTaught,
-      teachingMode: model.teachingMode,
-      isAvailable: model.isAvailable,
-      
-      certified: model.certified,
-      pedagogicalDescription: model.pedagogicalDescription,
-      averageRating: model.averageRating,
-      yearsOfExperience: model.yearsOfExperience,
-      academicDescription: model.academicDescription,
-      picture: model.picture, 
-    );
-  } else {
-    final p = model as ParentModel;
-    return ParentModel(
-      uid: uid,
-      firstName: p.firstName, lastName: p.lastName,
-      email: p.email,         phone: p.phone,
-      location: p.location,   gender: p.gender,
-      birthday: p.birthday,   accountStatus: p.accountStatus,
-      childrenUids: p.childrenUids,
-      picture: model.picture, 
-    );
-  }
+  return model.copyWithUid(uid);
 }
 Future<void> checkIfUserExists({
   required String email,
@@ -343,7 +296,7 @@ Future<UserModel?> loginWithGoogle() async {
       return null;
     }
 
-    final role = UserRole.values.byName(userDoc['role']);
+    final role = UserRole.values.firstWhere((r) => r.name == (userDoc['role'] ?? 'student'), orElse: () => UserRole.student);
     return await _fetchUserProfile(uid, role);
 
   } on FirebaseAuthException catch (e) {
