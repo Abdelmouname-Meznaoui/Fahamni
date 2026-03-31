@@ -4,7 +4,6 @@ import 'package:google_fonts/google_fonts.dart';
 import '../models/chat_model.dart';
 import 'Message_input.dart';
 import 'messagerow.dart';
-import 'inside_conversation_buttons.dart';
 
 class ConversationPage extends StatefulWidget {
   final ConversationModel conversation;
@@ -24,7 +23,7 @@ class ConversationPage extends StatefulWidget {
 
 class _ConversationPageState extends State<ConversationPage> {
   final ScrollController _scrollController = ScrollController();
-  bool _showDetails = false; // toggles the media/members/attachments panel
+  final bool _showDetails = false; // toggles the media/members/attachments panel
 
   @override
   void dispose() {

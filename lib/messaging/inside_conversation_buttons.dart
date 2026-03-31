@@ -4,7 +4,6 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'media_grid.dart';
 import 'conversation_members.dart';
-import 'conversation_doc_page.dart';
 import 'conversation_attachements.dart';
 
 class InsideConversationButtons extends StatefulWidget {

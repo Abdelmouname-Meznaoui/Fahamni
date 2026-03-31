@@ -103,7 +103,7 @@ class ServiceCard extends StatelessWidget {
                                   ),
                                   SizedBox(width: 5,),
                                   Text(
-                                    service.duration.toString()+"min session",
+                                    "${service.duration}min session",
                                     style: TextStyle(
                                       color: const Color(0xFF64748B),
                                       fontSize: 14,
@@ -126,7 +126,7 @@ class ServiceCard extends StatelessWidget {
                                   ),
                                   SizedBox(width: 5,),
                                   Text(
-                                    (service.maxnum - service.enrollednum).toString()+' places left',
+                                    '${service.maxnum - service.enrollednum} places left',
                                     style: TextStyle(
                                       color: const Color(0xFFDD0D0D),
                                       fontSize: 14,
@@ -142,7 +142,7 @@ class ServiceCard extends StatelessWidget {
                                 crossAxisAlignment: CrossAxisAlignment.center,
                                 children: [
                                   Text(
-                                    service.price.toInt().toString()+"DA",
+                                    "${service.price.toInt()}DA",
                                     style: TextStyle(
                                       color: const Color(0xFF000080),
                                       fontSize: 20,

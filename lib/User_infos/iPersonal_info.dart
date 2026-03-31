@@ -1118,7 +1118,7 @@ class _ROW2State extends State<ROW2> {
             ),
             const SizedBox(height: 8),
             DropdownButtonFormField<String>(
-              value: selectedCity,
+              initialValue: selectedCity,
               isExpanded: true,
               borderRadius: BorderRadius.circular(16),
               dropdownColor: Colors.white,
@@ -1194,7 +1194,7 @@ class _ROW2State extends State<ROW2> {
             ),
             const SizedBox(height: 8),
             DropdownButtonFormField<String>(
-              value: selectedCommune,
+              initialValue: selectedCommune,
               isExpanded: true,
               borderRadius: BorderRadius.circular(16),
               dropdownColor: Colors.white,

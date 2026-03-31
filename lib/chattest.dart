@@ -1,7 +1,6 @@
 import 'package:fahamni/messaging/Message_input.dart';
 import 'package:fahamni/models/chat_model.dart';
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'messaging/messagerow.dart';
 
 

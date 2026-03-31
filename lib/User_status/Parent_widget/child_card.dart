@@ -228,7 +228,7 @@ class ChildCard extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             DropdownButtonFormField<String>(
-              value: data['level'],
+              initialValue: data['level'],
               isExpanded: true,
               borderRadius: BorderRadius.circular(12),
               dropdownColor: Colors.white,

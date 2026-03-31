@@ -4,7 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 class ConversationMembers extends StatelessWidget {
 
   final List<String> participants;
-  ConversationMembers({super.key,required this.participants});
+  const ConversationMembers({super.key,required this.participants});
 
 
   @override

@@ -2,13 +2,11 @@ import 'package:fahamni/User_infos/iPersonal_info.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/user_model.dart';
-//import 'package:flutter/material.dart';
-///import 'package:google_sign_in/google_sign_in.dart';
-///import 'package:flutter_facebook_auth/flutter_facebook_auth.dart';
+import 'package:google_sign_in/google_sign_in.dart';
+//import 'package:flutter_facebook_auth/flutter_facebook_auth.dart';
 import '../models/tutor_model.dart';
 import '../models/student_model.dart';
 import '../models/parent_model.dart'; 
-import 'package:google_sign_in/google_sign_in.dart';
 import 'phone_auth_service.dart';
 
 
@@ -220,7 +218,8 @@ UserModel _buildModelWithUid(UserModel model, String uid) {
       learningObjectives: model.learningObjectives,
       preferredSubjects: model.preferredSubjects,
       favoriteTeachers: model.favoriteTeachers,      
-      Courses: model.Courses,
+      courses: model.courses,
+      
       picture: model.picture,
     );
   } else if (model is TutorModel) {
@@ -234,7 +233,8 @@ UserModel _buildModelWithUid(UserModel model, String uid) {
       levelsTaught: model.levelsTaught,
       teachingMode: model.teachingMode,
       isAvailable: model.isAvailable,
-      Certified: model.Certified,
+      
+      certified: model.certified,
       pedagogicalDescription: model.pedagogicalDescription,
       averageRating: model.averageRating,
       yearsOfExperience: model.yearsOfExperience,
