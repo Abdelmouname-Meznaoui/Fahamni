@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:fahamni/Login_Screen/LoginScreen.dart';
+import '../Onboarding/onboarding.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -20,6 +20,7 @@ class _SplashScreenState extends State<SplashScreen>
   @override
   void initState() {
     super.initState();
+    print('SPLASH: initState started');
 
     _controller = AnimationController(
       vsync: this,
@@ -61,32 +62,35 @@ class _SplashScreenState extends State<SplashScreen>
       ),
     );
 
-  
+    _controller.forward().then((_) {
+      print('SPLASH: Animation completed');
+    });
 
-    _controller.forward();
-
-    Future.delayed(const Duration(milliseconds: 4000), () {
-      if (!mounted) return;
-      Navigator.pushReplacement(
-        context,
-        PageRouteBuilder(
-          transitionDuration: const Duration(milliseconds: 800),
-          pageBuilder: (_, _, _) => const LoginScreenPage(),
-          transitionsBuilder: (_, animation, _, child) =>
-              FadeTransition(opacity: animation, child: child),
-        ),
-      );
+    // Use WidgetsBinding to ensure navigation happens after build
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      print('SPLASH: Post frame callback - scheduling navigation');
+      Future.delayed(const Duration(milliseconds: 4000), () {
+        print('SPLASH: 4000ms elapsed, navigating...');
+        if (mounted) {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => const OnboardingScreen()),
+          );
+        }
+      });
     });
   }
 
   @override
   void dispose() {
+    print('SPLASH: dispose called');
     _controller.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    print('SPLASH: build method');
     return Scaffold(
       body: Container(
         color: const Color(0xFFFAFAFA),
@@ -160,11 +164,8 @@ class _SplashScreenState extends State<SplashScreen>
                   );
                 },
               ),
-
               const SizedBox(height: 12),
-
-              // Slogan slides up + fades in
-              
+              // Slogan if needed
             ],
           ),
         ),

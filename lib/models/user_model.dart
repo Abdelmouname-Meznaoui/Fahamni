@@ -4,7 +4,7 @@ import 'parent_model.dart';
 
 enum UserRole { student, tutor, parent }
 enum Gender { male, female }
-enum AccountStatus { pending, validated, rejected,}
+enum AccountStatus { pending, validated, rejected }
 
 abstract class UserModel {
   final String uid;
@@ -15,9 +15,9 @@ abstract class UserModel {
   final String location;
   final Gender gender;
   final DateTime birthday;
+  final String picture;
   final UserRole role;
   AccountStatus accountStatus;
-
 
   UserModel({
     required this.uid,
@@ -29,18 +29,17 @@ abstract class UserModel {
     required this.gender,
     required this.birthday,
     required this.role,
+    required this.picture,
     required this.accountStatus,
   });
 
-
   Map<String, dynamic> toMap();
+  UserModel copyWithUid(String uid);
 
   factory UserModel.fromMap(Map<String, dynamic> map) {
     final roleString = map['role'] ?? 'student';
     final role = UserRole.values.byName(roleString);
-    final String status = map['accountStatus'] ?? 'pending';
 
-    //the from map depends on the role
     switch (role) {
       case UserRole.student:
         return StudentModel.fromMap(map);
@@ -48,9 +47,6 @@ abstract class UserModel {
         return TutorModel.fromMap(map);
       case UserRole.parent:
         return ParentModel.fromMap(map);
-      default:
-        throw Exception("User role Unknown : $roleString");
-
     }
   }
 }
