@@ -1,4 +1,8 @@
 import 'package:fahamni/messaging/chat_page.dart';
+import 'package:fahamni/messaging/conversation_page.dart';
+import 'package:fahamni/Services/student_tutor_action_service.dart';
+import 'package:fahamni/Courses/courses_page.dart';
+import 'package:fahamni/feedback/feedback_pages.dart';
 import 'package:fahamni/widgets/customnavbar.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
@@ -23,6 +27,87 @@ class Servicedetails extends StatefulWidget {
 
 class _ServicedetailsState extends State<Servicedetails> {
   int _selectedIndex = 1;
+  final StudentTutorActionService _studentTutorActionService =
+      StudentTutorActionService();
+  bool _isActionLoading = false;
+
+  Future<void> _openConversation() async {
+    setState(() {
+      _isActionLoading = true;
+    });
+
+    try {
+      final conversation = await _studentTutorActionService.createOrGetConversation(
+        tutor: widget.tutor,
+      );
+      if (!mounted) {
+        return;
+      }
+      await Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => ConversationPage(
+            conversation: conversation,
+            imageUrl: conversation.participantAvatarUrl.isNotEmpty
+                ? conversation.participantAvatarUrl
+                : widget.tutor.picture,
+            currentUserId: conversation.participants.firstWhere(
+              (participant) => participant != widget.tutor.uid,
+              orElse: () => '',
+            ),
+          ),
+        ),
+      );
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(error.toString())),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isActionLoading = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _sendJoinRequest() async {
+    setState(() {
+      _isActionLoading = true;
+    });
+
+    try {
+      await _studentTutorActionService.createBookingRequest(
+        tutor: widget.tutor,
+        service: widget.service,
+      );
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Join request sent for ${widget.service.name}.'),
+        ),
+      );
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(error.toString())),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isActionLoading = false;
+        });
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -60,13 +145,14 @@ class _ServicedetailsState extends State<Servicedetails> {
                   height: 180,
                   width: double.infinity,
                   fit: BoxFit.cover,
+                )
+              else
+                Image.asset(
+                  "assets/images/default_service_img.png",
+                  height: 180,
+                  width: double.infinity,
+                  fit: BoxFit.cover,
                 ),
-              Image.asset(
-                "assets/images/default_service_img.png",
-                height: 180,
-                width: double.infinity,
-                fit: BoxFit.cover,
-              ),
               SizedBox(height: 5,),
               Container(
                 padding: EdgeInsetsGeometry.all(16),
@@ -85,128 +171,20 @@ class _ServicedetailsState extends State<Servicedetails> {
                       ),
                     ),
                     SizedBox(height: 5,),
-                    Center(
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.center,
+                    LayoutBuilder(
+                      builder: (context, constraints) {
+                        final double cardWidth = (constraints.maxWidth - 16) / 2;
+                        return Wrap(
+                          alignment: WrapAlignment.center,
+                          spacing: 16,
+                          runSpacing: 16,
                           children: [
-                            Container(
-                              height: 80,
-                              width: 115,
-                              padding: EdgeInsetsGeometry.all(8),
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(10),
-                                boxShadow: [BoxShadow(
-                                  color: Color(0xFF000080).withOpacity(0.2),
-                                  spreadRadius: 0.5,
-                                  blurRadius:4,
-                                  offset: Offset(0, 1),
-                                )]
-                              ),
-                              child: Column(
-                                children: [
-                                  Text(
-                                    'STUDENTS',
-                                    style: TextStyle(
-                                        color: Color(0xFF64748B),
-                                        fontFamily: "Nunito",
-                                        fontWeight: FontWeight.w700,
-                                        fontSize: 12
-                                    ),
-                                  ),
-                                  SizedBox(height: 10,),
-                                  Text(
-                                    widget.service.enrollednum.toString(),
-                                    style: TextStyle(
-                                        color: Color(0xFF000080),
-                                        fontFamily: "Nunito",
-                                        fontWeight: FontWeight.w700,
-                                        fontSize: 17,
-                                    ),
-                                  )
-                                ],
-                              ) ,
-                            ),
-                            SizedBox(width: 16,),
-                            Container(
-                              height: 80,
-                              width: 115,
-                              padding: EdgeInsetsGeometry.all(8),
-                              decoration: BoxDecoration(
-                                  color: Colors.white,
-                                  borderRadius: BorderRadius.circular(10),
-                                  boxShadow: [BoxShadow(
-                                    color: Color(0xFF000080).withOpacity(0.2),
-                                    spreadRadius: 0.5,
-                                    blurRadius:4,
-                                    offset: Offset(0, 1),
-                                  )]
-                              ),
-                              child: Column(
-                                children: [
-                                  Text(
-                                    'SESSIONS',
-                                    style: TextStyle(
-                                        color: Color(0xFF64748B),
-                                        fontFamily: "Nunito",
-                                        fontWeight: FontWeight.w700,
-                                        fontSize: 12
-                                    ),
-                                  ),
-                                  SizedBox(height: 10,),
-                                  Text(
-                                    widget.service.sessionsnum.toString(),
-                                    style: TextStyle(
-                                        color: Color(0xFF000080),
-                                        fontFamily: "Nunito",
-                                        fontWeight: FontWeight.w700,
-                                        fontSize: 17
-                                    ),
-                                  )
-                                ],
-                              ) ,
-                            ),
-                            SizedBox(width: 16,),
-                            Container(
-                              height: 80,
-                              width: 115,
-                              padding: EdgeInsetsGeometry.all(8),
-                              decoration: BoxDecoration(
-                                  color: Colors.white,
-                                  borderRadius: BorderRadius.circular(10),
-                                  boxShadow: [BoxShadow(
-                                    color: Color(0xFF000080).withOpacity(0.2),
-                                    spreadRadius: 0.5,
-                                    blurRadius:4,
-                                    offset: Offset(0, 1),
-                                  )]
-                              ),
-                              child: Column(
-                                children: [
-                                  Text(
-                                    'PRICE',
-                                    style: TextStyle(
-                                        color: Color(0xFF64748B),
-                                        fontFamily: "Nunito",
-                                        fontWeight: FontWeight.w700,
-                                        fontSize: 12
-                                    ),
-                                  ),
-                                  SizedBox(height: 10,),
-                                  Text(
-                                    "${widget.service.price.toInt()}DA",
-                                    style: TextStyle(
-                                        color: Color(0xFF000080),
-                                        fontFamily: "Nunito",
-                                        fontWeight: FontWeight.w700,
-                                        fontSize: 17
-                                    ),
-                                  )
-                                ],
-                              ) ,
-                            )
+                            _buildStatCard('STUDENTS', widget.service.enrollednum.toString(), cardWidth),
+                            _buildStatCard('SESSIONS', widget.service.sessionsnum.toString(), cardWidth),
+                            _buildStatCard('PRICE', "${widget.service.price.toInt()}DA", cardWidth),
                           ],
-                        ),
+                        );
+                      },
                     ),
                     SizedBox(height: 15,),
                     if(widget.service.maxnum - widget.service.enrollednum <= 10)
@@ -271,9 +249,11 @@ class _ServicedetailsState extends State<Servicedetails> {
                            ],
                          ),
                           SizedBox(height: 15,),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.start,
-                            crossAxisAlignment: CrossAxisAlignment.start,
+                          Wrap(
+                            spacing: 12,
+                            runSpacing: 12,
+                            alignment: WrapAlignment.start,
+                            crossAxisAlignment: WrapCrossAlignment.start,
                             children: [
                               Container(
                                 padding: EdgeInsetsGeometry.all(8),
@@ -480,27 +460,26 @@ class _ServicedetailsState extends State<Servicedetails> {
                                   ),
                                 ],
                               ),
-                              SizedBox(width: 65 ,),
-                              ElevatedButton(onPressed:(){},
-                                  style: ElevatedButton.styleFrom(
-                                    padding: EdgeInsetsGeometry.fromLTRB(15,10,15,10),
-                                    backgroundColor: Color(0xFF000080),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadiusGeometry.circular(15),
-                                    )
-                                  ),
-                              child: Center(
-                                child: Text(
-                                    'See on map',
-                                  style: TextStyle(
-                                    fontFamily: "Nunito",
-                                    fontWeight: FontWeight.w600,
-                                    fontSize: 16,
-                                    color: Colors.white,
-                                  ),
+                              ElevatedButton(
+                                onPressed:(){},
+                                style: ElevatedButton.styleFrom(
+                                  padding: EdgeInsetsGeometry.fromLTRB(15,10,15,10),
+                                  backgroundColor: Color(0xFF000080),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadiusGeometry.circular(15),
+                                  )
                                 ),
-                              )
-                              
+                                child: Center(
+                                  child: Text(
+                                    'See on map',
+                                    style: TextStyle(
+                                      fontFamily: "Nunito",
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 16,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                )
                               )
                             ],
                           ),
@@ -591,90 +570,104 @@ class _ServicedetailsState extends State<Servicedetails> {
                                 radius: 30,
                               ),
                               SizedBox(width: 15,),
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(widget.tutor.firstName,
-                                    style: TextStyle(
-                                      fontFamily: "Inter",
-                                      fontWeight: FontWeight.w600,
-                                      fontSize: 18,
-                                      color: Colors.black
-                                    ),
-                                  ),
-                                  SizedBox(height: 5,),
-                                  Text(widget.tutor.expertiseDomain,
-                                    style: TextStyle(
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(widget.tutor.firstName,
+                                      style: TextStyle(
                                         fontFamily: "Inter",
-                                        fontWeight: FontWeight.w400,
-                                        fontSize: 15,
-                                        color: Color(0xFF464653),
-                                    ),
-                                  ),
-                                  SizedBox(height: 5,),
-                                  Row(
-                                    children: [
-                                      Container(
-                                        height: 25,
-                                        width: 50,
-                                        decoration: ShapeDecoration(
-                                          color: Color(0xFF000080).withOpacity(0.1),
-                                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(5)),
-                                        ),
-                                        child: Center(
-                                          child: Row(
-                                            mainAxisSize: MainAxisSize.min,
-                                            mainAxisAlignment: MainAxisAlignment.start,
-                                            crossAxisAlignment: CrossAxisAlignment.center,
-                                            children: [
-                                              SvgPicture.asset(
-                                                "assets/images/star.svg",
-                                                height:12 ,
-                                                width: 12,
-                                              ),
-                                              SizedBox(width: 2,),
-                                              Text(
-                                                widget.tutor.averageRating.toString(),
-                                                style: TextStyle(
-                                                  color: const Color(0xFF1E293B),
-                                                  fontSize: 14,
-                                                  fontFamily: 'Lexend',
-                                                  fontWeight: FontWeight.w700,
-                                                  height: 1.33,
-                                                ),
-                                              )
-                                            ],
-                                          ),
-                                        ),
+                                        fontWeight: FontWeight.w600,
+                                        fontSize: 18,
+                                        color: Colors.black
                                       ),
-                                      SizedBox(width: 90 ,),
-                                      ElevatedButton(onPressed: (){},
-                                        style: ElevatedButton.styleFrom(
-                                          side: BorderSide(
-                                              color: Color(0xFF000080).withOpacity(0.2)
+                                    ),
+                                    SizedBox(height: 5,),
+                                    Text(widget.tutor.expertiseDomain,
+                                      style: TextStyle(
+                                          fontFamily: "Inter",
+                                          fontWeight: FontWeight.w400,
+                                          fontSize: 15,
+                                          color: Color(0xFF464653),
+                                      ),
+                                    ),
+                                    SizedBox(height: 10,),
+                                    Wrap(
+                                      spacing: 12,
+                                      runSpacing: 12,
+                                      crossAxisAlignment: WrapCrossAlignment.center,
+                                      children: [
+                                        Container(
+                                          height: 25,
+                                          width: 50,
+                                          decoration: ShapeDecoration(
+                                            color: Color(0xFF000080).withOpacity(0.1),
+                                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(5)),
                                           ),
-                                          padding: EdgeInsetsGeometry.all(10),
-                                          backgroundColor: Colors.white,
-                                          shape: RoundedRectangleBorder(
-                                            borderRadius: BorderRadiusGeometry.circular(30),
-                                          ),
-                                        ),
                                           child: Center(
-                                            child: Text(
-                                                'View profile',
-                                              style: TextStyle(
-                                                fontFamily: "Nunito",
-                                                fontWeight: FontWeight.w700,
-                                                fontSize: 18,
-                                                color: Color(0xFF000080),
-                                              ),
+                                            child: Row(
+                                              mainAxisSize: MainAxisSize.min,
+                                              mainAxisAlignment: MainAxisAlignment.start,
+                                              crossAxisAlignment: CrossAxisAlignment.center,
+                                              children: [
+                                                SvgPicture.asset(
+                                                  "assets/images/star.svg",
+                                                  height:12 ,
+                                                  width: 12,
+                                                ),
+                                                SizedBox(width: 2,),
+                                                Text(
+                                                  widget.tutor.averageRating.toString(),
+                                                  style: TextStyle(
+                                                    color: const Color(0xFF1E293B),
+                                                    fontSize: 14,
+                                                    fontFamily: 'Lexend',
+                                                    fontWeight: FontWeight.w700,
+                                                    height: 1.33,
+                                                  ),
+                                                )
+                                              ],
                                             ),
                                           ),
-                                      )
-                                      
-                                    ],
-                                  )
-                                ],
+                                        ),
+                                        ElevatedButton(
+                                          onPressed: () {
+                                            Navigator.push(
+                                              context,
+                                              MaterialPageRoute(
+                                                builder: (_) => TutorProfilePage(
+                                                  tutorId: widget.tutor.uid,
+                                                ),
+                                              ),
+                                            );
+                                          },
+                                          style: ElevatedButton.styleFrom(
+                                            side: BorderSide(
+                                                color: Color(0xFF000080).withOpacity(0.2)
+                                            ),
+                                            padding: EdgeInsetsGeometry.all(10),
+                                            backgroundColor: Colors.white,
+                                            shape: RoundedRectangleBorder(
+                                              borderRadius: BorderRadiusGeometry.circular(30),
+                                            ),
+                                          ),
+                                            child: Center(
+                                              child: Text(
+                                                  'View profile',
+                                                style: TextStyle(
+                                                  fontFamily: "Nunito",
+                                                  fontWeight: FontWeight.w700,
+                                                  fontSize: 18,
+                                                  color: Color(0xFF000080),
+                                                ),
+                                              ),
+                                            ),
+                                        )
+
+                                      ],
+                                    )
+                                  ],
+                                ),
                               )
                             ],
                           )
@@ -682,10 +675,12 @@ class _ServicedetailsState extends State<Servicedetails> {
                       ),
                     ),
                     SizedBox(height: 20,),
-                    Row(
-                     mainAxisAlignment: MainAxisAlignment.center,
+                    Wrap(
+                     alignment: WrapAlignment.center,
+                     spacing: 10,
+                     runSpacing: 10,
                       children: [
-                        ElevatedButton.icon(onPressed:(){},
+                        ElevatedButton.icon(onPressed:_isActionLoading ? null : _openConversation,
                             icon: Icon(
                               Icons.message_outlined
                             ),
@@ -711,7 +706,7 @@ class _ServicedetailsState extends State<Servicedetails> {
 
                         ),
                         SizedBox(width: 10,),
-                        ElevatedButton.icon(onPressed:(){},
+                        ElevatedButton.icon(onPressed:_isActionLoading ? null : _sendJoinRequest,
                             icon: ImageIcon(
                               AssetImage("assets/images/schedule.png"),
                               color: Colors.white,
@@ -752,6 +747,12 @@ class _ServicedetailsState extends State<Servicedetails> {
               MaterialPageRoute(builder: (context) => Studenthomepage()),
             );
           }
+          else if (index == 2) {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const CoursesPage()),
+            );
+          }
           else if (index == 3) {
             Navigator.push( context,
               MaterialPageRoute(builder: (context) => ChatPage()),
@@ -766,4 +767,45 @@ class _ServicedetailsState extends State<Servicedetails> {
     );
 
   }
+}
+
+Widget _buildStatCard(String title, String value, double width) {
+  return Container(
+    height: 80,
+    width: width,
+    padding: EdgeInsetsGeometry.all(8),
+    decoration: BoxDecoration(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(10),
+      boxShadow: [BoxShadow(
+        color: Color(0xFF000080).withOpacity(0.2),
+        spreadRadius: 0.5,
+        blurRadius:4,
+        offset: Offset(0, 1),
+      )]
+    ),
+    child: Column(
+      children: [
+        Text(
+          title,
+          style: TextStyle(
+              color: Color(0xFF64748B),
+              fontFamily: "Nunito",
+              fontWeight: FontWeight.w700,
+              fontSize: 12
+          ),
+        ),
+        SizedBox(height: 10,),
+        Text(
+          value,
+          style: TextStyle(
+              color: Color(0xFF000080),
+              fontFamily: "Nunito",
+              fontWeight: FontWeight.w700,
+              fontSize: 17
+          ),
+        )
+      ],
+    ) ,
+  );
 }

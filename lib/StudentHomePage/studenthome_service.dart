@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:fahamni/models/session_model.dart';
+import 'package:fahamni/models/service_model.dart';
 import 'package:fahamni/models/tutor_model.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../models/student_model.dart';
@@ -35,12 +36,26 @@ class studenthomepage_service {
     final docs = await Future.wait(
         ids.map((id) => _db.collection('tutors').doc(id).get())
     );
-    return docs.map((doc) => TutorModel.fromMap(doc.data()!)).toList();
+    return docs
+        .where((doc) => doc.exists && doc.data() != null)
+        .map((doc) => TutorModel.fromMap(doc.data()!))
+        .toList();
   }
   Future<List<SessionModel>> getCourses(List<String> ids) async {
     final docs = await Future.wait(
         ids.map((id) => _db.collection('sessions').doc(id).get())
     );
-    return docs.map((doc) => SessionModel.fromMap(doc.data()!)).toList();
+    return docs
+        .where((doc) => doc.exists && doc.data() != null)
+        .map((doc) => SessionModel.fromMap(doc.data()!))
+        .toList();
+  }
+
+  Future<ServiceModel?> getServiceData(String id) async {
+    final doc = await _db.collection('services').doc(id).get();
+    if (!doc.exists || doc.data() == null) {
+      return null;
+    }
+    return ServiceModel.fromMap(doc.data()!);
   }
 }

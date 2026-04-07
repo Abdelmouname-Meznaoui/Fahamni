@@ -18,6 +18,7 @@ class ReviewModel {
   Map<String, dynamic> toMap() {
     return {
       'review_id': reviewId,
+      'reviewer_id': reviewerId,
       'student_id': reviewerId,
       'tutor_id': tutorId,
       'rating': rating,
@@ -29,7 +30,7 @@ class ReviewModel {
   factory ReviewModel.fromMap(Map<String, dynamic> map) {
     return ReviewModel(
       reviewId: map['review_id'] ?? '',
-      reviewerId: map['reviewer_id'] ?? '',
+      reviewerId: map['reviewer_id'] ?? map['student_id'] ?? '',
       tutorId: map['tutor_id'] ?? '',
       rating: (map['rating'] ?? 0.0).toDouble(),
       comment: map['comment'] ?? '',

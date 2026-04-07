@@ -9,4 +9,9 @@ abstract class ChatRepository {
   Stream<List<MessageModel>> getMessages(String conversationId);
 
   Future<void> sendMessage(MessageModel message);
+
+  Future<ConversationModel> ensureDirectConversation({
+    required String currentUserId,
+    required String otherUserId,
+  });
 }

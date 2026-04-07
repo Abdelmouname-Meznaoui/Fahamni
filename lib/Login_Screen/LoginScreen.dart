@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:fahamni/user_infos/ipersonal_info.dart';
 import '../Pass_recov_page/passRec.dart';
 import '../StudentHomePage/Student_homepage.dart';
+import '../TeacherDashboard/teacher_dashboard.dart';
 import '../Services/auth_.service.dart';
 import '../models/user_model.dart'; 
 
@@ -73,7 +74,11 @@ class _LoginScreenState extends State<LoginScreen> {
       MaterialPageRoute(builder: (context) => const Studentpage()),
     );
     break;
-  case UserRole.tutor: 
+  case UserRole.tutor:
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (context) => const Teacherpage()),
+    );
     break;
   case UserRole.parent:
     break;
@@ -107,6 +112,8 @@ class _LoginScreenState extends State<LoginScreen> {
               MaterialPageRoute(builder: (_) => const Studentpage()));
           break;
         case UserRole.tutor:
+          Navigator.pushReplacement(context,
+              MaterialPageRoute(builder: (_) => const Teacherpage()));
           break;
         case UserRole.parent:
           break;

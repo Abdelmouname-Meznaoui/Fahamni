@@ -98,17 +98,15 @@ class _ChatPageState extends State<ChatPage> {
       return conversation.conversationName.trim();
     }
 
-    if (conversation.conversationId.trim().isNotEmpty) {
-      return conversation.conversationId.trim();
-    }
-
     final Iterable<String> otherParticipants = conversation.participants.where(
       (participantId) => participantId != _currentUserId,
     );
 
-    return otherParticipants.isNotEmpty
-        ? otherParticipants.first
-        : 'Conversation';
+    if (conversation.isGroup) {
+      return 'Group Conversation';
+    }
+
+    return otherParticipants.isNotEmpty ? 'Direct Conversation' : 'Conversation';
   }
 
   String _conversationAvatar(ConversationModel conversation) {
