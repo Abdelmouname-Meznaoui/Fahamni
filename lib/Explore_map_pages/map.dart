@@ -27,7 +27,7 @@ class _MappageState extends State<Mappage> {
   GoogleMapController? _controller;
   final CustomInfoWindowController _customInfoWindowController = CustomInfoWindowController();
   Position? _currentPosition;
-  Set<Marker> _markers = {};
+  final Set<Marker> _markers = {};
   Set<Polyline> _polylines = {};
   List<TutorModel> teachers = [];
   List<List<Location>> positions = [];
