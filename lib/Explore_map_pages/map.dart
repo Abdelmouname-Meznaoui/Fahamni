@@ -1,5 +1,4 @@
 import 'dart:ui' as ui;
-import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_polyline_points/flutter_polyline_points.dart';
@@ -11,10 +10,12 @@ import 'package:custom_info_window/custom_info_window.dart';
 import 'package:fahamni/models/tutor_model.dart';
 import 'package:fahamni/widgets/explore_service.dart';
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 const String _googleMapsApiKey = 'AIzaSyAsdCXmRcjXMYaLrytaPoO7oLACGdzj65E';
 const LatLng _defaultMapCenter = LatLng(36.7538, 3.0588);
+const String _mapLocationConsentKey = 'map_location_consent_granted';
 
 class Mappage extends StatefulWidget {
   const Mappage({super.key});
@@ -25,7 +26,8 @@ class Mappage extends StatefulWidget {
 
 class _MappageState extends State<Mappage> {
   GoogleMapController? _controller;
-  final CustomInfoWindowController _customInfoWindowController = CustomInfoWindowController();
+  final CustomInfoWindowController _customInfoWindowController =
+      CustomInfoWindowController();
   Position? _currentPosition;
   final Set<Marker> _markers = {};
   Set<Polyline> _polylines = {};
@@ -33,21 +35,59 @@ class _MappageState extends State<Mappage> {
   List<List<Location>> positions = [];
   TutorModel? _selectedTutor;
   int? _selectedIndex;
-  final DraggableScrollableController _sheetController = DraggableScrollableController();
+  bool _hasLocationConsent = false;
+  bool _isRequestingLocation = false;
+  final DraggableScrollableController _sheetController =
+      DraggableScrollableController();
 
   @override
   void initState() {
     super.initState();
-    _getCurrentLocation();
+    _initializeLocationState();
     _loadTutorMarkers();
   }
 
-  Future<void> _getCurrentLocation() async {
-    LocationPermission permission = await Geolocator.requestPermission();
+  Future<void> _initializeLocationState() async {
+    final SharedPreferences preferences = await SharedPreferences.getInstance();
+    final bool storedConsent =
+        preferences.getBool(_mapLocationConsentKey) ?? false;
+    final LocationPermission permission = await Geolocator.checkPermission();
+    final bool permissionGranted =
+        permission == LocationPermission.always ||
+        permission == LocationPermission.whileInUse;
+
+    if (!mounted) {
+      return;
+    }
+
+    setState(() {
+      _hasLocationConsent = storedConsent || permissionGranted;
+    });
+
+    if (permissionGranted) {
+      await _getCurrentLocation(requestPermissionIfNeeded: false);
+    }
+  }
+
+  Future<void> _getCurrentLocation({
+    bool requestPermissionIfNeeded = false,
+  }) async {
+    LocationPermission permission = await Geolocator.checkPermission();
+    if (requestPermissionIfNeeded &&
+        (permission == LocationPermission.denied ||
+            permission == LocationPermission.unableToDetermine)) {
+      permission = await Geolocator.requestPermission();
+    }
+
     if (permission == LocationPermission.denied ||
         permission == LocationPermission.deniedForever) {
       if (mounted) {
-        setState(() => _currentPosition = null);
+        setState(() {
+          _currentPosition = null;
+          if (requestPermissionIfNeeded) {
+            _hasLocationConsent = false;
+          }
+        });
       }
       return;
     }
@@ -55,10 +95,53 @@ class _MappageState extends State<Mappage> {
     if (!mounted) {
       return;
     }
-    setState(() => _currentPosition = position);
+    setState(() {
+      _currentPosition = position;
+      _hasLocationConsent = true;
+    });
     _controller?.animateCamera(
       CameraUpdate.newLatLng(LatLng(position.latitude, position.longitude)),
     );
+  }
+
+  Future<void> _requestLocationAccess() async {
+    if (_isRequestingLocation) {
+      return;
+    }
+
+    setState(() {
+      _isRequestingLocation = true;
+    });
+
+    try {
+      final SharedPreferences preferences =
+          await SharedPreferences.getInstance();
+      final LocationPermission permission =
+          await Geolocator.requestPermission();
+      final bool granted =
+          permission == LocationPermission.always ||
+          permission == LocationPermission.whileInUse;
+
+      await preferences.setBool(_mapLocationConsentKey, granted);
+
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _hasLocationConsent = granted;
+      });
+
+      if (granted) {
+        await _getCurrentLocation(requestPermissionIfNeeded: false);
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isRequestingLocation = false;
+        });
+      }
+    }
   }
 
   Future<BitmapDescriptor> _buildCircularMarker(String url) async {
@@ -67,8 +150,21 @@ class _MappageState extends State<Mappage> {
     const double borderWidth = 5;
     const Color borderColor = Colors.white;
 
-    final response = await http.get(Uri.parse(url));
-    final Uint8List imageBytes = response.bodyBytes;
+    Uint8List? imageBytes;
+    if (url.trim().isNotEmpty) {
+      try {
+        final response = await http.get(Uri.parse(url));
+        if (response.statusCode >= 200 && response.statusCode < 300) {
+          imageBytes = response.bodyBytes;
+        }
+      } catch (_) {
+        imageBytes = null;
+      }
+    }
+
+    imageBytes ??= (await rootBundle.load(
+      'assets/images/tutormale.png',
+    )).buffer.asUint8List();
 
     final ui.Codec codec = await ui.instantiateImageCodec(
       imageBytes,
@@ -90,19 +186,33 @@ class _MappageState extends State<Mappage> {
         ..color = Colors.black.withOpacity(0.25)
         ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 6),
     );
-    canvas.drawCircle(centerOffset, radius + borderWidth, Paint()..color = borderColor);
+    canvas.drawCircle(
+      centerOffset,
+      radius + borderWidth,
+      Paint()..color = borderColor,
+    );
     final Path clipPath = Path()
       ..addOval(Rect.fromCircle(center: centerOffset, radius: radius));
     canvas.clipPath(clipPath);
     canvas.drawImageRect(
       avatarImage,
-      Rect.fromLTWH(0, 0, avatarImage.width.toDouble(), avatarImage.height.toDouble()),
+      Rect.fromLTWH(
+        0,
+        0,
+        avatarImage.width.toDouble(),
+        avatarImage.height.toDouble(),
+      ),
       Rect.fromCircle(center: centerOffset, radius: radius),
       Paint(),
     );
 
-    final ui.Image markerImage = await recorder.endRecording().toImage(size, size);
-    final ByteData? byteData = await markerImage.toByteData(format: ui.ImageByteFormat.png);
+    final ui.Image markerImage = await recorder.endRecording().toImage(
+      size,
+      size,
+    );
+    final ByteData? byteData = await markerImage.toByteData(
+      format: ui.ImageByteFormat.png,
+    );
     return BitmapDescriptor.fromBytes(byteData!.buffer.asUint8List());
   }
 
@@ -130,7 +240,9 @@ class _MappageState extends State<Mappage> {
               curve: Curves.easeOut,
             );
             _controller!.animateCamera(
-              CameraUpdate.newLatLng(LatLng(locations[0].latitude, locations[0].longitude)),
+              CameraUpdate.newLatLng(
+                LatLng(locations[0].latitude, locations[0].longitude),
+              ),
             );
           },
         );
@@ -154,8 +266,11 @@ class _MappageState extends State<Mappage> {
       positions[index][0].longitude,
     );
     final km = distanceInMeters / 1000;
-    return km < 1 ? '${distanceInMeters.toInt()} m away' : '${km.toStringAsFixed(1)} km away';
+    return km < 1
+        ? '${distanceInMeters.toInt()} m away'
+        : '${km.toStringAsFixed(1)} km away';
   }
+
   Future<void> _drawPolyline(int index) async {
     PolylinePoints polylinePoints = PolylinePoints();
 
@@ -166,7 +281,10 @@ class _MappageState extends State<Mappage> {
           _currentPosition?.latitude ?? _defaultMapCenter.latitude,
           _currentPosition?.longitude ?? _defaultMapCenter.longitude,
         ),
-        destination: PointLatLng(positions[index][0].latitude, positions[index][0].longitude),
+        destination: PointLatLng(
+          positions[index][0].latitude,
+          positions[index][0].longitude,
+        ),
         mode: TravelMode.driving,
       ),
     );
@@ -194,7 +312,7 @@ class _MappageState extends State<Mappage> {
     final lat = positions[index][0].latitude;
     final lng = positions[index][0].longitude;
     final url = Uri.parse(
-        'https://www.google.com/maps/dir/?api=1&destination=$lat,$lng&travelmode=driving'
+      'https://www.google.com/maps/dir/?api=1&destination=$lat,$lng&travelmode=driving',
     );
     await launchUrl(url, mode: LaunchMode.externalApplication);
   }
@@ -230,22 +348,18 @@ class _MappageState extends State<Mappage> {
               target: initialTarget,
               zoom: 15,
             ),
+            mapType: MapType.normal,
+            buildingsEnabled: true,
+            compassEnabled: true,
             myLocationEnabled: _currentPosition != null,
-            myLocationButtonEnabled: true,
+            myLocationButtonEnabled: _currentPosition != null,
             zoomControlsEnabled: false,
             markers: _markers,
             polylines: _polylines,
             onMapCreated: (controller) async {
               _controller = controller;
-              _controller!.setMapStyle(
-                await DefaultAssetBundle.of(context).loadString('assets/map_style.json'),
-              );
               _customInfoWindowController.googleMapController = controller;
-              _controller!.animateCamera(
-                CameraUpdate.newLatLng(
-                  initialTarget,
-                ),
-              );
+              _controller!.animateCamera(CameraUpdate.newLatLng(initialTarget));
             },
             onCameraMove: (_) => _customInfoWindowController.onCameraMove!(),
             onTap: (_) {
@@ -262,6 +376,44 @@ class _MappageState extends State<Mappage> {
               );
             },
           ),
+          if (_currentPosition == null)
+            Positioned(
+              top: 16,
+              right: 16,
+              child: ElevatedButton.icon(
+                onPressed: _isRequestingLocation
+                    ? null
+                    : _requestLocationAccess,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF000080),
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(24),
+                  ),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 10,
+                  ),
+                ),
+                icon: _isRequestingLocation
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
+                    : const Icon(Icons.my_location_rounded, size: 18),
+                label: Text(
+                  _hasLocationConsent ? 'Locate me' : 'Enable location',
+                  style: const TextStyle(
+                    fontFamily: "Nunito",
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+            ),
           CustomInfoWindow(
             controller: _customInfoWindowController,
             height: 180,
@@ -283,7 +435,7 @@ class _MappageState extends State<Mappage> {
                       color: Colors.black.withOpacity(0.15),
                       blurRadius: 20,
                       offset: Offset(0, -4),
-                    )
+                    ),
                   ],
                 ),
                 child: SingleChildScrollView(
@@ -329,14 +481,17 @@ class _MappageState extends State<Mappage> {
                           itemBuilder: (context, index) {
                             final isSelected = _selectedIndex == index;
                             return GestureDetector(
-                              onTap: (){
+                              onTap: () {
                                 setState(() {
                                   _selectedTutor = teachers[index];
                                   _selectedIndex = index;
                                 });
                                 _controller!.animateCamera(
                                   CameraUpdate.newLatLng(
-                                    LatLng(positions[index][0].latitude, positions[index][0].longitude),
+                                    LatLng(
+                                      positions[index][0].latitude,
+                                      positions[index][0].longitude,
+                                    ),
                                   ),
                                 );
                                 _sheetController.animateTo(
@@ -355,11 +510,15 @@ class _MappageState extends State<Mappage> {
                                       decoration: BoxDecoration(
                                         shape: BoxShape.circle,
                                         image: DecorationImage(
-                                          image: NetworkImage(teachers[index].picture),
+                                          image: NetworkImage(
+                                            teachers[index].picture,
+                                          ),
                                           fit: BoxFit.cover,
                                         ),
                                         border: Border.all(
-                                          color: isSelected ? Color(0xFF000080) : Colors.grey[300]!,
+                                          color: isSelected
+                                              ? Color(0xFF000080)
+                                              : Colors.grey[300]!,
                                           width: isSelected ? 3 : 1.5,
                                         ),
                                       ),
@@ -369,9 +528,13 @@ class _MappageState extends State<Mappage> {
                                       teachers[index].firstName,
                                       style: TextStyle(
                                         fontFamily: "Lexend",
-                                        fontWeight: isSelected ? FontWeight.w700 : FontWeight.w400,
+                                        fontWeight: isSelected
+                                            ? FontWeight.w700
+                                            : FontWeight.w400,
                                         fontSize: 11,
-                                        color: isSelected ? Color(0xFF000080) : Colors.black,
+                                        color: isSelected
+                                            ? Color(0xFF000080)
+                                            : Colors.black,
                                       ),
                                     ),
                                   ],
@@ -391,16 +554,21 @@ class _MappageState extends State<Mappage> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 16 , vertical: 5),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                  vertical: 5,
+                                ),
                                 decoration: BoxDecoration(
-                                    color: Color(0xFF000080).withOpacity(0.1),
-                                    borderRadius: BorderRadiusGeometry.circular(5),
-                                    border: Border(
-                                        left: BorderSide(
-                                          color: Color(0xFF000080),
-                                          width: 4,
-                                        )
-                                    )
+                                  color: Color(0xFF000080).withOpacity(0.1),
+                                  borderRadius: BorderRadiusGeometry.circular(
+                                    5,
+                                  ),
+                                  border: Border(
+                                    left: BorderSide(
+                                      color: Color(0xFF000080),
+                                      width: 4,
+                                    ),
+                                  ),
                                 ),
                                 child: Row(
                                   children: [
@@ -410,18 +578,21 @@ class _MappageState extends State<Mappage> {
                                       decoration: BoxDecoration(
                                         shape: BoxShape.circle,
                                         image: DecorationImage(
-                                          image: NetworkImage(_selectedTutor!.picture),
+                                          image: NetworkImage(
+                                            _selectedTutor!.picture,
+                                          ),
                                           fit: BoxFit.cover,
                                         ),
                                         border: Border.all(
-                                          style: BorderStyle.none
-                                        )
+                                          style: BorderStyle.none,
+                                        ),
                                       ),
                                     ),
                                     SizedBox(width: 12),
                                     Expanded(
                                       child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
                                         children: [
                                           Text(
                                             '${_selectedTutor!.firstName} ${_selectedTutor!.lastName}',
@@ -445,17 +616,27 @@ class _MappageState extends State<Mappage> {
                                       ),
                                     ),
                                     Container(
-                                      padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                      padding: EdgeInsets.symmetric(
+                                        horizontal: 8,
+                                        vertical: 4,
+                                      ),
                                       decoration: BoxDecoration(
-                                        color: Color(0xFF000080).withOpacity(0.1),
+                                        color: Color(
+                                          0xFF000080,
+                                        ).withOpacity(0.1),
                                         borderRadius: BorderRadius.circular(8),
                                       ),
                                       child: Row(
                                         children: [
-                                          SvgPicture.asset("assets/images/star.svg", height: 12, width: 12),
+                                          SvgPicture.asset(
+                                            "assets/images/star.svg",
+                                            height: 12,
+                                            width: 12,
+                                          ),
                                           SizedBox(width: 4),
                                           Text(
-                                            _selectedTutor!.averageRating.toString(),
+                                            _selectedTutor!.averageRating
+                                                .toString(),
                                             style: TextStyle(
                                               fontFamily: "Lexend",
                                               fontWeight: FontWeight.w700,
@@ -471,16 +652,23 @@ class _MappageState extends State<Mappage> {
                               ),
                               SizedBox(height: 16),
                               // Info rows
-                              _infoRow(Icons.location_on_rounded, _selectedTutor!.location),
+                              _infoRow(
+                                Icons.location_on_rounded,
+                                _selectedTutor!.location,
+                              ),
                               SizedBox(height: 8),
                               Container(
-                                margin: EdgeInsetsGeometry.symmetric(horizontal: 10),
-                                padding: EdgeInsets.fromLTRB(6, 3, 0, 3) ,
+                                margin: EdgeInsetsGeometry.symmetric(
+                                  horizontal: 10,
+                                ),
+                                padding: EdgeInsets.fromLTRB(6, 3, 0, 3),
                                 width: 130,
                                 isAntiAlias: true,
                                 decoration: BoxDecoration(
                                   color: Color(0xFF000080).withOpacity(0.1),
-                                  borderRadius: BorderRadiusGeometry.circular(99),
+                                  borderRadius: BorderRadiusGeometry.circular(
+                                    99,
+                                  ),
                                 ),
                                 child: _infoRow(
                                   Icons.directions_walk_rounded,
@@ -488,72 +676,86 @@ class _MappageState extends State<Mappage> {
                                       ? 'Enable location for distance'
                                       : _getDistance(_selectedIndex!),
                                 ),
-                                
                               ),
                               SizedBox(height: 8),
-                              _infoRow(Icons.devices, _selectedTutor!.teachingMode),
+                              _infoRow(
+                                Icons.devices,
+                                _selectedTutor!.teachingMode,
+                              ),
                               SizedBox(height: 20),
                               SizedBox(
                                 width: double.infinity,
                                 height: 60,
-                                child:Row(
+                                child: Row(
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
                                     ElevatedButton.icon(
-                                        onPressed:()=> _openGoogleMapsDirections(_selectedIndex!),
-                                        icon: Icon(
-                                            Icons.message_outlined
-                                        ),
-                                        style: ElevatedButton.styleFrom(
-                                            padding: EdgeInsetsGeometry.fromLTRB(20,15,20,15),
-                                            backgroundColor: Color(0xFFD2D2D2),
-                                            iconColor: Colors.black,
-                                            shape: RoundedRectangleBorder(
-                                              borderRadius: BorderRadiusGeometry.circular(30),
-                                            )
-                                        ),
-                                        label: Center(
-                                          child: Text(
-                                            'Directions',
-                                            style: TextStyle(
-                                              fontFamily: "Nunito",
-                                              fontWeight: FontWeight.w600,
-                                              fontSize: 16,
-                                              color: Colors.black,
-                                            ),
+                                      onPressed: () =>
+                                          _openGoogleMapsDirections(
+                                            _selectedIndex!,
                                           ),
-                                        )
-
+                                      icon: Icon(Icons.message_outlined),
+                                      style: ElevatedButton.styleFrom(
+                                        padding: EdgeInsetsGeometry.fromLTRB(
+                                          20,
+                                          15,
+                                          20,
+                                          15,
+                                        ),
+                                        backgroundColor: Color(0xFFD2D2D2),
+                                        iconColor: Colors.black,
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius:
+                                              BorderRadiusGeometry.circular(30),
+                                        ),
+                                      ),
+                                      label: Center(
+                                        child: Text(
+                                          'Directions',
+                                          style: TextStyle(
+                                            fontFamily: "Nunito",
+                                            fontWeight: FontWeight.w600,
+                                            fontSize: 16,
+                                            color: Colors.black,
+                                          ),
+                                        ),
+                                      ),
                                     ),
-                                    SizedBox(width: 10,),
-                                    ElevatedButton.icon(onPressed:(){},
-                                        icon: Icon(
-                                          Icons.person_2_outlined,
-                                          color: Colors.white,
-                                          size: 23,
+                                    SizedBox(width: 10),
+                                    ElevatedButton.icon(
+                                      onPressed: () {},
+                                      icon: Icon(
+                                        Icons.person_2_outlined,
+                                        color: Colors.white,
+                                        size: 23,
+                                      ),
+                                      style: ElevatedButton.styleFrom(
+                                        padding: EdgeInsetsGeometry.fromLTRB(
+                                          20,
+                                          15,
+                                          20,
+                                          15,
                                         ),
-                                        style: ElevatedButton.styleFrom(
-                                            padding: EdgeInsetsGeometry.fromLTRB(20,15,20,15),
-                                            backgroundColor: Color(0xFF000080),
-                                            shape: RoundedRectangleBorder(
-                                              borderRadius: BorderRadiusGeometry.circular(30),
-                                            )
+                                        backgroundColor: Color(0xFF000080),
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius:
+                                              BorderRadiusGeometry.circular(30),
                                         ),
-                                        label: Center(
-                                          child: Text(
-                                            'View Profile',
-                                            style: TextStyle(
-                                              fontFamily: "Nunito",
-                                              fontWeight: FontWeight.w600,
-                                              fontSize: 16,
-                                              color: Colors.white,
-                                            ),
+                                      ),
+                                      label: Center(
+                                        child: Text(
+                                          'View Profile',
+                                          style: TextStyle(
+                                            fontFamily: "Nunito",
+                                            fontWeight: FontWeight.w600,
+                                            fontSize: 16,
+                                            color: Colors.white,
                                           ),
-                                        )
-
-                                    )
+                                        ),
+                                      ),
+                                    ),
                                   ],
-                                )
+                                ),
                               ),
                               SizedBox(height: 20),
                             ],
@@ -561,16 +763,35 @@ class _MappageState extends State<Mappage> {
                         ),
                       ],
                       if (_currentPosition == null)
-                        const Padding(
-                          padding: EdgeInsets.fromLTRB(16, 0, 16, 12),
-                          child: Text(
-                            'Location permission is off. The map still works, but your current position and distance are unavailable.',
-                            style: TextStyle(
-                              fontFamily: "Nunito",
-                              fontWeight: FontWeight.w600,
-                              fontSize: 12,
-                              color: Color(0xFF64748B),
-                            ),
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                          child: Row(
+                            children: [
+                              const Expanded(
+                                child: Text(
+                                  'Location permission is off. The map still works, but your current position and distance are unavailable.',
+                                  style: TextStyle(
+                                    fontFamily: "Nunito",
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 12,
+                                    color: Color(0xFF64748B),
+                                  ),
+                                ),
+                              ),
+                              TextButton(
+                                onPressed: _isRequestingLocation
+                                    ? null
+                                    : _requestLocationAccess,
+                                child: const Text(
+                                  'Enable',
+                                  style: TextStyle(
+                                    fontFamily: "Nunito",
+                                    fontWeight: FontWeight.w800,
+                                    color: Color(0xFF000080),
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                     ],
@@ -586,7 +807,9 @@ class _MappageState extends State<Mappage> {
 
   Widget _infoRow(IconData icon, String text) {
     return Container(
-      padding: icon == Icons.directions_walk_rounded ? EdgeInsets.symmetric(horizontal: 0) : EdgeInsets.symmetric(horizontal: 16),
+      padding: icon == Icons.directions_walk_rounded
+          ? EdgeInsets.symmetric(horizontal: 0)
+          : EdgeInsets.symmetric(horizontal: 16),
       child: Row(
         children: [
           Icon(icon, size: 18, color: Color(0xFF000080)),
@@ -598,7 +821,9 @@ class _MappageState extends State<Mappage> {
                 fontFamily: "Lexend",
                 fontWeight: FontWeight.w400,
                 fontSize: 13,
-                color:  icon == Icons.directions_walk_rounded ?  Color(0xFF000080)  :  Color(0xFF475569),
+                color: icon == Icons.directions_walk_rounded
+                    ? Color(0xFF000080)
+                    : Color(0xFF475569),
               ),
             ),
           ),
