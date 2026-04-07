@@ -264,7 +264,7 @@ class _StudenthomepageState extends State<Studenthomepage> {
                     ),
                   ),
                   SizedBox(width: 2,),
-                  Container(
+                  SizedBox(
                     height: 70,
                     width: 50,
                     child: Center(
@@ -413,7 +413,7 @@ class _StudenthomepageState extends State<Studenthomepage> {
                child: 
                favoriteTutors?.length == 0 ?
                      Center(
-                     child: Container(
+                     child: SizedBox(
                        height: 500,
                        child: Row(
                          mainAxisAlignment: MainAxisAlignment.center,
@@ -439,7 +439,7 @@ class _StudenthomepageState extends State<Studenthomepage> {
                  itemCount: favoriteTutors?.length,
                  itemBuilder: (context, index) {
                    if(favoriteTutors?.length == 0){
-                     return Container(
+                     return SizedBox(
                        height: 500,
                        child: Row(
                          mainAxisAlignment: MainAxisAlignment.center,
@@ -740,7 +740,7 @@ class _StudenthomepageState extends State<Studenthomepage> {
                           ],
                         ),
                         SizedBox(height: 28,),
-                        Container(
+                        SizedBox(
                           height: 48,
                           width: 370,
                           child: ElevatedButton.icon(
