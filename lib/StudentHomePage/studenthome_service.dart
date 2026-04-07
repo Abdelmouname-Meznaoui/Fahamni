@@ -3,59 +3,127 @@ import 'package:fahamni/models/session_model.dart';
 import 'package:fahamni/models/service_model.dart';
 import 'package:fahamni/models/tutor_model.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+
 import '../models/student_model.dart';
 
 class studenthomepage_service {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
-  // Get current student data
-  Future<StudentModel> getStudentData() async {
-  //  final uid ="9zkATIGDeeNmWBKHvmv8VikNlJj1";  //_auth.currentUser!.uid;
-    final user = _auth.currentUser;
-    if (user == null) throw Exception('User not logged in');
-    final doc = await _db.collection('students').doc(user.uid).get();
-    try {
-      return StudentModel.fromMap(doc.data()!);
-    } catch (e) {
-      print('ERROR: $e');
-      rethrow;
-    }
+  Map<String, dynamic> _withDocId(
+    DocumentSnapshot<Map<String, dynamic>> doc, {
+    required String idKey,
+    String? uidKey,
+  }) {
+    final Map<String, dynamic> data = doc.data() ?? <String, dynamic>{};
+    return <String, dynamic>{
+      ...data,
+      idKey: data[idKey] ?? doc.id,
+      ?uidKey: data[uidKey] ?? doc.id,
+    };
   }
-  Future<TutorModel> getTutorData(String id) async {
 
-    final doc = await _db.collection('tutors').doc(id).get();
-    try {
-      return TutorModel.fromMap(doc.data()!);
-    } catch (e) {
-      print('ERROR: $e');
-      rethrow;
+  Future<StudentModel> getStudentData() async {
+    final User? user = _auth.currentUser;
+    if (user == null) {
+      throw Exception('User not logged in');
     }
+
+    final DocumentSnapshot<Map<String, dynamic>> doc = await _db
+        .collection('students')
+        .doc(user.uid)
+        .get();
+    if (!doc.exists || doc.data() == null) {
+      throw Exception('Student document not found for ${user.uid}');
+    }
+
+    return StudentModel.fromMap(_withDocId(doc, idKey: 'uid', uidKey: 'uid'));
   }
+
+  Future<TutorModel> getTutorData(String id) async {
+    final DocumentSnapshot<Map<String, dynamic>> doc = await _db
+        .collection('tutors')
+        .doc(id)
+        .get();
+    if (!doc.exists || doc.data() == null) {
+      throw Exception('Tutor document not found for $id');
+    }
+
+    return TutorModel.fromMap(_withDocId(doc, idKey: 'uid', uidKey: 'uid'));
+  }
+
   Future<List<TutorModel>> getFavoriteTeachers(List<String> ids) async {
-    final docs = await Future.wait(
-        ids.map((id) => _db.collection('tutors').doc(id).get())
+    final Set<String> tutorIds = ids
+        .map((id) => id.trim())
+        .where((id) => id.isNotEmpty)
+        .toSet();
+    if (tutorIds.isEmpty) {
+      return <TutorModel>[];
+    }
+
+    final List<DocumentSnapshot<Map<String, dynamic>>> docs = await Future.wait(
+      tutorIds.map((id) => _db.collection('tutors').doc(id).get()),
     );
+
     return docs
         .where((doc) => doc.exists && doc.data() != null)
-        .map((doc) => TutorModel.fromMap(doc.data()!))
+        .map(
+          (doc) =>
+              TutorModel.fromMap(_withDocId(doc, idKey: 'uid', uidKey: 'uid')),
+        )
         .toList();
   }
+
   Future<List<SessionModel>> getCourses(List<String> ids) async {
-    final docs = await Future.wait(
-        ids.map((id) => _db.collection('sessions').doc(id).get())
-    );
-    return docs
-        .where((doc) => doc.exists && doc.data() != null)
-        .map((doc) => SessionModel.fromMap(doc.data()!))
+    final Set<String> sessionIds = ids
+        .map((id) => id.trim())
+        .where((id) => id.isNotEmpty)
+        .toSet();
+
+    if (sessionIds.isNotEmpty) {
+      final List<DocumentSnapshot<Map<String, dynamic>>> docs =
+          await Future.wait(
+            sessionIds.map((id) => _db.collection('sessions').doc(id).get()),
+          );
+
+      final List<SessionModel> sessions = docs
+          .where((doc) => doc.exists && doc.data() != null)
+          .map(
+            (doc) => SessionModel.fromMap(_withDocId(doc, idKey: 'session_id')),
+          )
+          .toList();
+
+      if (sessions.isNotEmpty) {
+        return sessions;
+      }
+    }
+
+    final User? user = _auth.currentUser;
+    if (user == null) {
+      return <SessionModel>[];
+    }
+
+    final QuerySnapshot<Map<String, dynamic>> snapshot = await _db
+        .collection('sessions')
+        .where('student_ids', arrayContains: user.uid)
+        .get();
+
+    return snapshot.docs
+        .map(
+          (doc) => SessionModel.fromMap(_withDocId(doc, idKey: 'session_id')),
+        )
         .toList();
   }
 
   Future<ServiceModel?> getServiceData(String id) async {
-    final doc = await _db.collection('services').doc(id).get();
+    final DocumentSnapshot<Map<String, dynamic>> doc = await _db
+        .collection('services')
+        .doc(id)
+        .get();
     if (!doc.exists || doc.data() == null) {
       return null;
     }
-    return ServiceModel.fromMap(doc.data()!);
+
+    return ServiceModel.fromMap(_withDocId(doc, idKey: 'service_id'));
   }
 }

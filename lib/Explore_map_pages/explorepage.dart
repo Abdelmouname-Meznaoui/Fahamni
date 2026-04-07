@@ -3,8 +3,10 @@ import 'package:fahamni/feedback/feedback_pages.dart';
 import 'package:fahamni/Courses/courses_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:fahamni/widgets/customnavbar.dart';
 import 'package:fahamni/models/service_model.dart';
 import 'package:fahamni/models/student_model.dart';
@@ -15,12 +17,11 @@ import 'package:fahamni/widgets/explore_service.dart';
 import 'package:fahamni/widgets/servicedetails.dart';
 import 'map.dart';
 
+const String _mapLocationConsentKey = 'map_location_consent_granted';
+
 class Explorepage extends StatefulWidget {
   final StudentModel student;
-  const Explorepage({
-    super.key,
-    required this.student,
-  });
+  const Explorepage({super.key, required this.student});
 
   @override
   State<Explorepage> createState() => _ExplorepageState();
@@ -49,6 +50,7 @@ class _ExplorepageState extends State<Explorepage> {
 
   int _selectedIndex = 1;
   int _selectedIndex2 = 0;
+  int nearbyTutorsCount = 0;
 
   List<TutorModel>? tutors;
   List<ServiceModel>? services;
@@ -63,8 +65,18 @@ class _ExplorepageState extends State<Explorepage> {
   @override
   void initState() {
     super.initState();
-    loadTutorsServices();
-    _getCurrentLocation();
+    _initializeData();
+  }
+
+  Future<void> _initializeData() async {
+    // 1. Wait for location & tutors to load concurrently
+    await Future.wait([
+      _getCurrentLocation(),
+      loadTutorsServices(),
+    ]);
+
+    // 2. Only calculate distances AFTER both are loaded
+    await _getDistances();
   }
 
   Future<void> _getCurrentLocation() async {
@@ -83,10 +95,92 @@ class _ExplorepageState extends State<Explorepage> {
     );
   }
 
+  Future<void> _loadLocationPreview() async {
+    final SharedPreferences preferences = await SharedPreferences.getInstance();
+    final bool locationConsentGranted =
+        preferences.getBool(_mapLocationConsentKey) ?? false;
+    if (!locationConsentGranted) {
+      return;
+    }
+
+    final LocationPermission permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied ||
+        permission == LocationPermission.deniedForever) {
+      return;
+    }
+
+    final position = await Geolocator.getCurrentPosition();
+    if (!mounted) {
+      return;
+    }
+    setState(() {
+      _currentPosition = position;
+    });
+
+    _controller?.animateCamera(
+      CameraUpdate.newLatLng(LatLng(position.latitude, position.longitude)),
+    );
+  }
+
+  Future<void> _openFullMap() async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const Mappage()),
+    );
+
+    if (!mounted) {
+      return;
+    }
+
+    await _loadLocationPreview();
+  }
+
+  Future<void> _getDistances() async {
+    // 1. Get User Location first
+
+    // 2. Fetch Tutors
+    List<TutorModel> allTutors = await Explore_service().getAllTutors();
+    int count = 0;
+
+    for (var tutor in tutors!) {
+      if (tutor.location.isNotEmpty) {
+        try {
+          // 3. Geocode the tutor's address string
+          List<Location> locations = await locationFromAddress(tutor.location);
+
+          if (locations.isNotEmpty) {
+            // 4. Calculate distance in KM
+            double distance = Geolocator.distanceBetween(
+              _currentPosition!.latitude,
+              _currentPosition!.longitude,
+              locations[0].latitude,
+              locations[0].longitude,
+            ) / 1000;
+
+            // 5. Check if less than 20km
+            if (distance < 20.0) {
+              count++;
+            }
+
+            // Optional: Store distance in the tutor object if you updated your model
+            // tutor.distance = distance;
+          }
+        } catch (e) {
+          print("Geocoding failed for ${tutor.firstName}: $e");
+        }
+      }
+    }
+    setState(() {
+      nearbyTutorsCount = count;
+    });
+  }
+
   Future<void> loadTutorsServices() async {
     final teachers = await Explore_service().getAllTutors();
     final fetchedServices = await Explore_service().getAllServices();
-    final teacherservice = await Explore_service().getTutorsFromServices(fetchedServices);
+    final teacherservice = await Explore_service().getTutorsFromServices(
+      fetchedServices,
+    );
     setState(() {
       tutors = teachers;
       allTutors = teachers;
@@ -99,9 +193,7 @@ class _ExplorepageState extends State<Explorepage> {
   @override
   Widget build(BuildContext context) {
     if (services == null || tutors == null) {
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      );
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
     return Scaffold(
       appBar: AppBar(
@@ -131,47 +223,49 @@ class _ExplorepageState extends State<Explorepage> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Search TextField
-               Container(
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(12),
-                    boxShadow: [
-                      BoxShadow(
-                        color: const Color(0xFF94A3B8),
-                        spreadRadius: 0,
-                        blurRadius: 3,
-                        offset: const Offset(0, 0),
-                      )
-                    ],
-                  ),
-                  child: TextField(
-                    controller: _searchController,
-                    onChanged: (value) {
-                      applyFilters();
-                    },
-                    decoration: InputDecoration(
-                      hintText: 'Search subjects or teachers',
-                      hintStyle: const TextStyle(
-                        fontSize: 18,
-                        fontFamily: "Lexend",
-                        fontWeight: FontWeight.w400,
-                        color: Color(0xFF94A3B8),
-                      ),
-                      filled: true,
-                      fillColor: Colors.white,
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide.none,
-                      ),
-                      contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 14),
-                      prefixIcon: const Icon(
-                        Icons.search,
-                        color: Color(0xFF94A3B8),
-                        size: 30,
-                      ),
+              Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFF94A3B8),
+                      spreadRadius: 0,
+                      blurRadius: 3,
+                      offset: const Offset(0, 0),
+                    ),
+                  ],
+                ),
+                child: TextField(
+                  controller: _searchController,
+                  onChanged: (value) {
+                    applyFilters();
+                  },
+                  decoration: InputDecoration(
+                    hintText: 'Search subjects or teachers',
+                    hintStyle: const TextStyle(
+                      fontSize: 18,
+                      fontFamily: "Lexend",
+                      fontWeight: FontWeight.w400,
+                      color: Color(0xFF94A3B8),
+                    ),
+                    filled: true,
+                    fillColor: Colors.white,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide.none,
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 14,
+                    ),
+                    prefixIcon: const Icon(
+                      Icons.search,
+                      color: Color(0xFF94A3B8),
+                      size: 30,
                     ),
                   ),
                 ),
+              ),
               const SizedBox(height: 15),
               // Filter dropdowns
               SizedBox(
@@ -186,47 +280,72 @@ class _ExplorepageState extends State<Explorepage> {
                       child: SizedBox(
                         width: 115,
                         child: DropdownButtonFormField<String>(
-                          initialValue: [selectedSubject, selectedPrice, selectedRating, selectedMode][index],
+                          initialValue: [
+                            selectedSubject,
+                            selectedPrice,
+                            selectedRating,
+                            selectedMode,
+                          ][index],
                           icon: const Icon(Icons.keyboard_arrow_down_sharp),
-                          iconEnabledColor: _selectedIndex2 == index ? Colors.white : Colors.black,
+                          iconEnabledColor: _selectedIndex2 == index
+                              ? Colors.white
+                              : Colors.black,
                           iconSize: 20,
                           isExpanded: true,
                           selectedItemBuilder: (context) {
-                            return options[index].map((e) => Center(
-                              child: Text(
-                                e,
-                                style: TextStyle(
-                                  color: _selectedIndex2 == index ? Colors.white : Colors.black,
-                                  fontFamily: "Nunito",
-                                  fontWeight: FontWeight.w700,
-                                ),
-                              ),
-                            )).toList();
+                            return options[index]
+                                .map(
+                                  (e) => Center(
+                                    child: Text(
+                                      e,
+                                      style: TextStyle(
+                                        color: _selectedIndex2 == index
+                                            ? Colors.white
+                                            : Colors.black,
+                                        fontFamily: "Nunito",
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                    ),
+                                  ),
+                                )
+                                .toList();
                           },
                           hint: Center(
                             child: Text(
                               op[index],
                               style: TextStyle(
-                                  color: _selectedIndex2 == index ? Colors.white : Colors.black,
-                                  fontFamily: "Nunito",
-                                  fontWeight: FontWeight.w700
+                                color: _selectedIndex2 == index
+                                    ? Colors.white
+                                    : Colors.black,
+                                fontFamily: "Nunito",
+                                fontWeight: FontWeight.w700,
                               ),
                             ),
                           ),
                           decoration: InputDecoration(
                             filled: true,
-                            fillColor: _selectedIndex2 == index ? const Color(0xFF000080) : Colors.white,
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
+                            fillColor: _selectedIndex2 == index
+                                ? const Color(0xFF000080)
+                                : Colors.white,
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 0,
+                            ),
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(99),
-                              borderSide: _selectedIndex2 == index ? BorderSide.none : const BorderSide(color: Colors.grey),
+                              borderSide: _selectedIndex2 == index
+                                  ? BorderSide.none
+                                  : const BorderSide(color: Colors.grey),
                             ),
                           ),
                           items: options[index]
-                              .map((e) => DropdownMenuItem(value: e, child: Text(e)))
+                              .map(
+                                (e) =>
+                                    DropdownMenuItem(value: e, child: Text(e)),
+                              )
                               .toList(),
                           onChanged: (value) {
-                            _selectedIndex2 = index ;
+                            _selectedIndex2 = index;
                             if (index == 0) {
                               selectedSubject = value;
                             } else if (index == 1) {
@@ -256,7 +375,7 @@ class _ExplorepageState extends State<Explorepage> {
                       blurRadius: 5,
                       spreadRadius: 0,
                       offset: const Offset(2, 0),
-                    )
+                    ),
                   ],
                 ),
                 child: Stack(
@@ -309,8 +428,17 @@ class _ExplorepageState extends State<Explorepage> {
                               width: 25,
                             ),
                             const SizedBox(width: 5),
-                            const Text(
-                              'Discover Tutor near you',
+                            nearbyTutorsCount == 0 ?
+                             Text(
+                              '$nearbyTutorsCount Tutors found near you',
+                              style: TextStyle(
+                                fontFamily: "Lexend",
+                                fontWeight: FontWeight.w600,
+                                fontSize: 12,
+                                color: Color(0xFF0F172A),
+                              ),
+                            ) : Text(
+                              'Discover Tutors found near you',
                               style: TextStyle(
                                 fontFamily: "Lexend",
                                 fontWeight: FontWeight.w600,
@@ -320,9 +448,8 @@ class _ExplorepageState extends State<Explorepage> {
                             ),
                             const Spacer(),
                             GestureDetector(
-                              onTap: (){
-                                Navigator.push(context, MaterialPageRoute(
-                                    builder: (context) => Mappage() ));
+                              onTap: () {
+                                _openFullMap();
                               },
                               child: const Text(
                                 'VIEW FULL MAP',
@@ -338,7 +465,7 @@ class _ExplorepageState extends State<Explorepage> {
                           ],
                         ),
                       ),
-                    )
+                    ),
                   ],
                 ),
               ),
@@ -368,7 +495,7 @@ class _ExplorepageState extends State<Explorepage> {
                         color: Color(0xFF000080),
                       ),
                     ),
-                  )
+                  ),
                 ],
               ),
               if (tutors!.isEmpty)
@@ -398,7 +525,8 @@ class _ExplorepageState extends State<Explorepage> {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (_) => TutorProfilePage(tutorId: tutor.uid),
+                            builder: (_) =>
+                                TutorProfilePage(tutorId: tutor.uid),
                           ),
                         );
                       },
@@ -411,9 +539,11 @@ class _ExplorepageState extends State<Explorepage> {
                             borderRadius: BorderRadius.circular(12),
                             boxShadow: [
                               BoxShadow(
-                                color: const Color(0xFF000000).withValues(alpha: 0.05),
+                                color: const Color(
+                                  0xFF000000,
+                                ).withValues(alpha: 0.05),
                                 blurRadius: 2,
-                              )
+                              ),
                             ],
                           ),
                           child: Row(
@@ -429,10 +559,11 @@ class _ExplorepageState extends State<Explorepage> {
                                 child: Image.network(
                                   tutor.picture,
                                   fit: BoxFit.cover,
-                                  errorBuilder: (context, error, stackTrace) => Image.asset(
-                                    'assets/images/tutormale.png',
-                                    fit: BoxFit.cover,
-                                  ),
+                                  errorBuilder: (context, error, stackTrace) =>
+                                      Image.asset(
+                                        'assets/images/tutormale.png',
+                                        fit: BoxFit.cover,
+                                      ),
                                 ),
                               ),
                               const SizedBox(width: 12),
@@ -462,7 +593,8 @@ class _ExplorepageState extends State<Explorepage> {
                                     Wrap(
                                       spacing: 8,
                                       runSpacing: 4,
-                                      crossAxisAlignment: WrapCrossAlignment.center,
+                                      crossAxisAlignment:
+                                          WrapCrossAlignment.center,
                                       children: [
                                         Row(
                                           mainAxisSize: MainAxisSize.min,
@@ -471,10 +603,11 @@ class _ExplorepageState extends State<Explorepage> {
                                               "assets/images/position.svg",
                                               height: 12,
                                               width: 12,
-                                              colorFilter: const ColorFilter.mode(
-                                                Color(0xFF64748B),
-                                                BlendMode.srcIn,
-                                              ),
+                                              colorFilter:
+                                                  const ColorFilter.mode(
+                                                    Color(0xFF64748B),
+                                                    BlendMode.srcIn,
+                                                  ),
                                             ),
                                             const SizedBox(width: 2),
                                             Text(
@@ -489,7 +622,9 @@ class _ExplorepageState extends State<Explorepage> {
                                           ],
                                         ),
                                         Text(
-                                          tutor.isAvailable ? 'Available' : 'Busy',
+                                          tutor.isAvailable
+                                              ? 'Available'
+                                              : 'Busy',
                                           style: TextStyle(
                                             fontFamily: "Lexend",
                                             fontWeight: FontWeight.w600,
@@ -505,9 +640,14 @@ class _ExplorepageState extends State<Explorepage> {
                                 ),
                               ),
                               Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 4,
+                                ),
                                 decoration: ShapeDecoration(
-                                  color: const Color(0xFF000080).withValues(alpha: 0.1),
+                                  color: const Color(
+                                    0xFF000080,
+                                  ).withValues(alpha: 0.1),
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(6),
                                   ),
@@ -529,7 +669,7 @@ class _ExplorepageState extends State<Explorepage> {
                                         fontFamily: 'Lexend',
                                         fontWeight: FontWeight.w700,
                                       ),
-                                    )
+                                    ),
                                   ],
                                 ),
                               ),
@@ -566,7 +706,7 @@ class _ExplorepageState extends State<Explorepage> {
                         color: Color(0xFF000080),
                       ),
                     ),
-                  )
+                  ),
                 ],
               ),
               SizedBox(
@@ -611,7 +751,7 @@ class _ExplorepageState extends State<Explorepage> {
                           );
                         },
                       ),
-              )
+              ),
             ],
           ),
         ),
@@ -624,20 +764,17 @@ class _ExplorepageState extends State<Explorepage> {
               context,
               MaterialPageRoute(builder: (context) => const Studenthomepage()),
             );
-          }
-          else if (index == 2) {
+          } else if (index == 2) {
             Navigator.push(
               context,
               MaterialPageRoute(builder: (context) => const CoursesPage()),
             );
-          }
-          else if (index == 3) {
+          } else if (index == 3) {
             Navigator.push(
               context,
               MaterialPageRoute(builder: (context) => ChatPage()),
             );
-          }
-          else {
+          } else {
             setState(() {
               _selectedIndex = index;
             });
@@ -652,10 +789,13 @@ class _ExplorepageState extends State<Explorepage> {
 
     setState(() {
       services = allServices.where((s) {
-        final matchSubject = selectedSubject == null || s.subject == selectedSubject;
-        final matchPrice = selectedPrice == null ||
+        final matchSubject =
+            selectedSubject == null || s.subject == selectedSubject;
+        final matchPrice =
+            selectedPrice == null ||
             s.price <= double.parse(selectedPrice!.replaceAll('<', ''));
-        final matchSearch = query.isEmpty ||
+        final matchSearch =
+            query.isEmpty ||
             s.subject.toLowerCase().contains(query) ||
             s.price.toString().toLowerCase().contains(query);
 
@@ -663,19 +803,31 @@ class _ExplorepageState extends State<Explorepage> {
           (t) => t.uid == s.tutorId,
           orElse: () => tutorservice![0],
         );
-        final matchMode = selectedMode == null || tutor?.teachingMode == selectedMode;
-        final matchRating = selectedRating == null ||
-            (tutor?.averageRating ?? 0) >= double.parse(selectedRating!.replaceAll(',', '.'));
+        final matchMode =
+            selectedMode == null || tutor?.teachingMode == selectedMode;
+        final matchRating =
+            selectedRating == null ||
+            (tutor?.averageRating ?? 0) >=
+                double.parse(selectedRating!.replaceAll(',', '.'));
 
-        return matchSubject && matchPrice && matchMode && matchRating && matchSearch;
+        return matchSubject &&
+            matchPrice &&
+            matchMode &&
+            matchRating &&
+            matchSearch;
       }).toList();
 
       tutors = allTutors.where((t) {
-        final matchMode = selectedMode == null || t.teachingMode == selectedMode;
-        final matchSubject = selectedSubject == null || t.expertiseDomain == selectedSubject;
-        final matchRating = selectedRating == null ||
-            t.averageRating >= double.parse(selectedRating!.replaceAll(',', '.'));
-        final matchSearch = query.isEmpty ||
+        final matchMode =
+            selectedMode == null || t.teachingMode == selectedMode;
+        final matchSubject =
+            selectedSubject == null || t.expertiseDomain == selectedSubject;
+        final matchRating =
+            selectedRating == null ||
+            t.averageRating >=
+                double.parse(selectedRating!.replaceAll(',', '.'));
+        final matchSearch =
+            query.isEmpty ||
             t.firstName.toLowerCase().contains(query) ||
             t.lastName.toLowerCase().contains(query) ||
             t.expertiseDomain.toLowerCase().contains(query) ||
