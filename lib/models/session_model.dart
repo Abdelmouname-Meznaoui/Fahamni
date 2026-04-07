@@ -1,9 +1,13 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+
+enum SessionStatus { Planned, Canceled, Ongoing, Completed }
+
 class SessionModel {
   final String sessionId;
   final String serviceId;
   final List<String> studentIds;
   final String tutorId;
-  final String status;
+  final SessionStatus status;
   final String type;
   final String modality;
   final DateTime date;
@@ -23,6 +27,24 @@ class SessionModel {
     required this.endTime,
   });
 
+  factory SessionModel.fromMap(Map<String, dynamic> map) {
+    return SessionModel(
+      sessionId: map['session_id'] ?? '',
+      serviceId: map['service_id'] ?? '',
+      studentIds: List<String>.from(map['student_ids'] ?? []),
+      tutorId: map['tutor_id'] ?? '',
+      status: SessionStatus.values.firstWhere(
+        (e) => e.name == map['status'],
+        orElse: () => SessionStatus.Planned,
+      ),
+      type: map['type'] ?? '',
+      modality: map['modality'] ?? '',
+      // .toLocal() is crucial for Algiers (UTC+1) alignment
+      date: (map['date'] as Timestamp).toDate().toLocal(),
+      startTime: (map['start_time'] as Timestamp).toDate().toLocal(),
+      endTime: (map['end_time'] as Timestamp).toDate().toLocal(),
+    );
+  }
 
   Map<String, dynamic> toMap() {
     return {
@@ -30,28 +52,12 @@ class SessionModel {
       'service_id': serviceId,
       'student_ids': studentIds,
       'tutor_id': tutorId,
-      'status': status,
+      'status': status.name,
       'type': type,
       'modality': modality,
-      'date': date,
-      'start_time': startTime,
-      'end_time': endTime,
+      'date': Timestamp.fromDate(date),
+      'start_time': Timestamp.fromDate(startTime),
+      'end_time': Timestamp.fromDate(endTime),
     };
-  }
-
-
-  factory SessionModel.fromMap(Map<String, dynamic> map) {
-    return SessionModel(
-      sessionId: map['session_id'] ?? '',
-      serviceId: map['service_id'] ?? '',
-      studentIds: List<String>.from(map['student_ids'] ?? []),
-      tutorId: map['tutor_id'] ?? '',
-      status: map['status'] ?? '',
-      type: map['type'] ?? '',
-      modality: map['modality'] ?? '',
-      date: (map['date'] as dynamic).toDate(),
-      startTime: (map['start_time'] as dynamic).toDate(),
-      endTime: (map['end_time'] as dynamic).toDate(),
-    );
   }
 }

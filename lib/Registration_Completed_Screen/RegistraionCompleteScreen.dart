@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../StudentHomePage/Student_homepage.dart';
+import '../TeacherDashboard/teacher_dashboard.dart';
 import '../Services/email_otp_service.dart';
 import 'package:firebase_auth/firebase_auth.dart'; 
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -36,7 +37,7 @@ class _RegistrationCompleteState extends State<RegistrationComplete> {
   if (role == 'student') {
     page = const Studentpage();
   } else if (role == 'tutor') {
-    page = const Studentpage();       //to be replaced with tutor homepage when it's ready
+    page = const Teacherpage();
   } else {
     page = const Studentpage();      // to be replaced with a generic homepage or error page when it's ready
   }

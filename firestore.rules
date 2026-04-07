@@ -57,5 +57,28 @@ service cloud.firestore {
         allow update, delete: if false;
       }
     }
+
+    match /notifications/{notificationId} {
+      allow read: if signedIn() &&
+        resource.data.receiver_id == request.auth.uid;
+      allow create: if signedIn() &&
+        request.resource.data.receiver_id is string;
+      allow update, delete: if signedIn() &&
+        resource.data.receiver_id == request.auth.uid;
+    }
+
+    match /reviews/{reviewId} {
+      allow read: if signedIn();
+      allow create: if signedIn();
+      allow update: if signedIn();
+      allow delete: if false;
+    }
+
+    match /quotes/{quoteId} {
+      allow read: if signedIn();
+      allow create: if signedIn();
+      allow update: if signedIn();
+      allow delete: if false;
+    }
   }
 }

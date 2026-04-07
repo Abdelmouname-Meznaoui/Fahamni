@@ -13,6 +13,9 @@ import 'package:fahamni/widgets/explore_service.dart';
 import 'package:http/http.dart' as http;
 import 'package:url_launcher/url_launcher.dart';
 
+const String _googleMapsApiKey = 'AIzaSyAsdCXmRcjXMYaLrytaPoO7oLACGdzj65E';
+const LatLng _defaultMapCenter = LatLng(36.7538, 3.0588);
+
 class Mappage extends StatefulWidget {
   const Mappage({super.key});
 
@@ -41,8 +44,17 @@ class _MappageState extends State<Mappage> {
 
   Future<void> _getCurrentLocation() async {
     LocationPermission permission = await Geolocator.requestPermission();
-    if (permission == LocationPermission.denied) return;
+    if (permission == LocationPermission.denied ||
+        permission == LocationPermission.deniedForever) {
+      if (mounted) {
+        setState(() => _currentPosition = null);
+      }
+      return;
+    }
     final position = await Geolocator.getCurrentPosition();
+    if (!mounted) {
+      return;
+    }
     setState(() => _currentPosition = position);
     _controller?.animateCamera(
       CameraUpdate.newLatLng(LatLng(position.latitude, position.longitude)),
@@ -148,9 +160,12 @@ class _MappageState extends State<Mappage> {
     PolylinePoints polylinePoints = PolylinePoints();
 
     PolylineResult result = await polylinePoints.getRouteBetweenCoordinates(
-      googleApiKey: 'AIzaSyAsdCXmRcjXMYaLrytaPoO7oLACGdzj65E',
+      googleApiKey: _googleMapsApiKey,
       request: PolylineRequest(
-        origin: PointLatLng(_currentPosition!.latitude, _currentPosition!.longitude),
+        origin: PointLatLng(
+          _currentPosition?.latitude ?? _defaultMapCenter.latitude,
+          _currentPosition?.longitude ?? _defaultMapCenter.longitude,
+        ),
         destination: PointLatLng(positions[index][0].latitude, positions[index][0].longitude),
         mode: TravelMode.driving,
       ),
@@ -186,6 +201,10 @@ class _MappageState extends State<Mappage> {
 
   @override
   Widget build(BuildContext context) {
+    final LatLng initialTarget = _currentPosition == null
+        ? _defaultMapCenter
+        : LatLng(_currentPosition!.latitude, _currentPosition!.longitude);
+
     return Scaffold(
       appBar: AppBar(
         backgroundColor: const Color(0xfff9f9f9),
@@ -204,16 +223,14 @@ class _MappageState extends State<Mappage> {
         ),
         centerTitle: true,
       ),
-      body: _currentPosition == null
-          ? const Center(child: CircularProgressIndicator())
-          : Stack(
+      body: Stack(
         children: [
           GoogleMap(
             initialCameraPosition: CameraPosition(
-              target: LatLng(_currentPosition!.latitude, _currentPosition!.longitude),
+              target: initialTarget,
               zoom: 15,
             ),
-            myLocationEnabled: true,
+            myLocationEnabled: _currentPosition != null,
             myLocationButtonEnabled: true,
             zoomControlsEnabled: false,
             markers: _markers,
@@ -226,7 +243,7 @@ class _MappageState extends State<Mappage> {
               _customInfoWindowController.googleMapController = controller;
               _controller!.animateCamera(
                 CameraUpdate.newLatLng(
-                  LatLng(_currentPosition!.latitude, _currentPosition!.longitude),
+                  initialTarget,
                 ),
               );
             },
@@ -465,7 +482,12 @@ class _MappageState extends State<Mappage> {
                                   color: Color(0xFF000080).withOpacity(0.1),
                                   borderRadius: BorderRadiusGeometry.circular(99),
                                 ),
-                                child: _infoRow(Icons.directions_walk_rounded, _getDistance(_selectedIndex!)),
+                                child: _infoRow(
+                                  Icons.directions_walk_rounded,
+                                  _currentPosition == null
+                                      ? 'Enable location for distance'
+                                      : _getDistance(_selectedIndex!),
+                                ),
                                 
                               ),
                               SizedBox(height: 8),
@@ -538,6 +560,19 @@ class _MappageState extends State<Mappage> {
                           ),
                         ),
                       ],
+                      if (_currentPosition == null)
+                        const Padding(
+                          padding: EdgeInsets.fromLTRB(16, 0, 16, 12),
+                          child: Text(
+                            'Location permission is off. The map still works, but your current position and distance are unavailable.',
+                            style: TextStyle(
+                              fontFamily: "Nunito",
+                              fontWeight: FontWeight.w600,
+                              fontSize: 12,
+                              color: Color(0xFF64748B),
+                            ),
+                          ),
+                        ),
                     ],
                   ),
                 ),
@@ -570,5 +605,11 @@ class _MappageState extends State<Mappage> {
         ],
       ),
     );
+  }
+
+  @override
+  void dispose() {
+    _controller?.dispose();
+    super.dispose();
   }
 }

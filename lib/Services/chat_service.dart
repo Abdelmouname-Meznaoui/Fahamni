@@ -1,12 +1,18 @@
 import 'package:flutter/material.dart';
 
+import '../Services/notification_service.dart';
 import '../models/chat_model.dart';
+import '../models/notification_model.dart';
 import '../repositories/chat_repository.dart';
 
 class ChatService {
-  ChatService(this._chatRepository);
+  ChatService(
+    this._chatRepository, {
+    NotificationService? notificationService,
+  }) : _notificationService = notificationService ?? NotificationService();
 
   final ChatRepository _chatRepository;
+  final NotificationService _notificationService;
 
   Stream<List<ConversationModel>> getConversations(
     String userId, {
@@ -52,7 +58,32 @@ class ChatService {
     );
 
     await _chatRepository.sendMessage(message);
+    if (receiverId != senderId) {
+      await _notificationService.sendNotification(
+        NotificationModel(
+          title: 'New message',
+          content: trimmedContent,
+          dateTime: timestamp,
+          isRead: false,
+          notificationId: '',
+          receiverId: receiverId,
+          type: 'message',
+          senderId: senderId,
+          conversationId: conversationId,
+        ),
+      );
+    }
     controller?.clear();
+  }
+
+  Future<ConversationModel> ensureDirectConversation({
+    required String currentUserId,
+    required String otherUserId,
+  }) {
+    return _chatRepository.ensureDirectConversation(
+      currentUserId: currentUserId,
+      otherUserId: otherUserId,
+    );
   }
 
   ConversationModel buildUpdatedConversationPreview(

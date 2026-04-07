@@ -29,16 +29,19 @@ class FirestoreChatRepository implements ChatRepository {
           (snapshot) async {
             final List<ConversationModel> conversations = await Future.wait(
               snapshot.docs.map(
-                (doc) async => _hydrateConversation(
+                (doc) async => _hydrateConversationFromData(
                   userId: userId,
-                  doc: doc,
+                  docId: doc.id,
+                  data: doc.data(),
                 ),
               ),
             );
 
-            return conversations
+            final List<ConversationModel> filteredConversations = conversations
                 .where((conversation) => _matchesFilter(conversation, filter))
                 .toList();
+
+            return _deduplicateConversations(filteredConversations);
           },
         );
   }
@@ -118,15 +121,90 @@ class FirestoreChatRepository implements ChatRepository {
     await batch.commit();
   }
 
-  Future<ConversationModel> _hydrateConversation({
-    required String userId,
-    required QueryDocumentSnapshot<Map<String, dynamic>> doc,
+  @override
+  Future<ConversationModel> ensureDirectConversation({
+    required String currentUserId,
+    required String otherUserId,
   }) async {
-    final Map<String, dynamic> data = doc.data();
+    final QuerySnapshot<Map<String, dynamic>> snapshot =
+        await _conversationsCollection
+            .where('participants', arrayContains: currentUserId)
+            .get();
+
+    QueryDocumentSnapshot<Map<String, dynamic>>? bestMatch;
+    DateTime? bestMatchTime;
+
+    for (final QueryDocumentSnapshot<Map<String, dynamic>> doc in snapshot.docs) {
+      final List<String> participants =
+          (doc.data()['participants'] as List<dynamic>? ?? <dynamic>[])
+              .map((participant) => participant.toString())
+              .toList();
+      final bool isGroup = doc.data()['isGroup'] == true ||
+          doc.data()['is_group'] == true ||
+          participants.length > 2;
+
+      if (!isGroup &&
+          participants.contains(otherUserId) &&
+          participants.toSet().length == 2) {
+        final ConversationModel hydrated = await _hydrateConversationFromData(
+          userId: currentUserId,
+          docId: doc.id,
+          data: doc.data(),
+        );
+        final DateTime hydratedTime = _conversationTime(hydrated);
+
+        if (bestMatch == null ||
+            bestMatchTime == null ||
+            hydratedTime.isAfter(bestMatchTime)) {
+          bestMatch = doc;
+          bestMatchTime = hydratedTime;
+        }
+      }
+    }
+
+    if (bestMatch != null) {
+      return _hydrateConversationFromData(
+        userId: currentUserId,
+        docId: bestMatch.id,
+        data: bestMatch.data(),
+      );
+    }
+
+    final DocumentReference<Map<String, dynamic>> conversationRef =
+        _conversationsCollection.doc();
+    final DateTime now = DateTime.now();
+    final List<String> participants = <String>{currentUserId, otherUserId}.toList()
+      ..sort();
+
+    await conversationRef.set({
+      'conversationId': conversationRef.id,
+      'conversation_id': conversationRef.id,
+      'participants': participants,
+      'conversationName': '',
+      'isGroup': false,
+      'createdAt': Timestamp.fromDate(now),
+      'status': 'active',
+    });
+
+    final DocumentSnapshot<Map<String, dynamic>> createdSnapshot =
+        await conversationRef.get();
+
+    return _hydrateConversationFromData(
+      userId: currentUserId,
+      docId: conversationRef.id,
+      data: createdSnapshot.data() ?? <String, dynamic>{},
+    );
+  }
+
+  Future<ConversationModel> _hydrateConversationFromData({
+    required String userId,
+    required String docId,
+    required Map<String, dynamic> data,
+  }) async {
     final ConversationModel baseConversation = ConversationModel.fromMap({
       ...data,
       'conversationId':
-          data['conversationId'] ?? data['conversation_id'] ?? doc.id,
+          data['conversationId'] ?? data['conversation_id'] ?? docId,
     });
 
     final bool isGroup =
@@ -139,15 +217,25 @@ class FirestoreChatRepository implements ChatRepository {
           );
     final UserRole? otherParticipantRole =
         isGroup ? null : await _getUserRole(otherParticipantId);
-    final _ParticipantPresentation participantPresentation =
-        isGroup || otherParticipantId.isEmpty
-        ? _ParticipantPresentation.empty()
-        : await _getParticipantPresentation(
-            userId: otherParticipantId,
-            role: otherParticipantRole,
-          );
+    final _ParticipantPresentation participantPresentation = isGroup
+        ? await _getGroupPresentation(
+            currentUserId: userId,
+            conversation: baseConversation,
+          )
+        : otherParticipantId.isEmpty
+            ? _ParticipantPresentation.empty()
+            : await _getParticipantPresentation(
+                userId: otherParticipantId,
+                role: otherParticipantRole,
+              );
+
+    final String resolvedConversationName =
+        baseConversation.conversationName.trim().isNotEmpty
+            ? baseConversation.conversationName.trim()
+            : participantPresentation.displayName;
 
     return baseConversation.copyWith(
+      conversationName: resolvedConversationName,
       isGroup: isGroup,
       otherParticipantRole: otherParticipantRole,
       participantDisplayName: participantPresentation.displayName,
@@ -156,6 +244,93 @@ class FirestoreChatRepository implements ChatRepository {
       isVerified: participantPresentation.isVerified,
       isOnline: participantPresentation.isOnline,
     );
+  }
+
+  Future<_ParticipantPresentation> _getGroupPresentation({
+    required String currentUserId,
+    required ConversationModel conversation,
+  }) async {
+    final List<String> otherParticipantIds = conversation.participants
+        .where((participantId) => participantId != currentUserId)
+        .toList();
+
+    if (otherParticipantIds.isEmpty) {
+      return _ParticipantPresentation(
+        displayName: conversation.conversationName.trim().isNotEmpty
+            ? conversation.conversationName.trim()
+            : 'Group Conversation',
+        avatarUrl: '',
+        subtitle: '',
+      );
+    }
+
+    final List<_ParticipantPresentation> members = (await Future.wait(
+      otherParticipantIds.map((participantId) async {
+        final UserRole? role = await _getUserRole(participantId);
+        return _getParticipantPresentation(
+          userId: participantId,
+          role: role,
+        );
+      }),
+    ))
+        .where((member) => member.displayName.trim().isNotEmpty)
+        .toList();
+
+    final List<String> memberNames = members
+        .map((member) => member.displayName.trim())
+        .where((name) => name.isNotEmpty)
+        .toList();
+
+    final String subtitle = _formatGroupMembers(memberNames);
+    final String displayName = conversation.conversationName.trim().isNotEmpty
+        ? conversation.conversationName.trim()
+        : subtitle.isNotEmpty
+            ? subtitle
+            : 'Group Conversation';
+
+    return _ParticipantPresentation(
+      displayName: displayName,
+      avatarUrl: '',
+      subtitle: subtitle,
+    );
+  }
+
+  String _formatGroupMembers(List<String> memberNames) {
+    if (memberNames.isEmpty) {
+      return '';
+    }
+
+    if (memberNames.length <= 3) {
+      return memberNames.join(', ');
+    }
+
+    final List<String> visibleNames = memberNames.take(3).toList();
+    return '${visibleNames.join(', ')} +${memberNames.length - 3} more';
+  }
+
+  List<ConversationModel> _deduplicateConversations(
+    List<ConversationModel> conversations,
+  ) {
+    final Map<String, ConversationModel> deduplicated =
+        <String, ConversationModel>{};
+
+    for (final ConversationModel conversation in conversations) {
+      final String key = conversation.isGroup
+          ? conversation.conversationId
+          : (List<String>.from(conversation.participants)..sort()).join('::');
+
+      final ConversationModel? existing = deduplicated[key];
+      if (existing == null || _conversationTime(conversation).isAfter(_conversationTime(existing))) {
+        deduplicated[key] = conversation;
+      }
+    }
+
+    return deduplicated.values.toList();
+  }
+
+  DateTime _conversationTime(ConversationModel conversation) {
+    return conversation.lastMessage?.sendingDateTime ??
+        conversation.createdAt;
   }
 
   Future<UserRole?> _getUserRole(String userId) async {

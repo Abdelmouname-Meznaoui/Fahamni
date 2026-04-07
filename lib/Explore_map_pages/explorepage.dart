@@ -1,4 +1,6 @@
 import 'package:fahamni/messaging/chat_page.dart';
+import 'package:fahamni/feedback/feedback_pages.dart';
+import 'package:fahamni/Courses/courses_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:geolocator/geolocator.dart';
@@ -184,7 +186,7 @@ class _ExplorepageState extends State<Explorepage> {
                       child: SizedBox(
                         width: 115,
                         child: DropdownButtonFormField<String>(
-                          value: [selectedSubject, selectedPrice, selectedRating, selectedMode][index],
+                          initialValue: [selectedSubject, selectedPrice, selectedRating, selectedMode][index],
                           icon: const Icon(Icons.keyboard_arrow_down_sharp),
                           iconEnabledColor: _selectedIndex2 == index ? Colors.white : Colors.black,
                           iconSize: 20,
@@ -225,10 +227,15 @@ class _ExplorepageState extends State<Explorepage> {
                               .toList(),
                           onChanged: (value) {
                             _selectedIndex2 = index ;
-                            if (index == 0) selectedSubject = value;
-                            else if (index == 1) selectedPrice = value;
-                            else if (index == 2) selectedRating = value;
-                            else if (index == 3) selectedMode = value;
+                            if (index == 0) {
+                              selectedSubject = value;
+                            } else if (index == 1) {
+                              selectedPrice = value;
+                            } else if (index == 2) {
+                              selectedRating = value;
+                            } else if (index == 3) {
+                              selectedMode = value;
+                            }
                             applyFilters();
                           },
                         ),
@@ -364,148 +371,175 @@ class _ExplorepageState extends State<Explorepage> {
                   )
                 ],
               ),
-              SizedBox(
-                height: 250,
-                width: double.infinity,
-                child: tutors!.isEmpty
-                    ? const Center(
-                        child: Text(
-                          'No results found :(',
-                          style: TextStyle(
-                            fontFamily: 'Nunito',
-                            fontWeight: FontWeight.w700,
-                            fontSize: 20,
-                            color: Colors.grey,
+              if (tutors!.isEmpty)
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 20),
+                  child: Center(
+                    child: Text(
+                      'No results found :(',
+                      style: TextStyle(
+                        fontFamily: 'Nunito',
+                        fontWeight: FontWeight.w700,
+                        fontSize: 20,
+                        color: Colors.grey,
+                      ),
+                    ),
+                  ),
+                )
+              else
+                ListView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: tutors!.length,
+                  itemBuilder: (context, index) {
+                    final TutorModel tutor = tutors![index];
+                    return GestureDetector(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => TutorProfilePage(tutorId: tutor.uid),
                           ),
-                        ),
-                      )
-                    : ListView.builder(
-                        scrollDirection: Axis.vertical,
-                        itemCount: tutors!.length,
-                        itemBuilder: (context, index) {
-                          return GestureDetector(
-                            onTap: () {},
-                            child: Padding(
-                              padding: const EdgeInsets.fromLTRB(0, 0, 0, 5),
-                              child: Container(
-                                height: 80,
-                                width: double.infinity,
-                                padding: const EdgeInsets.all(10),
+                        );
+                      },
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(0, 0, 0, 8),
+                        child: Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(12),
+                            boxShadow: [
+                              BoxShadow(
+                                color: const Color(0xFF000000).withValues(alpha: 0.05),
+                                blurRadius: 2,
+                              )
+                            ],
+                          ),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Container(
+                                height: 64,
+                                width: 64,
                                 decoration: BoxDecoration(
-                                  color: Colors.white,
-                                  borderRadius: BorderRadius.circular(10),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: const Color(0xFF000000).withValues(alpha: 0.05),
-                                      blurRadius: 2,
-                                    )
-                                  ],
+                                  borderRadius: BorderRadius.circular(14),
                                 ),
-                                child: Row(
+                                clipBehavior: Clip.antiAlias,
+                                child: Image.network(
+                                  tutor.picture,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (context, error, stackTrace) => Image.asset(
+                                    'assets/images/tutormale.png',
+                                    fit: BoxFit.cover,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Container(
-                                      height: 60,
-                                      width: 60,
-                                      decoration: BoxDecoration(
-                                        borderRadius: BorderRadius.circular(12),
-                                      ),
-                                      clipBehavior: Clip.antiAlias,
-                                      child: Image.network(
-                                        tutors![index].picture,
-                                        fit: BoxFit.cover,
-                                        errorBuilder: (context, error, stackTrace) => Image.asset(
-                                          'assets/images/tutormale.png',
-                                          fit: BoxFit.cover,
-                                        ),
+                                    Text(
+                                      '${tutor.firstName} ${tutor.lastName}',
+                                      style: const TextStyle(
+                                        fontFamily: "Lexend",
+                                        fontWeight: FontWeight.w700,
+                                        fontSize: 14,
                                       ),
                                     ),
-                                    const SizedBox(width: 10),
-                                    Expanded(
-                                      child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        children: [
-                                          Text(
-                                            '${tutors![index].firstName} ${tutors![index].lastName}',
-                                            style: const TextStyle(
-                                              fontFamily: "Lexend",
-                                              fontWeight: FontWeight.w700,
-                                              fontSize: 14,
-                                            ),
-                                          ),
-                                          Text(
-                                            tutors![index].expertiseDomain,
-                                            style: const TextStyle(
-                                              fontFamily: "Lexend",
-                                              fontWeight: FontWeight.w400,
-                                              fontSize: 12,
-                                              color: Color(0xFF64748B),
-                                            ),
-                                          ),
-                                          const SizedBox(height: 3),
-                                          Row(
-                                            children: [
-                                              SvgPicture.asset(
-                                                "assets/images/position.svg",
-                                                height: 12,
-                                                width: 12,
-                                                colorFilter: const ColorFilter.mode(
-                                                  Color(0xFF64748B),
-                                                  BlendMode.srcIn,
-                                                ),
-                                              ),
-                                              const SizedBox(width: 2),
-                                              Text(
-                                                tutors![index].location,
-                                                style: const TextStyle(
-                                                  fontFamily: "Lexend",
-                                                  fontWeight: FontWeight.w500,
-                                                  fontSize: 10,
-                                                  color: Color(0xFF64748B),
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                        ],
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      tutor.expertiseDomain,
+                                      style: const TextStyle(
+                                        fontFamily: "Lexend",
+                                        fontWeight: FontWeight.w400,
+                                        fontSize: 12,
+                                        color: Color(0xFF64748B),
                                       ),
                                     ),
-                                    Container(
-                                      height: 23,
-                                      width: 50,
-                                      decoration: ShapeDecoration(
-                                        color: const Color(0xFF000080).withValues(alpha: 0.1),
-                                        shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.circular(5),
-                                        ),
-                                      ),
-                                      child: Row(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          SvgPicture.asset(
-                                            "assets/images/star.svg",
-                                            height: 12,
-                                            width: 12,
-                                          ),
-                                          const SizedBox(width: 2),
-                                          Text(
-                                            tutors![index].averageRating.toStringAsFixed(1),
-                                            style: const TextStyle(
-                                              color: Color(0xFF1E293B),
-                                              fontSize: 12,
-                                              fontFamily: 'Lexend',
-                                              fontWeight: FontWeight.w700,
+                                    const SizedBox(height: 6),
+                                    Wrap(
+                                      spacing: 8,
+                                      runSpacing: 4,
+                                      crossAxisAlignment: WrapCrossAlignment.center,
+                                      children: [
+                                        Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            SvgPicture.asset(
+                                              "assets/images/position.svg",
+                                              height: 12,
+                                              width: 12,
+                                              colorFilter: const ColorFilter.mode(
+                                                Color(0xFF64748B),
+                                                BlendMode.srcIn,
+                                              ),
                                             ),
-                                          )
-                                        ],
-                                      ),
+                                            const SizedBox(width: 2),
+                                            Text(
+                                              tutor.location,
+                                              style: const TextStyle(
+                                                fontFamily: "Lexend",
+                                                fontWeight: FontWeight.w500,
+                                                fontSize: 10,
+                                                color: Color(0xFF64748B),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                        Text(
+                                          tutor.isAvailable ? 'Available' : 'Busy',
+                                          style: TextStyle(
+                                            fontFamily: "Lexend",
+                                            fontWeight: FontWeight.w600,
+                                            fontSize: 10,
+                                            color: tutor.isAvailable
+                                                ? const Color(0xFF16A34A)
+                                                : const Color(0xFFDC2626),
+                                          ),
+                                        ),
+                                      ],
                                     ),
                                   ],
                                 ),
                               ),
-                            ),
-                          );
-                        },
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                decoration: ShapeDecoration(
+                                  color: const Color(0xFF000080).withValues(alpha: 0.1),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(6),
+                                  ),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    SvgPicture.asset(
+                                      "assets/images/star.svg",
+                                      height: 12,
+                                      width: 12,
+                                    ),
+                                    const SizedBox(width: 3),
+                                    Text(
+                                      tutor.averageRating.toStringAsFixed(1),
+                                      style: const TextStyle(
+                                        color: Color(0xFF1E293B),
+                                        fontSize: 12,
+                                        fontFamily: 'Lexend',
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                    )
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
                       ),
-              ),
+                    );
+                  },
+                ),
               const SizedBox(height: 5),
               // Recommended Services
               Row(
@@ -591,6 +625,12 @@ class _ExplorepageState extends State<Explorepage> {
               MaterialPageRoute(builder: (context) => const Studenthomepage()),
             );
           }
+          else if (index == 2) {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const CoursesPage()),
+            );
+          }
           else if (index == 3) {
             Navigator.push(
               context,
@@ -645,4 +685,3 @@ class _ExplorepageState extends State<Explorepage> {
     });
   }
 }
-

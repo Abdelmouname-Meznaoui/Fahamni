@@ -1,6 +1,9 @@
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:fahamni/StudentHomePage/studenthome_service.dart';
 import 'package:fahamni/Explore_map_pages/explorepage.dart';
+import 'package:fahamni/feedback/feedback_pages.dart';
+import 'package:fahamni/Notification_page/notification_page.dart';
+import 'package:fahamni/Courses/courses_page.dart';
 import 'package:fahamni/messaging/chat_page.dart';
 import 'package:fahamni/models/session_model.dart';
 import 'package:fahamni/models/student_model.dart';
@@ -75,6 +78,7 @@ class _StudenthomepageState extends State<Studenthomepage> {
   TutorModel ? sessiontutor;
   List<TutorModel> ? favoriteTutors = [];
   List<SessionModel> ? courses = [];
+  SessionModel? _nextCourse;
   @override
   void initState() {
     // TODO: implement initState
@@ -86,17 +90,25 @@ class _StudenthomepageState extends State<Studenthomepage> {
     final data = await studenthomepage_service().getStudentData();
     final tutors = await studenthomepage_service().getFavoriteTeachers(data.favoriteTeachers);
     final sessions = await studenthomepage_service().getCourses(data.Courses);
-    sessions.sort((a,b) => a.date.compareTo(b.date));
-    final tutor = sessions.isNotEmpty ? await studenthomepage_service().getTutorData(sessions[0].tutorId) : null;
+    sessions.sort((a,b) => _sessionDateTime(a).compareTo(_sessionDateTime(b)));
+    final DateTime now = DateTime.now();
+    final SessionModel? nextSession = sessions.cast<SessionModel?>().firstWhere(
+      (session) => session != null && _sessionDateTime(session).isAfter(now),
+      orElse: () => sessions.isNotEmpty ? sessions.first : null,
+    );
+    final tutor = nextSession != null
+        ? await studenthomepage_service().getTutorData(nextSession.tutorId)
+        : null;
     if (!mounted) return;
     setState(() {
       student = data;
       favoriteTutors = tutors;
       courses = sessions;
       sessiontutor = tutor;
+      _nextCourse = nextSession;
     });
-    if (sessions.isNotEmpty) {
-      minutes = courses![0].endTime.difference(courses![0].startTime).inMinutes;
+    if (nextSession != null) {
+      minutes = nextSession.endTime.difference(nextSession.startTime).inMinutes;
     }
   } catch (e) {
     if (!mounted) return;
@@ -113,6 +125,16 @@ class _StudenthomepageState extends State<Studenthomepage> {
     debugPrint('loadStudent error: $e');
   }
 }
+
+  DateTime _sessionDateTime(SessionModel session) {
+    return DateTime(
+      session.date.year,
+      session.date.month,
+      session.date.day,
+      session.startTime.hour,
+      session.startTime.minute,
+    );
+  }
   @override
   Widget build(BuildContext context) {
     if (student == null) {
@@ -180,7 +202,14 @@ class _StudenthomepageState extends State<Studenthomepage> {
                     ),
                   ),
                   IconButton(
-                    onPressed: () {},
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const NotificationPage(),
+                        ),
+                      );
+                    },
                     icon: ImageIcon(
                       AssetImage('assets/images/bell.png'),
                       color: Colors.black,
@@ -360,7 +389,12 @@ class _StudenthomepageState extends State<Studenthomepage> {
                     ),
                   ),
                   GestureDetector(
-                    onTap: (){},
+                    onTap: (){
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => const CoursesPage()),
+                      );
+                    },
                     child: Text(
                       'See All',
                        style: TextStyle(
@@ -376,7 +410,30 @@ class _StudenthomepageState extends State<Studenthomepage> {
               ),
              SizedBox(
                height: 100,
-               child: ListView.builder(
+               child: 
+               favoriteTutors?.length == 0 ?
+                     Center(
+                     child: Container(
+                       height: 500,
+                       child: Row(
+                         mainAxisAlignment: MainAxisAlignment.center,
+                         children: [
+                           SizedBox(width: 80 ,),
+                           Text(
+                               'NO Favorite Teachers :(',
+                               style: TextStyle(
+                                 fontFamily: 'Nunito',
+                                 fontWeight: FontWeight.w700,
+                                 fontSize: 20,
+                                 color: Colors.grey,
+                               ),
+                           ),
+                         ],
+                       ),
+
+                     ))
+                   :    
+               ListView.builder(
                  scrollDirection: Axis.horizontal,
                  shrinkWrap: true,
                  itemCount: favoriteTutors?.length,
@@ -407,7 +464,18 @@ class _StudenthomepageState extends State<Studenthomepage> {
                          Padding(
                            padding: const EdgeInsets.all(8.0),
                            child: GestureDetector(
-                             onTap: (){},
+                             onTap: () {
+                               final TutorModel? tutor = favoriteTutors?[index];
+                               if (tutor == null) {
+                                 return;
+                               }
+                               Navigator.push(
+                                 context,
+                                 MaterialPageRoute(
+                                   builder: (_) => TutorProfilePage(tutorId: tutor.uid),
+                                 ),
+                               ).then((_) => loadStudent());
+                             },
                              child: Stack(
                                children: [
                                  Container(
@@ -489,7 +557,7 @@ class _StudenthomepageState extends State<Studenthomepage> {
                   )
                 ],
               ),
-              if(courses?.length==0)
+              if(courses?.isEmpty ?? true)
                 Row(
                   children: [
                     SizedBox(width: 100 ,),
@@ -532,7 +600,7 @@ class _StudenthomepageState extends State<Studenthomepage> {
                     ),
                   ],
                 )
-              else if(sessiontutor != null)
+              else if(sessiontutor != null && _nextCourse != null)
                 Container(
                   margin: EdgeInsets.fromLTRB(0, 10, 0, 10),
                   height: 230,
@@ -588,19 +656,19 @@ class _StudenthomepageState extends State<Studenthomepage> {
                               height: 25,
                               width:70,
                               decoration: BoxDecoration(
-                                color: courses![0].type == "online" ? Color(0xFFDCFCE7) : Colors.black,
+                                color: _nextCourse!.type == "online" ? Color(0xFFDCFCE7) : Colors.black,
                                 borderRadius: BorderRadius.circular(10),
                               ),
                               child: Padding(
                                 padding: const EdgeInsets.fromLTRB(4, 4, 4, 4),
                                 child: Center(
                                   child: Text(
-                                    courses![0].type,
+                                    _nextCourse!.type,
                                     style: TextStyle(
                                       fontFamily: "Nunito",
                                       fontSize: 13,
                                       fontWeight: FontWeight.w700,
-                                      color: courses![0].type == "online" ? Color(0xFF16A34A) : Colors.white,
+                                      color: _nextCourse!.type == "online" ? Color(0xFF16A34A) : Colors.white,
                                       height: 1.25,
                                     ),
 
@@ -659,8 +727,8 @@ class _StudenthomepageState extends State<Studenthomepage> {
                             ),
                             SizedBox(width: 10,),
                             Text(
-                              DateFormat('HH:mm').format(courses![0].startTime)+ "-"+
-                              DateFormat('HH:mm').format(courses![0].endTime)+" ("+
+                              DateFormat('HH:mm').format(_nextCourse!.startTime)+ "-"+
+                              DateFormat('HH:mm').format(_nextCourse!.endTime)+" ("+
                               '$minutes min)',
                               style: TextStyle(
                                 color: Color(0xFF475569),
@@ -676,7 +744,12 @@ class _StudenthomepageState extends State<Studenthomepage> {
                           height: 48,
                           width: 370,
                           child: ElevatedButton.icon(
-                            onPressed: () {},
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(builder: (context) => const CoursesPage()),
+                              );
+                            },
                             icon: ImageIcon(
                               AssetImage('assets/images/Icon.png'),
 
@@ -716,6 +789,12 @@ class _StudenthomepageState extends State<Studenthomepage> {
             if (index == 1) {
               Navigator.push(context,
                   MaterialPageRoute(builder: (context) => Explorepage(student: student!) ),
+              );
+            }
+            else if (index == 2) {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const CoursesPage()),
               );
             }
             else if (index == 3) {

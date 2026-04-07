@@ -7,8 +7,10 @@ import 'package:http/http.dart' as http;
 
 import '../models/ai_message.dart';
 import '../models/chat_model.dart';
+import '../models/parent_model.dart';
 import '../models/student_model.dart';
 import '../models/student_profile.dart';
+import '../models/tutor_model.dart';
 
 enum AITaskType {
   smartReply,
@@ -38,12 +40,40 @@ class AIService {
     final DocumentSnapshot<Map<String, dynamic>> snapshot =
         await _firestore.collection('students').doc(studentId).get();
 
-    if (!snapshot.exists || snapshot.data() == null) {
-      throw Exception('Student profile not found for AI assistant.');
+    if (snapshot.exists && snapshot.data() != null) {
+      final StudentModel student = StudentModel.fromMap(snapshot.data()!);
+      return StudentProfile.fromStudentModel(student);
     }
 
-    final StudentModel student = StudentModel.fromMap(snapshot.data()!);
-    return StudentProfile.fromStudentModel(student);
+    final DocumentSnapshot<Map<String, dynamic>> tutorSnapshot =
+        await _firestore.collection('tutors').doc(studentId).get();
+    if (tutorSnapshot.exists && tutorSnapshot.data() != null) {
+      final TutorModel tutor = TutorModel.fromMap(tutorSnapshot.data()!);
+      return StudentProfile(
+        studentId: tutor.uid,
+        firstName: tutor.firstName,
+        studyLevel: _studyLevelFromTutor(tutor),
+        learningObjectives: tutor.expertiseDomain,
+        schoolLevelLabel: tutor.levelsTaught.isNotEmpty
+            ? tutor.levelsTaught.first
+            : 'Secondary',
+      );
+    }
+
+    final DocumentSnapshot<Map<String, dynamic>> parentSnapshot =
+        await _firestore.collection('parents').doc(studentId).get();
+    if (parentSnapshot.exists && parentSnapshot.data() != null) {
+      final ParentModel parent = ParentModel.fromMap(parentSnapshot.data()!);
+      return StudentProfile(
+        studentId: parent.uid,
+        firstName: parent.firstName,
+        studyLevel: StudyLevel.secondary,
+        learningObjectives: '',
+        schoolLevelLabel: 'Secondary',
+      );
+    }
+
+    throw Exception('No compatible profile found for AI assistant.');
   }
 
   List<String> quickActions({MessageModel? lastTutorMessage}) {
@@ -205,35 +235,69 @@ When you use Markdown, prefer clear headings and bullets. Use fenced code blocks
       'anthropic-version': '2023-06-01',
       'anthropic-dangerous-direct-browser-access': 'true',
     });
-    request.body = jsonEncode(<String, dynamic>{
-      'model': model,
-      'max_tokens': 1024,
-      'stream': true,
-      'system': systemInstruction,
-      'messages': messages,
-    });
+    try {
+      request.body = jsonEncode(<String, dynamic>{
+        'model': model,
+        'max_tokens': 1024,
+        'stream': true,
+        'system': systemInstruction,
+        'messages': messages,
+      });
 
-    final http.StreamedResponse response = await _client.send(request);
-    if (response.statusCode >= 400) {
-      final String body = await response.stream.bytesToString();
-      throw Exception('Anthropic request failed (${response.statusCode}): $body');
-    }
+      final http.StreamedResponse response = await _client.send(request);
+      if (response.statusCode >= 400) {
+        final String body = await response.stream.bytesToString();
+        throw Exception(
+          'Anthropic request failed (${response.statusCode}): $body',
+        );
+      }
 
-    await for (final String chunk in response.stream
-        .transform(utf8.decoder)
-        .transform(const LineSplitter())) {
-      if (!chunk.startsWith('data:')) continue;
+      await for (final String chunk in response.stream
+          .transform(utf8.decoder)
+          .transform(const LineSplitter())) {
+        if (!chunk.startsWith('data:')) continue;
 
-      final String payload = chunk.substring(5).trim();
-      if (payload.isEmpty || payload == '[DONE]') continue;
+        final String payload = chunk.substring(5).trim();
+        if (payload.isEmpty || payload == '[DONE]') continue;
 
-      final Map<String, dynamic> data = jsonDecode(payload);
-      if (data['type'] == 'content_block_delta') {
-        final String? text = data['delta']?['text'] as String?;
-        if (text != null && text.isNotEmpty) {
-          yield text;
+        final Map<String, dynamic> data = jsonDecode(payload);
+        if (data['type'] == 'content_block_delta') {
+          final String? text = data['delta']?['text'] as String?;
+          if (text != null && text.isNotEmpty) {
+            yield text;
+          }
         }
       }
+    } catch (_) {
+      final http.Response response = await _client.post(
+        Uri.parse('https://api.anthropic.com/v1/messages'),
+        headers: <String, String>{
+          'content-type': 'application/json',
+          'x-api-key': apiKey,
+          'anthropic-version': '2023-06-01',
+          'anthropic-dangerous-direct-browser-access': 'true',
+        },
+        body: jsonEncode(<String, dynamic>{
+          'model': model,
+          'max_tokens': 1024,
+          'system': systemInstruction,
+          'messages': messages,
+        }),
+      );
+
+      if (response.statusCode >= 400) {
+        throw Exception(
+          'Anthropic request failed (${response.statusCode}): ${response.body}',
+        );
+      }
+
+      final Map<String, dynamic> data =
+          jsonDecode(response.body) as Map<String, dynamic>;
+      final List<dynamic> content = data['content'] as List<dynamic>? ?? <dynamic>[];
+      final String text = content
+          .map((item) => item['text']?.toString() ?? '')
+          .join();
+      yield* _chunkText(text);
     }
   }
 
@@ -256,7 +320,7 @@ When you use Markdown, prefer clear headings and bullets. Use fenced code blocks
     );
 
     request.headers['content-type'] = 'application/json';
-    request.body = jsonEncode(<String, dynamic>{
+    final Map<String, dynamic> payload = <String, dynamic>{
       'systemInstruction': <String, dynamic>{
         'parts': <Map<String, String>>[
           <String, String>{'text': systemInstruction},
@@ -272,34 +336,65 @@ When you use Markdown, prefer clear headings and bullets. Use fenced code blocks
             },
           )
           .toList(),
-    });
+    };
 
-    final http.StreamedResponse response = await _client.send(request);
-    if (response.statusCode >= 400) {
-      final String body = await response.stream.bytesToString();
-      throw Exception('Gemini request failed (${response.statusCode}): $body');
-    }
+    try {
+      request.body = jsonEncode(payload);
 
-    await for (final String chunk in response.stream
-        .transform(utf8.decoder)
-        .transform(const LineSplitter())) {
-      if (!chunk.startsWith('data:')) continue;
+      final http.StreamedResponse response = await _client.send(request);
+      if (response.statusCode >= 400) {
+        final String body = await response.stream.bytesToString();
+        throw Exception('Gemini request failed (${response.statusCode}): $body');
+      }
 
-      final String payload = chunk.substring(5).trim();
-      if (payload.isEmpty || payload == '[DONE]') continue;
+      await for (final String chunk in response.stream
+          .transform(utf8.decoder)
+          .transform(const LineSplitter())) {
+        if (!chunk.startsWith('data:')) continue;
 
-      final dynamic decoded = jsonDecode(payload);
-      final List<dynamic> candidates = decoded['candidates'] as List<dynamic>? ?? <dynamic>[];
-      for (final dynamic candidate in candidates) {
-        final List<dynamic> parts =
-            candidate['content']?['parts'] as List<dynamic>? ?? <dynamic>[];
-        for (final dynamic part in parts) {
-          final String? text = part['text'] as String?;
-          if (text != null && text.isNotEmpty) {
-            yield text;
+        final String payload = chunk.substring(5).trim();
+        if (payload.isEmpty || payload == '[DONE]') continue;
+
+        final dynamic decoded = jsonDecode(payload);
+        final List<dynamic> candidates =
+            decoded['candidates'] as List<dynamic>? ?? <dynamic>[];
+        for (final dynamic candidate in candidates) {
+          final List<dynamic> parts =
+              candidate['content']?['parts'] as List<dynamic>? ?? <dynamic>[];
+          for (final dynamic part in parts) {
+            final String? text = part['text'] as String?;
+            if (text != null && text.isNotEmpty) {
+              yield text;
+            }
           }
         }
       }
+    } catch (_) {
+      final http.Response response = await _client.post(
+        Uri.parse(
+          'https://generativelanguage.googleapis.com/v1beta/models/$model:generateContent?key=$apiKey',
+        ),
+        headers: <String, String>{'content-type': 'application/json'},
+        body: jsonEncode(payload),
+      );
+
+      if (response.statusCode >= 400) {
+        throw Exception(
+          'Gemini request failed (${response.statusCode}): ${response.body}',
+        );
+      }
+
+      final dynamic decoded = jsonDecode(response.body);
+      final List<dynamic> candidates =
+          decoded['candidates'] as List<dynamic>? ?? <dynamic>[];
+      final String text = candidates
+          .expand(
+            (candidate) =>
+                candidate['content']?['parts'] as List<dynamic>? ?? <dynamic>[],
+          )
+          .map((part) => part['text']?.toString() ?? '')
+          .join();
+      yield* _chunkText(text);
     }
   }
 
@@ -325,13 +420,38 @@ When you use Markdown, prefer clear headings and bullets. Use fenced code blocks
     }
 
     if (_usesSmallModel(taskType)) {
-      return 'gemini-2.0-flash';
+      return 'gemini-2.5-flash';
     }
 
-    return 'gemini-1.5-pro';
+    return 'gemini-2.5-pro';
   }
 
   bool _usesSmallModel(AITaskType taskType) {
     return taskType != AITaskType.explainConcept;
+  }
+
+  StudyLevel _studyLevelFromTutor(TutorModel tutor) {
+    final String normalized = tutor.levelsTaught.join(' ').toLowerCase();
+    if (normalized.contains('primary')) return StudyLevel.primary;
+    if (normalized.contains('university')) return StudyLevel.university;
+    return StudyLevel.secondary;
+  }
+
+  Stream<String> _chunkText(String text) async* {
+    if (text.trim().isEmpty) {
+      yield 'No response received.';
+      return;
+    }
+
+    final List<String> words = text.split(' ');
+    final StringBuffer buffer = StringBuffer();
+    for (final String word in words) {
+      if (buffer.isNotEmpty) {
+        buffer.write(' ');
+      }
+      buffer.write(word);
+      yield '$word${word == words.last ? '' : ' '}';
+      await Future<void>.delayed(const Duration(milliseconds: 15));
+    }
   }
 }
