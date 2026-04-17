@@ -14,7 +14,6 @@ import 'package:fahamni/student_profile/student_account_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:fahamni/widgets/customnavbar.dart';
-import 'dart:ui';
 import 'package:intl/intl.dart';
 
 class Studentpage extends StatelessWidget {
