@@ -307,17 +307,18 @@ class _TeacherServiceCard extends StatelessWidget {
       ),
       child: Stack(
         children: [
-          ServiceCard(
-            tutor: tutor,
-            service: service,
-            showPrimaryAction: false,
-            bottomContentPadding: 54,
+          Positioned.fill(
+            child: IgnorePointer(
+              child: ServiceCard(
+                tutor: tutor,
+                service: service,
+              ),
+            ),
           ),
           Positioned(
-            top: 18,
+            top: 180,
             right: 18,
             child: Container(
-              top
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
               decoration: BoxDecoration(
                 color: service.isActive
