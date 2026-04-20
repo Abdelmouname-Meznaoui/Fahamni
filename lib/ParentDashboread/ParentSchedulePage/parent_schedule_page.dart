@@ -1,4 +1,4 @@
-import 'package:fahamni/Explore_map_pages/explorepage.dart';
+import 'package:fahamni/ParentDashboread/ParentExplorePage/parent_explore_page.dart';
 import 'package:fahamni/ParentDashboread/ParentHomePage/home_page.dart';
 import 'package:fahamni/StudentHomePage/studenthome_service.dart';
 import 'package:fahamni/messaging/chat_page.dart';
@@ -233,18 +233,9 @@ class _ParentSchedulePageState extends State<ParentSchedulePage> {
     }
 
     if (index == 1) {
-      if (_selectedChild == null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Select a child to open Explore.')),
-        );
-        return;
-      }
-
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(
-          builder: (_) => Explorepage(student: _selectedChild!),
-        ),
+        MaterialPageRoute(builder: (_) => const ParentExplorePage()),
       );
       return;
     }
