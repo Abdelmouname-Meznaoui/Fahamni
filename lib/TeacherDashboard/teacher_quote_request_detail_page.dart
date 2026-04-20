@@ -32,9 +32,8 @@ class _TeacherQuoteRequestDetailPageState
   bool _busy = false;
 
   Future<void> _accept() async {
-    final TeacherQuoteResponseDraft? response =
-        await portal_modals.QuoteResponseModal.show(context, widget.request);
-    if (response == null) {
+    final double? price = await portal_modals.QuoteRespondModal.show(context);
+    if (price == null) {
       return;
     }
 
@@ -46,7 +45,10 @@ class _TeacherQuoteRequestDetailPageState
       await _service.respondToQuote(
         request: widget.request,
         status: QuoteStatus.accepted,
-        response: response,
+        response: TeacherQuoteResponseDraft(
+          priceLabel: price.toStringAsFixed(0),
+          sessionsCount: widget.request.sessionsCount,
+        ),
       );
       if (!mounted) {
         return;

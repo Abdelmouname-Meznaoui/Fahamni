@@ -170,3 +170,133 @@ class _QuoteResponseModalState extends State<QuoteResponseModal> {
     );
   }
 }
+
+class QuoteRespondModal extends StatefulWidget {
+  const QuoteRespondModal({super.key});
+
+  static Future<double?> show(BuildContext context) {
+    return showDialog<double>(
+      context: context,
+      barrierDismissible: true,
+      builder: (context) => const QuoteRespondModal(),
+    );
+  }
+
+  @override
+  State<QuoteRespondModal> createState() => _QuoteRespondModalState();
+}
+
+class _QuoteRespondModalState extends State<QuoteRespondModal> {
+  final TextEditingController _priceController = TextEditingController(text: '1');
+
+  @override
+  void dispose() {
+    _priceController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      child: Container(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Expanded(
+                  child: Center(
+                    child: Text(
+                      'Quote Respond',
+                      style: TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF1E293B),
+                      ),
+                    ),
+                  ),
+                ),
+                GestureDetector(
+                  onTap: () => Navigator.pop(context),
+                  child: const Icon(Icons.close, color: Color(0xFF64748B)),
+                ),
+              ],
+            ),
+            const SizedBox(height: 24),
+            const Text(
+              'PRICE/SESSION',
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w700,
+                color: Color(0xFF1E293B),
+                letterSpacing: 0.5,
+              ),
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              controller: _priceController,
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              decoration: InputDecoration(
+                suffixText: 'DA',
+                suffixStyle: const TextStyle(color: Color(0xFF64748B), fontWeight: FontWeight.w600),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: Color(0xFF000080)),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'Upon submission, the student will receive a PDF document containing the service details and your proposed estimated pricing. You may contact the student directly to discuss any additional requirements or clarifications.',
+              style: TextStyle(
+                fontSize: 13,
+                color: Color(0xFF64748B),
+                height: 1.5,
+              ),
+            ),
+            const SizedBox(height: 32),
+            Center(
+              child: SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () {
+                    final double? price = double.tryParse(_priceController.text.trim());
+                    Navigator.pop(context, price);
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF000080),
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                  ),
+                  child: const Text(
+                    'Send',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
