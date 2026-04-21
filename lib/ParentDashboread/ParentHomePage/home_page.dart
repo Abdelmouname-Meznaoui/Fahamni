@@ -18,16 +18,7 @@ class Parentpage extends StatelessWidget {
   const Parentpage({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        fontFamily: 'Inter',
-        scaffoldBackgroundColor: const Color(0xFFFAFAFA),
-      ),
-      home: const Parenthomepage(),
-    );
-  }
+  Widget build(BuildContext context) => const Parenthomepage();
 }
 
 class Parenthomepage extends StatefulWidget {
