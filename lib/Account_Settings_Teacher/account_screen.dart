@@ -1,12 +1,14 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import 'package:flutter/material.dart';
 import 'package:fahamni/Login_Screen/LoginScreen.dart';
 import 'package:fahamni/TeacherDashboard/teacher_dashboard.dart';
+import 'package:fahamni/TeacherDashboard/teacher_services_dashboard.dart';
+import 'package:fahamni/TeacherDashboard/widgets/teacher_navbar.dart';
 import 'package:fahamni/messaging/chat_page.dart';
 import 'package:fahamni/models/tutor_model.dart';
 import 'package:fahamni/models/user_model.dart';
-import 'package:fahamni/widgets/customnavbar.dart';
 import 'personalinfo_screen.dart';
 import 'academic_info_screen.dart';
 import 'profilesettings.dart';
@@ -21,7 +23,6 @@ class AccountScreen extends StatefulWidget {
 }
 
 class _AccountScreenState extends State<AccountScreen> {
-  int _selectedIndex = 4;
   TutorModel? tutor;
   bool _isLoading = true;
 
@@ -82,6 +83,7 @@ class _AccountScreenState extends State<AccountScreen> {
     );
 
     if (confirmed == true) {
+      try { await GoogleSignIn().signOut(); } catch (_) {}
       await FirebaseAuth.instance.signOut();
       if (mounted) {
         Navigator.of(context).pushAndRemoveUntil(
@@ -153,19 +155,19 @@ class _AccountScreenState extends State<AccountScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFFAFAFA),
-      bottomNavigationBar: CustomBottomNavbar(
-        selectedIndex: _selectedIndex,
+      bottomNavigationBar: TeacherNavbar(
+        selectedIndex: 3,
         onTap: (int index) {
+          if (index == 3) return;
           if (index == 0) {
-            Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(
-                    builder: (_) => const TeacherDashboardScreen()));
-          } else if (index == 3) {
-            Navigator.push(context,
-                MaterialPageRoute(builder: (_) => ChatPage()));
-          } else {
-            setState(() => _selectedIndex = index);
+            Navigator.pushReplacement(context,
+                MaterialPageRoute(builder: (_) => const TeacherDashboardScreen()));
+          } else if (index == 1) {
+            Navigator.pushReplacement(context,
+                MaterialPageRoute(builder: (_) => const TeacherServicesDashboardScreen()));
+          } else if (index == 2) {
+            Navigator.pushReplacement(context,
+                MaterialPageRoute(builder: (_) => const ChatPage()));
           }
         },
       ),
