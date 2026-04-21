@@ -367,6 +367,48 @@ class AuthService {
       throw _handleAuthError(e);
     }
   }
+
+  Future<void> changePassword({
+    required String currentPassword,
+    required String newPassword,
+  }) async {
+    try {
+      final user = _auth.currentUser;
+      if (user == null) throw 'Not logged in.';
+
+      await verifyCurrentPassword(currentPassword);
+      await user.updatePassword(newPassword);
+    } on FirebaseAuthException catch (e) {
+      throw _handleAuthError(e);
+    }
+  }
+
+  Future<void> deleteAccount({required String password}) async {
+    try {
+      final user = _auth.currentUser;
+      if (user == null) throw 'Not logged in.';
+
+      await verifyCurrentPassword(password);
+      final uid = user.uid;
+
+      final userDoc = await _db.collection('users').doc(uid).get();
+      if (userDoc.exists) {
+        final role = UserRole.values.firstWhere(
+          (r) => r.name == (userDoc['role'] ?? 'student'),
+          orElse: () => UserRole.student,
+        );
+
+        final batch = _db.batch();
+        batch.delete(_db.collection(_collectionForRole(role)).doc(uid));
+        batch.delete(_db.collection('users').doc(uid));
+        await batch.commit();
+      }
+
+      await user.delete();
+    } on FirebaseAuthException catch (e) {
+      throw _handleAuthError(e);
+    }
+  }
  
   Future<void> sendPasswordResetEmail(String email) async {
     try {
@@ -386,6 +428,64 @@ class AuthService {
  
   Future<String> getEmailFromPhone(String phone) async {
     return await _getEmailFromPhone(phone);
+  }
+
+  Future<UserModel?> getCurrentUserProfile() async {
+    final user = _auth.currentUser;
+    if (user == null) return null;
+
+    final userDoc = await _db.collection('users').doc(user.uid).get();
+    if (!userDoc.exists) return null;
+
+    final role = UserRole.values.firstWhere(
+      (r) => r.name == (userDoc['role'] ?? 'student'),
+      orElse: () => UserRole.student,
+    );
+    return _fetchUserProfile(user.uid, role);
+  }
+
+  Future<void> updatePersonalInfo({
+    required String uid,
+    required String firstName,
+    required String lastName,
+    required String location,
+    required DateTime birthday,
+  }) async {
+    final userDoc = await _db.collection('users').doc(uid).get();
+    final role = UserRole.values.firstWhere(
+      (r) => r.name == (userDoc['role'] ?? 'student'),
+      orElse: () => UserRole.student,
+    );
+
+    await _db.collection(_collectionForRole(role)).doc(uid).update({
+      'first_name': firstName,
+      'last_name': lastName,
+      'location': location,
+      'birthday': Timestamp.fromDate(birthday),
+    });
+  }
+
+  Future<void> updateStudyInfo({
+    required String uid,
+    required String schoolLevel,
+    required String grade,
+    required String speciality,
+    required String school,
+    required List<String> preferredSubjects,
+  }) async {
+    final userDoc = await _db.collection('users').doc(uid).get();
+    final role = UserRole.values.firstWhere(
+      (r) => r.name == (userDoc['role'] ?? 'student'),
+      orElse: () => UserRole.student,
+    );
+
+    await _db.collection(_collectionForRole(role)).doc(uid).update({
+      'school_level': schoolLevel,
+      'grade': grade,
+      'speciality': speciality,
+      'learning_objectives': school,
+      'preferred_subjects': preferredSubjects,
+    });
   }
  
   Future<void> updatePasswordWithOtp({
