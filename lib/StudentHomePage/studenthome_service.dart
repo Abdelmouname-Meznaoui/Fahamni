@@ -147,36 +147,66 @@ class studenthomepage_service {
       return <SessionModel>[];
     }
 
-    // Always query by student_ids — the most reliable source of truth.
-    final QuerySnapshot<Map<String, dynamic>> snapshot = await _db
+    final Map<String, SessionModel> sessionsById = {};
+
+    // Path 1: sessions where student is directly listed in student_ids.
+    final QuerySnapshot<Map<String, dynamic>> byStudentId = await _db
         .collection('sessions')
         .where('student_ids', arrayContains: uid)
         .get();
+    for (final doc in byStudentId.docs.where((d) => d.data() != null)) {
+      sessionsById[doc.id] =
+          SessionModel.fromMap(_withDocId(doc, idKey: 'session_id'));
+    }
 
-    final Map<String, SessionModel> sessionsById = {
-      for (final doc in snapshot.docs.where((d) => d.data() != null))
-        doc.id: SessionModel.fromMap(_withDocId(doc, idKey: 'session_id')),
-    };
+    // Path 2: sessions belonging to services the student is enrolled in.
+    // When a teacher accepts a quote, the student is added to the SERVICE's
+    // student_ids — but the session may have been created with an empty list.
+    final QuerySnapshot<Map<String, dynamic>> enrolledServices = await _db
+        .collection('services')
+        .where('student_ids', arrayContains: uid)
+        .get();
 
-    // Also fetch any sessions explicitly listed in the student's courses field,
-    // in case student_ids wasn't populated on older documents.
+    if (enrolledServices.docs.isNotEmpty) {
+      final List<String> serviceIds =
+          enrolledServices.docs.map((d) => d.id).toList();
+
+      // Firestore 'whereIn' limit is 30.
+      for (var i = 0; i < serviceIds.length; i += 30) {
+        final List<String> chunk =
+            serviceIds.sublist(i, (i + 30).clamp(0, serviceIds.length));
+        final QuerySnapshot<Map<String, dynamic>> snap = await _db
+            .collection('sessions')
+            .where('service_id', whereIn: chunk)
+            .get();
+        for (final doc in snap.docs.where((d) => d.data() != null)) {
+          sessionsById.putIfAbsent(
+            doc.id,
+            () => SessionModel.fromMap(_withDocId(doc, idKey: 'session_id')),
+          );
+        }
+      }
+    }
+
+    // Path 3: sessions explicitly listed in the student document's courses field.
     final Set<String> extraIds = ids
         .map((id) => id.trim())
         .where((id) => id.isNotEmpty && !sessionsById.containsKey(id))
         .toSet();
-
     if (extraIds.isNotEmpty) {
       final List<DocumentSnapshot<Map<String, dynamic>>> docs =
           await Future.wait(
             extraIds.map((id) => _db.collection('sessions').doc(id).get()),
           );
-
       for (final doc in docs.where((d) => d.exists && d.data() != null)) {
         sessionsById[doc.id] =
             SessionModel.fromMap(_withDocId(doc, idKey: 'session_id'));
       }
     }
 
+    debugPrint('[getCourses] uid=$uid | found ${sessionsById.length} sessions '
+        '(${byStudentId.docs.length} by studentId, '
+        '${enrolledServices.docs.length} enrolled services)');
     return sessionsById.values.toList();
   }
 
