@@ -17,8 +17,7 @@
       "Bash(flutter devices:*)",
       "Bash(adb -s emulator-5554 logcat -d -t 200)",
       "Bash(adb -s emulator-5554 logcat -d)",
-      "Bash(git commit -m ':*)",
-      "Bash(xargs grep *)"
+      "Bash(git commit -m ':*)"
     ]
   }
 }

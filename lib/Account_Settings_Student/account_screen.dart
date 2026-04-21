@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:google_sign_in/google_sign_in.dart';
 import 'package:fahamni/Login_Screen/LoginScreen.dart';
 import 'package:fahamni/widgets/customnavbar.dart';
 import 'package:fahamni/Account_Settings_Student/studyinfo_screen.dart';
@@ -78,7 +77,6 @@ class _AccountScreenState extends State<AccountScreen> {
     );
 
     if (confirmed == true) {
-      try { await GoogleSignIn().signOut(); } catch (_) {}
       await FirebaseAuth.instance.signOut();
       if (mounted) {
         Navigator.of(context).pushAndRemoveUntil(

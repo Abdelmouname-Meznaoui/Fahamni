@@ -405,11 +405,8 @@ class AuthService {
       }
 
       await user.delete();
-      try { await _googleSignIn.signOut(); } catch (_) {}
     } on FirebaseAuthException catch (e) {
       throw _handleAuthError(e);
-    } catch (e) {
-      rethrow;
     }
   }
  

@@ -1463,10 +1463,9 @@ class _DeleteAccountSheetState extends State<_DeleteAccountSheet> {
       _error = null;
     });
     try {
-      final navigator = Navigator.of(context);
       await widget.service.deleteAccount(_passwordCtrl.text.trim());
       if (!mounted) return;
-      navigator.pushAndRemoveUntil(
+      Navigator.of(context).pushAndRemoveUntil(
         MaterialPageRoute(builder: (_) => const LoginScreenPage()),
         (route) => false,
       );
