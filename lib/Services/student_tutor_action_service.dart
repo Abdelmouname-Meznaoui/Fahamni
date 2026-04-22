@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 import '../Services/chat_service.dart';
+import '../Services/notification_formatter.dart';
 import '../Services/notification_service.dart';
 import '../models/chat_model.dart';
 import '../models/notification_model.dart';
@@ -118,11 +119,19 @@ class StudentTutorActionService {
       'createdAt': Timestamp.now(),
     });
 
+    final Map<String, String> formattedNotification =
+        NotificationFormatter.formatNotification(
+      type: 'quote_request',
+      receiverRole: 'teacher',
+      senderFirstName: student.firstName,
+      senderLastName: student.lastName,
+      serviceOrResourceName: service?.name,
+    );
+
     await _notificationService.sendNotification(
       NotificationModel(
-        title: 'New booking request',
-        content:
-            '${student.firstName} sent a booking request${service != null ? ' for ${service.name}' : ''}.',
+        title: formattedNotification['title']!,
+        content: formattedNotification['content']!,
         dateTime: DateTime.now(),
         isRead: false,
         notificationId: '',
