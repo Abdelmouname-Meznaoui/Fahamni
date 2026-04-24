@@ -1,3 +1,4 @@
+import '../Services/notification_formatter.dart';
 import '../Services/notification_service.dart';
 import '../models/notification_model.dart';
 import '../models/review_model.dart';
@@ -72,10 +73,20 @@ class ReviewService {
     );
 
     await _repository.submitReview(review);
+    
+    final Map<String, String> formattedNotification =
+        NotificationFormatter.formatNotification(
+      type: 'review',
+      receiverRole: 'teacher',
+      senderFirstName: student.firstName,
+      senderLastName: student.lastName,
+      rating: rating,
+    );
+    
     await _notificationService.sendNotification(
       NotificationModel(
-        title: 'New review received',
-        content: '${student.firstName} left you a ${rating.toStringAsFixed(1)} star review.',
+        title: formattedNotification['title']!,
+        content: formattedNotification['content']!,
         dateTime: DateTime.now(),
         isRead: false,
         notificationId: '',
