@@ -401,7 +401,7 @@ class FirestoreChatRepository implements ChatRepository {
           displayName: fullName.isNotEmpty ? fullName : 'Tutor',
           avatarUrl: tutor.picture,
           subtitle: subtitle,
-          isVerified: tutor.Certified,
+          isVerified: tutor.certified,
           isOnline: tutor.isAvailable,
         );
       case UserRole.student:
