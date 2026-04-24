@@ -7,7 +7,7 @@ class TutorModel extends UserModel {
   final List<String> levelsTaught;
   final String teachingMode;
   final bool isAvailable;
-  final bool Certified;
+  final bool certified;
   final String pedagogicalDescription;
   final double averageRating;
   final int yearsOfExperience;
@@ -29,7 +29,7 @@ class TutorModel extends UserModel {
     required this.levelsTaught,
     required this.teachingMode,
     required this.isAvailable,
-    required this.Certified,
+    this.certified = false,
     required this.pedagogicalDescription,
     required this.averageRating,
     required this.yearsOfExperience,
@@ -55,7 +55,7 @@ class TutorModel extends UserModel {
       'levels_taught':           levelsTaught,
       'teaching_mode':           teachingMode,
       'is_available':            isAvailable,
-      'certified':               Certified,
+      'certified':               certified,
       'pedagogical_description': pedagogicalDescription,
       'average_rating':          averageRating,
       'years_of_experience':     yearsOfExperience,
@@ -76,7 +76,7 @@ class TutorModel extends UserModel {
     levelsTaught: levelsTaught,
     teachingMode: teachingMode,
     isAvailable: isAvailable,
-    Certified: Certified,
+    certified: certified,
     pedagogicalDescription: pedagogicalDescription,
     averageRating: averageRating,
     yearsOfExperience: yearsOfExperience,
@@ -149,7 +149,7 @@ class TutorModel extends UserModel {
       teachingMode:
           (map['teaching_mode'] ?? map['teachingMode'] ?? '').toString(),
       isAvailable: map['is_available'] ?? false,
-      Certified: map['certified'] ?? false,
+      certified: map['certified'] ?? false,
       pedagogicalDescription:
           (map['pedagogical_description'] ?? '').toString(),
       averageRating: parseDouble(map['average_rating']),

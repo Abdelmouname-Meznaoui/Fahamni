@@ -1,8 +1,9 @@
 import { useState, useEffect } from "react";
-import { collection, query, where, getDocs, getCountFromServer } from "firebase/firestore";
+import { collection, query, where, getDocs, getDoc, doc, setDoc, getCountFromServer } from "firebase/firestore";
 import { db } from "./firebase";
 import TeachersPage from "./TeachersPage";
 import TeacherProfilePage from "./TeacherProfilePage";
+import UsersPage from "./UsersPage";
 
 const MOCK_NOTIFICATIONS = [
   { id: 1, title: "New Report", desc: "A new report has been submitted", time: "09:15AM", read: false },
@@ -65,6 +66,8 @@ export default function Dashboard({ user, onLogout }) {
   const [suspendedUsers, setSuspendedUsers] = useState(null);
 
   useEffect(() => {
+    if (active !== "dashboard") return;
+    setStatValues([null, null, null, null]);
     async function fetchStats() {
       const safeCount = async (col, q) => {
         try {
@@ -93,9 +96,12 @@ export default function Dashboard({ user, onLogout }) {
       ]);
     }
     fetchStats();
-  }, []);
+  }, [active]);
 
   useEffect(() => {
+    if (active !== "dashboard") return;
+    setPendingTeachers(null);
+    setSessionReports(null);
     async function fetchTasks() {
       try {
         const [teacherSnap, reportSnap] = await Promise.all([
@@ -114,9 +120,11 @@ export default function Dashboard({ user, onLogout }) {
       }
     }
     fetchTasks();
-  }, []);
+  }, [active]);
 
   useEffect(() => {
+    if (active !== "dashboard") return;
+    setSuspendedUsers(null);
     async function fetchSuspended() {
       try {
         const suspended = (col, role) =>
@@ -137,16 +145,24 @@ export default function Dashboard({ user, onLogout }) {
       }
     }
     fetchSuspended();
-  }, []);
+  }, [active]);
 
   useEffect(() => {
-    if (!user?.email) return;
+    if (!user?.uid || !user?.email) return;
     getDocs(query(collection(db, "admins"), where("email", "==", user.email)))
-      .then(snap => {
-        if (!snap.empty) setAdminData(snap.docs[0].data());
+      .then(async snap => {
+        if (snap.empty) return;
+        const data = snap.docs[0].data();
+        setAdminData(data);
+        // Ensure a doc at admins/{uid} exists so isAdmin() rule works
+        const uidRef = doc(db, "admins", user.uid);
+        const uidSnap = await getDoc(uidRef).catch(() => null);
+        if (uidSnap && !uidSnap.exists()) {
+          await setDoc(uidRef, data).catch(() => {});
+        }
       })
       .catch(err => console.error("Firestore error:", err));
-  }, [user?.email]);
+  }, [user?.uid, user?.email]);
 
   return (
     <div style={s.shell}>
@@ -233,6 +249,12 @@ export default function Dashboard({ user, onLogout }) {
               <div>
                 <div style={{ fontSize: 20, fontWeight: 700, color: "#000080", lineHeight: 1.2 }}>Teacher Management</div>
                 <div style={{ fontSize: 12, color: "#64748b", marginTop: 2 }}>Manage all teachers on the platform</div>
+              </div>
+            )}
+            {active === "users" && !showNotif && (
+              <div>
+                <div style={{ fontSize: 20, fontWeight: 700, color: "#000080", lineHeight: 1.2 }}>User Management</div>
+                <div style={{ fontSize: 12, color: "#64748b", marginTop: 2 }}>Manage all users on the platform</div>
               </div>
             )}
             {active === "teachers" && !showNotif && selectedTeacher && (
@@ -322,6 +344,7 @@ export default function Dashboard({ user, onLogout }) {
           {!showNotif && active === "teachers" && selectedTeacher && (
             <TeacherProfilePage
               teacher={selectedTeacher}
+              adminUser={user}
               onBack={() => setSelectedTeacher(null)}
               onStatusChange={(id, status) => setSelectedTeacher(t => ({ ...t, account_status: status }))}
             />
@@ -377,7 +400,7 @@ export default function Dashboard({ user, onLogout }) {
                       <div style={s.taskTitle}>{pendingTeachers} teacher{pendingTeachers > 1 ? "s" : ""} awaiting validation</div>
                       <div style={s.taskDesc}>Credentials submitted for review</div>
                     </div>
-                    <button style={{ ...s.actionBtn, background: "#000080" }}>Review</button>
+                    <button style={{ ...s.actionBtn, background: "#000080" }} onClick={() => { setActive("teachers"); setShowNotif(false); setSelectedTeacher(null); }}>Review</button>
                   </div>
                 )}
 
@@ -456,8 +479,11 @@ export default function Dashboard({ user, onLogout }) {
           </div>
           </>}
 
+          {/* ── Users page ── */}
+          {!showNotif && active === "users" && <UsersPage />}
+
           {/* placeholder for other pages */}
-          {!showNotif && !["dashboard","teachers"].includes(active) && (
+          {!showNotif && !["dashboard","teachers","users"].includes(active) && (
             <div style={{ color: "#94a3b8", fontSize: 14, paddingTop: 40, textAlign: "center" }}>
               {active.charAt(0).toUpperCase() + active.slice(1)} — coming soon.
             </div>

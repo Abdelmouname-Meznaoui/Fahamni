@@ -149,7 +149,7 @@ class StudentTutorActionService {
       participantDisplayName: '${tutor.firstName} ${tutor.lastName}'.trim(),
       participantAvatarUrl: tutor.picture,
       participantSubtitle: tutor.expertiseDomain,
-      isVerified: tutor.Certified,
+      isVerified: tutor.certified,
       isOnline: tutor.isAvailable,
     );
   }

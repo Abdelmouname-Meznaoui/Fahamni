@@ -91,7 +91,10 @@ export default function TeachersPage({ onSelect }) {
                       </svg>
                     </div>
                 }
-                <span style={s.name}>{t.first_name} {t.last_name}</span>
+                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                  <span style={s.name}>{t.first_name} {t.last_name}</span>
+                  {t.certified && <VerifiedBadge size={15} />}
+                </div>
               </div>
               <div style={{ ...s.cell, flex: 2 }}>
                 <span style={s.email}>{t.email}</span>
@@ -112,6 +115,24 @@ export default function TeachersPage({ onSelect }) {
         </div>
       </div>
     </div>
+  );
+}
+
+function VerifiedBadge({ size = 16 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" title="Certified">
+      <path
+        d="M12 1.5L14.74 4.01L18.27 3.27L18.96 6.82L22.05 8.5L20.5 12L22.05 15.5L18.96 17.18L18.27 20.73L14.74 19.99L12 22.5L9.26 19.99L5.73 20.73L5.04 17.18L1.95 15.5L3.5 12L1.95 8.5L5.04 6.82L5.73 3.27L9.26 4.01Z"
+        fill="#2196f3"
+      />
+      <path
+        d="M8 12.5L10.5 15L16 9"
+        stroke="#fff"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
   );
 }
 
