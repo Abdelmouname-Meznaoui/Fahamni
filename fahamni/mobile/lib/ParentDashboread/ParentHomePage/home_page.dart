@@ -1,6 +1,7 @@
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:fahamni/Notification_page/notification_page.dart';
+import 'package:fahamni/Account_Settings_Parent/account_screen.dart';
 import 'package:fahamni/ParentDashboread/ParentExplorePage/parent_explore_page.dart';
 import 'package:fahamni/ParentDashboread/ParentSchedulePage/parent_schedule_page.dart';
 import 'package:fahamni/StudentHomePage/studenthome_service.dart';
@@ -169,8 +170,9 @@ class _ParenthomepageState extends State<Parenthomepage> {
     }
 
     if (index == 4) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Profile page is coming soon.')),
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const ParentAccountScreen()),
       );
     }
   }

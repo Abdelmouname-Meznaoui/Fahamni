@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:fahamni/Account_Settings_Student/account_screen.dart';
+import 'package:fahamni/Account_Settings_Parent/account_screen.dart';
+import 'package:fahamni/Account_Settings_Student/account_screen.dart' as student_account;
 import 'package:fahamni/Courses/courses_page.dart';
 import 'package:fahamni/Explore_map_pages/explorepage.dart';
 import 'package:fahamni/StudentHomePage/Student_homepage.dart';
@@ -157,7 +158,7 @@ class _ChatPageState extends State<ChatPage> {
       if (index == 4) {
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (_) => const AccountScreen()),
+          MaterialPageRoute(builder: (_) => const student_account.AccountScreen()),
         );
       }
     } else if (_currentRole == UserRole.parent) {
@@ -186,8 +187,9 @@ class _ChatPageState extends State<ChatPage> {
       }
 
       if (index == 4) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Profile page is coming soon.')),
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const ParentAccountScreen()),
         );
       }
     }
