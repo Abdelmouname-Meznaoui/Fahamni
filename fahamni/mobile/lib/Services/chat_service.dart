@@ -44,18 +44,30 @@ class ChatService {
     required String content,
     String? messageId,
     TextEditingController? controller,
+    List<AttachmentModel> attachments = const <AttachmentModel>[],
   }) async {
     final String trimmedContent = content.trim();
-    if (trimmedContent.isEmpty) return;
+    if (trimmedContent.isEmpty && attachments.isEmpty) return;
 
     final DateTime timestamp = DateTime.now();
+    final MessageType messageType = attachments.isNotEmpty
+        ? attachments.any((AttachmentModel attachment) => attachment.isImage)
+            ? MessageType.image
+            : MessageType.file
+        : MessageType.text;
+
     final MessageModel message = MessageModel(
-      messageId: messageId ?? '',
+      id: messageId ?? '',
       conversationId: conversationId,
       senderId: senderId,
       receiverId: receiverId,
-      content: trimmedContent,
-      sendingDateTime: timestamp,
+      text: trimmedContent.isEmpty ? null : trimmedContent,
+      type: messageType,
+      attachments: attachments,
+      voiceUrl: null,
+      voiceDuration: null,
+      createdAt: Timestamp.fromDate(timestamp),
+      readBy: const <String>[],
     );
 
     await _chatRepository.sendMessage(message);

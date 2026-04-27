@@ -81,7 +81,7 @@ class FirestoreChatRepository implements ChatRepository {
     final String messageId =
         message.messageId.isNotEmpty ? message.messageId : messagesRef.doc().id;
 
-    final MessageModel messageToSave = message.copyWith(messageId: messageId);
+    final MessageModel messageToSave = message.copyWith(id: messageId);
 
     final WriteBatch batch = _firestore.batch();
 
