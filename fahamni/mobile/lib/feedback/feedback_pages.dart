@@ -15,10 +15,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class TutorProfilePage extends StatefulWidget {
-  const TutorProfilePage({
-    super.key,
-    required this.tutorId,
-  });
+  const TutorProfilePage({super.key, required this.tutorId});
 
   final String tutorId;
 
@@ -40,7 +37,12 @@ class _TutorProfilePageState extends State<TutorProfilePage>
   bool _isFavorite = false;
   bool _isFavoriteLoading = true;
   bool _isActionLoading = false;
-  bool _isParentViewer = false;
+  String _viewerRole = 'student';
+
+  bool get _isParentViewer => _viewerRole == 'parent';
+
+  bool get _canReportTeacher =>
+      _viewerRole == 'parent' || _viewerRole == 'student';
 
   @override
   void initState() {
@@ -59,8 +61,8 @@ class _TutorProfilePageState extends State<TutorProfilePage>
   }
 
   Future<void> _refresh() async {
-    final Future<TutorReviewBundle> future =
-        _reviewService.loadTutorReviewBundle(widget.tutorId);
+    final Future<TutorReviewBundle> future = _reviewService
+        .loadTutorReviewBundle(widget.tutorId);
     setState(() {
       _bundleFuture = future;
     });
@@ -69,8 +71,9 @@ class _TutorProfilePageState extends State<TutorProfilePage>
 
   Future<void> _loadFavoriteState() async {
     try {
-      final bool isFavorite =
-          await _studentTutorActionService.isFavoriteTutor(widget.tutorId);
+      final bool isFavorite = await _studentTutorActionService.isFavoriteTutor(
+        widget.tutorId,
+      );
       if (!mounted) {
         return;
       }
@@ -96,14 +99,18 @@ class _TutorProfilePageState extends State<TutorProfilePage>
 
     try {
       final DocumentSnapshot<Map<String, dynamic>> userDoc =
-          await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
+          await FirebaseFirestore.instance
+              .collection('users')
+              .doc(user.uid)
+              .get();
       if (!mounted) {
         return;
       }
 
-      final String role = (userDoc.data()?['role'] as String?) ?? 'student';
+      final String role = ((userDoc.data()?['role'] as String?) ?? 'student')
+          .toLowerCase();
       setState(() {
-        _isParentViewer = role == 'parent';
+        _viewerRole = role;
       });
     } catch (_) {
       // Keep default false if role resolution fails.
@@ -151,9 +158,9 @@ class _TutorProfilePageState extends State<TutorProfilePage>
       if (!mounted) {
         return;
       }
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(error.toString())),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(error.toString())));
     } finally {
       if (mounted) {
         setState(() {
@@ -169,8 +176,8 @@ class _TutorProfilePageState extends State<TutorProfilePage>
     });
 
     try {
-      final bool favorite =
-          await _studentTutorActionService.toggleFavoriteTutor(widget.tutorId);
+      final bool favorite = await _studentTutorActionService
+          .toggleFavoriteTutor(widget.tutorId);
       if (!mounted) {
         return;
       }
@@ -180,7 +187,9 @@ class _TutorProfilePageState extends State<TutorProfilePage>
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            favorite ? 'Tutor added to favorites.' : 'Tutor removed from favorites.',
+            favorite
+                ? 'Tutor added to favorites.'
+                : 'Tutor removed from favorites.',
           ),
         ),
       );
@@ -188,9 +197,9 @@ class _TutorProfilePageState extends State<TutorProfilePage>
       if (!mounted) {
         return;
       }
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(error.toString())),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(error.toString())));
     } finally {
       if (mounted) {
         setState(() {
@@ -206,8 +215,8 @@ class _TutorProfilePageState extends State<TutorProfilePage>
     });
 
     try {
-      final conversation =
-          await _studentTutorActionService.createOrGetConversation(tutor: tutor);
+      final conversation = await _studentTutorActionService
+          .createOrGetConversation(tutor: tutor);
       if (!mounted) {
         return;
       }
@@ -229,9 +238,9 @@ class _TutorProfilePageState extends State<TutorProfilePage>
       if (!mounted) {
         return;
       }
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(error.toString())),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(error.toString())));
     } finally {
       if (mounted) {
         setState(() {
@@ -245,16 +254,59 @@ class _TutorProfilePageState extends State<TutorProfilePage>
     TutorModel tutor,
     List<ServiceModel> services,
   ) async {
-    final ServiceModel? selectedService = services.isEmpty ? null : services.first;
+    final ServiceModel? selectedService = services.isEmpty
+        ? null
+        : services.first;
+    if (!_isParentViewer) {
+      await _bookSpecificService(tutor: tutor, service: selectedService);
+      return;
+    }
+
+    final StudentModel? selectedChild = await _showParentChildSelectorSheet(
+      title: 'Quote Request',
+      submitLabel: 'Submit',
+    );
+    if (selectedChild == null) {
+      return;
+    }
+
     await _bookSpecificService(
       tutor: tutor,
       service: selectedService,
+      studentId: selectedChild.uid,
+      childName: '${selectedChild.firstName} ${selectedChild.lastName}'.trim(),
+    );
+  }
+
+  Future<StudentModel?> _showParentChildSelectorSheet({
+    required String title,
+    required String submitLabel,
+  }) async {
+    final List<StudentModel> children = await _studentTutorActionService
+        .getCurrentParentChildren();
+    if (!mounted) {
+      return null;
+    }
+
+    return showModalBottomSheet<StudentModel>(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(18)),
+      ),
+      builder: (BuildContext context) => _ParentChildSelectionSheet(
+        title: title,
+        submitLabel: submitLabel,
+        children: children,
+      ),
     );
   }
 
   Future<void> _bookSpecificService({
     required TutorModel tutor,
     required ServiceModel? service,
+    String? studentId,
+    String? childName,
   }) async {
     setState(() {
       _isActionLoading = true;
@@ -264,6 +316,7 @@ class _TutorProfilePageState extends State<TutorProfilePage>
       await _studentTutorActionService.createBookingRequest(
         tutor: tutor,
         service: service,
+        studentId: studentId,
       );
       if (!mounted) {
         return;
@@ -272,8 +325,8 @@ class _TutorProfilePageState extends State<TutorProfilePage>
         SnackBar(
           content: Text(
             service == null
-                ? 'Booking request sent to ${tutor.firstName}.'
-                : 'Booking request sent for ${service.name}.',
+                ? 'Quote request sent to ${tutor.firstName}${childName == null ? '' : ' for $childName'}.'
+                : 'Quote request sent for ${service.name}${childName == null ? '' : ' ($childName)'}.',
           ),
         ),
       );
@@ -281,9 +334,9 @@ class _TutorProfilePageState extends State<TutorProfilePage>
       if (!mounted) {
         return;
       }
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(error.toString())),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(error.toString())));
     } finally {
       if (mounted) {
         setState(() {
@@ -294,7 +347,7 @@ class _TutorProfilePageState extends State<TutorProfilePage>
   }
 
   Future<void> _openProfileActions(TutorModel tutor) async {
-    if (!_isParentViewer) {
+    if (!_canReportTeacher) {
       return;
     }
 
@@ -308,7 +361,10 @@ class _TutorProfilePageState extends State<TutorProfilePage>
           child: Wrap(
             children: [
               ListTile(
-                leading: const Icon(Icons.flag_outlined, color: Color(0xFFDC2626)),
+                leading: const Icon(
+                  Icons.flag_outlined,
+                  color: Color(0xFFDC2626),
+                ),
                 title: const Text(
                   'Report Teacher',
                   style: TextStyle(
@@ -331,13 +387,13 @@ class _TutorProfilePageState extends State<TutorProfilePage>
   Future<void> _openReportTeacherSheet(TutorModel tutor) async {
     final _TeacherReportDraft? reportDraft =
         await showModalBottomSheet<_TeacherReportDraft>(
-      context: context,
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(18)),
-      ),
-      builder: (BuildContext context) => const _ReportTeacherSheet(),
-    );
+          context: context,
+          isScrollControlled: true,
+          shape: const RoundedRectangleBorder(
+            borderRadius: BorderRadius.vertical(top: Radius.circular(18)),
+          ),
+          builder: (BuildContext context) => const _ReportTeacherSheet(),
+        );
 
     if (reportDraft == null) {
       return;
@@ -347,7 +403,6 @@ class _TutorProfilePageState extends State<TutorProfilePage>
       await _reportService.submitTeacherReport(
         teacherId: tutor.uid,
         teacherName: '${tutor.firstName} ${tutor.lastName}'.trim(),
-        reason: reportDraft.reason,
         description: reportDraft.description,
       );
 
@@ -363,9 +418,9 @@ class _TutorProfilePageState extends State<TutorProfilePage>
         return;
       }
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(error.toString())),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(error.toString())));
     }
   }
 
@@ -380,183 +435,186 @@ class _TutorProfilePageState extends State<TutorProfilePage>
         onTap: () => FocusScope.of(context).unfocus(),
         child: SafeArea(
           child: FutureBuilder<TutorReviewBundle>(
-          future: _bundleFuture,
-          builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return const Center(child: CircularProgressIndicator());
-            }
+            future: _bundleFuture,
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(child: CircularProgressIndicator());
+              }
 
-            if (snapshot.hasError) {
-              return _FeedbackErrorState(
-                message: snapshot.error.toString(),
-                onRetry: _refresh,
-              );
-            }
+              if (snapshot.hasError) {
+                return _FeedbackErrorState(
+                  message: snapshot.error.toString(),
+                  onRetry: _refresh,
+                );
+              }
 
-            final TutorReviewBundle bundle = snapshot.data!;
-            final TutorModel tutor = bundle.tutor;
-            final List<ReviewModel> previewReviews = bundle.reviews.take(2).toList();
+              final TutorReviewBundle bundle = snapshot.data!;
+              final TutorModel tutor = bundle.tutor;
+              final List<ReviewModel> previewReviews = bundle.reviews
+                  .take(2)
+                  .toList();
 
-            return AnimatedPadding(
-              duration: const Duration(milliseconds: 200),
-              curve: Curves.easeOut,
-              padding: EdgeInsets.fromLTRB(
-                20,
-                16,
-                20,
-                20 + MediaQuery.of(context).viewInsets.bottom,
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  _ProfileTopBar(
-                    tutorName: 'Teacher',
-                    isFavorite: _isFavorite,
-                    isFavoriteLoading: _isFavoriteLoading,
-                    onFavoriteTap: _toggleFavorite,
-                    showMoreAction: _isParentViewer,
-                    onMoreTap: () => _openProfileActions(tutor),
-                  ),
-                  const SizedBox(height: 18),
-                  _TutorHero(
-                    tutor: tutor,
-                    averageRating: bundle.averageRating,
-                    reviewService: _reviewService,
-                  ),
-                  const SizedBox(height: 18),
-                  TabBar(
-                    controller: _tabController,
-                    labelColor: const Color(0xFF000080),
-                    unselectedLabelColor: const Color(0xFF64748B),
-                    indicatorColor: const Color(0xFF000080),
-                    labelStyle: const TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w700,
+              return AnimatedPadding(
+                duration: const Duration(milliseconds: 200),
+                curve: Curves.easeOut,
+                padding: EdgeInsets.fromLTRB(
+                  20,
+                  16,
+                  20,
+                  20 + MediaQuery.of(context).viewInsets.bottom,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    _ProfileTopBar(
+                      tutorName: 'Teacher',
+                      isFavorite: _isFavorite,
+                      isFavoriteLoading: _isFavoriteLoading,
+                      onFavoriteTap: _toggleFavorite,
+                      showMoreAction: _canReportTeacher,
+                      onMoreTap: () => _openProfileActions(tutor),
                     ),
-                    tabs: const [
-                      Tab(text: 'About'),
-                      Tab(text: 'Services'),
-                      Tab(text: 'Reviews'),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  Expanded(
-                    child: RefreshIndicator(
-                      onRefresh: _refresh,
-                      child: TabBarView(
-                        controller: _tabController,
-                        children: [
-                          _AboutTutorTab(tutor: tutor),
-                          _TutorServicesTab(
-                            tutor: tutor,
-                            services: bundle.services,
-                            reviewService: _reviewService,
-                            onBookNow: (service) => _bookSpecificService(
+                    const SizedBox(height: 18),
+                    _TutorHero(
+                      tutor: tutor,
+                      averageRating: bundle.averageRating,
+                      reviewService: _reviewService,
+                    ),
+                    const SizedBox(height: 18),
+                    TabBar(
+                      controller: _tabController,
+                      labelColor: const Color(0xFF000080),
+                      unselectedLabelColor: const Color(0xFF64748B),
+                      indicatorColor: const Color(0xFF000080),
+                      labelStyle: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                      ),
+                      tabs: const [
+                        Tab(text: 'About'),
+                        Tab(text: 'Services'),
+                        Tab(text: 'Reviews'),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    Expanded(
+                      child: RefreshIndicator(
+                        onRefresh: _refresh,
+                        child: TabBarView(
+                          controller: _tabController,
+                          children: [
+                            _AboutTutorTab(tutor: tutor),
+                            _TutorServicesTab(
                               tutor: tutor,
-                              service: service,
+                              services: bundle.services,
+                              reviewService: _reviewService,
+                              onBookNow: (service) => _bookSpecificService(
+                                tutor: tutor,
+                                service: service,
+                              ),
+                            ),
+                            ListView(
+                              keyboardDismissBehavior:
+                                  ScrollViewKeyboardDismissBehavior.onDrag,
+                              padding: const EdgeInsets.only(bottom: 16),
+                              children: [
+                                _RatingsSummaryCard(
+                                  tutor: tutor,
+                                  reviews: previewReviews,
+                                  reviewers: bundle.reviewers,
+                                  averageRating: bundle.averageRating,
+                                  reviewService: _reviewService,
+                                  totalReviewsCount: bundle.reviews.length,
+                                  onViewAll: () {
+                                    Navigator.of(context).push(
+                                      MaterialPageRoute(
+                                        builder: (_) => FeedbacksPage(
+                                          tutorId: widget.tutorId,
+                                          tutorName:
+                                              '${tutor.firstName} ${tutor.lastName}'
+                                                  .trim(),
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                ),
+                                const SizedBox(height: 16),
+                                _FeedbackComposerCard(
+                                  controller: _feedbackController,
+                                  selectedRating: _selectedRating,
+                                  onRatingChanged: (value) {
+                                    setState(() {
+                                      _selectedRating = value;
+                                    });
+                                  },
+                                  onSubmit: _submitFeedback,
+                                  isSubmitting: _isSubmitting,
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    if (!keyboardVisible) ...[
+                      const SizedBox(height: 18),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: ElevatedButton.icon(
+                              onPressed: _isActionLoading
+                                  ? null
+                                  : () => _openConversation(tutor),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFFD9D9D9),
+                                foregroundColor: const Color(0xFF1F2937),
+                                minimumSize: const Size(0, 56),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(28),
+                                ),
+                              ),
+                              icon: const Icon(Icons.message_outlined),
+                              label: const Text(
+                                'Message',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 16,
+                                ),
+                              ),
                             ),
                           ),
-                          ListView(
-                            keyboardDismissBehavior:
-                                ScrollViewKeyboardDismissBehavior.onDrag,
-                            padding: const EdgeInsets.only(bottom: 16),
-                            children: [
-                              _RatingsSummaryCard(
-                                tutor: tutor,
-                                reviews: previewReviews,
-                                reviewers: bundle.reviewers,
-                                averageRating: bundle.averageRating,
-                                reviewService: _reviewService,
-                                totalReviewsCount: bundle.reviews.length,
-                                onViewAll: () {
-                                  Navigator.of(context).push(
-                                    MaterialPageRoute(
-                                      builder: (_) => FeedbacksPage(
-                                        tutorId: widget.tutorId,
-                                        tutorName:
-                                            '${tutor.firstName} ${tutor.lastName}'.trim(),
-                                      ),
-                                    ),
-                                  );
-                                },
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: ElevatedButton.icon(
+                              onPressed: _isActionLoading
+                                  ? null
+                                  : () => _bookSession(tutor, bundle.services),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFF000080),
+                                foregroundColor: Colors.white,
+                                minimumSize: const Size(0, 56),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(28),
+                                ),
                               ),
-                              const SizedBox(height: 16),
-                              _FeedbackComposerCard(
-                                controller: _feedbackController,
-                                selectedRating: _selectedRating,
-                                onRatingChanged: (value) {
-                                  setState(() {
-                                    _selectedRating = value;
-                                  });
-                                },
-                                onSubmit: _submitFeedback,
-                                isSubmitting: _isSubmitting,
+                              icon: const Icon(Icons.calendar_today_outlined),
+                              label: const Text(
+                                'Quote Request',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 16,
+                                ),
                               ),
-                            ],
+                            ),
                           ),
                         ],
                       ),
-                    ),
-                  ),
-                  if (!keyboardVisible) ...[
-                    const SizedBox(height: 18),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: ElevatedButton.icon(
-                            onPressed: _isActionLoading
-                                ? null
-                                : () => _openConversation(tutor),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFFD9D9D9),
-                              foregroundColor: const Color(0xFF1F2937),
-                              minimumSize: const Size(0, 56),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(28),
-                              ),
-                            ),
-                            icon: const Icon(Icons.message_outlined),
-                            label: const Text(
-                              'Message',
-                              style: TextStyle(
-                                fontWeight: FontWeight.w700,
-                                fontSize: 16,
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: ElevatedButton.icon(
-                            onPressed: _isActionLoading
-                                ? null
-                                : () => _bookSession(tutor, bundle.services),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFF000080),
-                              foregroundColor: Colors.white,
-                              minimumSize: const Size(0, 56),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(28),
-                              ),
-                            ),
-                            icon: const Icon(Icons.calendar_today_outlined),
-                            label: const Text(
-                              'Book Session',
-                              style: TextStyle(
-                                fontWeight: FontWeight.w700,
-                                fontSize: 16,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
+                    ],
                   ],
-                ],
-              ),
-            );
-          },
-        ),
+                ),
+              );
+            },
+          ),
         ),
       ),
     );
@@ -606,8 +664,9 @@ class _FeedbacksPageState extends State<FeedbacksPage> {
 
           final List<ReviewModel> reviews = snapshot.data ?? <ReviewModel>[];
           return FutureBuilder<Map<String, StudentModel>>(
-            future: _reviewService
-                .getReviewers(reviews.map((review) => review.reviewerId).toList()),
+            future: _reviewService.getReviewers(
+              reviews.map((review) => review.reviewerId).toList(),
+            ),
             builder: (context, reviewerSnapshot) {
               final Map<String, StudentModel> reviewers =
                   reviewerSnapshot.data ?? <String, StudentModel>{};
@@ -628,7 +687,8 @@ class _FeedbacksPageState extends State<FeedbacksPage> {
               return ListView.separated(
                 padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
                 itemCount: reviews.length,
-                separatorBuilder: (_, separatorIndex) => const SizedBox(height: 14),
+                separatorBuilder: (_, separatorIndex) =>
+                    const SizedBox(height: 14),
                 itemBuilder: (context, index) {
                   final ReviewModel review = reviews[index];
                   return _ReviewCard(
@@ -683,8 +743,12 @@ class _ProfileTopBar extends StatelessWidget {
           ),
         ),
         _CircleIconButton(
-          icon: isFavorite ? Icons.favorite_rounded : Icons.favorite_border_rounded,
-          iconColor: isFavorite ? const Color(0xFFEF4444) : const Color(0xFF64748B),
+          icon: isFavorite
+              ? Icons.favorite_rounded
+              : Icons.favorite_border_rounded,
+          iconColor: isFavorite
+              ? const Color(0xFFEF4444)
+              : const Color(0xFF64748B),
           onTap: isFavoriteLoading ? null : onFavoriteTap,
           child: isFavoriteLoading
               ? const SizedBox(
@@ -698,10 +762,7 @@ class _ProfileTopBar extends StatelessWidget {
         const _CircleIconButton(icon: Icons.share_outlined),
         if (showMoreAction) ...[
           const SizedBox(width: 8),
-          _CircleIconButton(
-            icon: Icons.more_horiz,
-            onTap: onMoreTap,
-          ),
+          _CircleIconButton(icon: Icons.more_horiz, onTap: onMoreTap),
         ],
       ],
     );
@@ -744,7 +805,11 @@ class _TutorHero extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 8),
-            const Icon(Icons.verified_outlined, color: Color(0xFF000080), size: 22),
+            const Icon(
+              Icons.verified_outlined,
+              color: Color(0xFF000080),
+              size: 22,
+            ),
           ],
         ),
         const SizedBox(height: 8),
@@ -766,7 +831,11 @@ class _TutorHero extends StatelessWidget {
             _MetaText(
               text: '${averageRating.toStringAsFixed(1)} Rating',
               color: const Color(0xFF64748B),
-              leading: const Icon(Icons.star_rounded, size: 16, color: Color(0xFFF4B400)),
+              leading: const Icon(
+                Icons.star_rounded,
+                size: 16,
+                color: Color(0xFFF4B400),
+              ),
             ),
             _MetaText(
               text: reviewService.experienceLabel(tutor.yearsOfExperience),
@@ -774,7 +843,9 @@ class _TutorHero extends StatelessWidget {
             ),
             _MetaText(
               text: reviewService.availabilityLabel(tutor.isAvailable),
-              color: tutor.isAvailable ? const Color(0xFF16A34A) : const Color(0xFFDC2626),
+              color: tutor.isAvailable
+                  ? const Color(0xFF16A34A)
+                  : const Color(0xFFDC2626),
             ),
           ],
         ),
@@ -784,9 +855,7 @@ class _TutorHero extends StatelessWidget {
 }
 
 class _AboutTutorTab extends StatelessWidget {
-  const _AboutTutorTab({
-    required this.tutor,
-  });
+  const _AboutTutorTab({required this.tutor});
 
   final TutorModel tutor;
 
@@ -837,10 +906,26 @@ class _AboutTutorTab extends StatelessWidget {
                   ],
                 ),
                 const SizedBox(height: 8),
-                _buildInfoCard(Icons.menu_book, 'Expertise Domain', tutor.expertiseDomain),
-                _buildInfoCard(Icons.school_outlined, 'Levels Taught', levelsTaught),
-                _buildInfoCard(Icons.location_on_outlined, 'Location', tutor.location),
-                _buildInfoCard(Icons.devices_rounded, 'Teaching Mode', tutor.teachingMode),
+                _buildInfoCard(
+                  Icons.menu_book,
+                  'Expertise Domain',
+                  tutor.expertiseDomain,
+                ),
+                _buildInfoCard(
+                  Icons.school_outlined,
+                  'Levels Taught',
+                  levelsTaught,
+                ),
+                _buildInfoCard(
+                  Icons.location_on_outlined,
+                  'Location',
+                  tutor.location,
+                ),
+                _buildInfoCard(
+                  Icons.devices_rounded,
+                  'Teaching Mode',
+                  tutor.teachingMode,
+                ),
               ],
             ),
           ),
@@ -900,8 +985,9 @@ class _TutorServicesTab extends StatelessWidget {
         itemCount: services.length,
         itemBuilder: (context, index) {
           final ServiceModel service = services[index];
-          final String serviceMode =
-              service.area.isNotEmpty ? service.area : tutor.teachingMode;
+          final String serviceMode = service.area.isNotEmpty
+              ? service.area
+              : tutor.teachingMode;
 
           return Padding(
             padding: const EdgeInsets.only(bottom: 14),
@@ -960,7 +1046,10 @@ class _TutorServicesTab extends StatelessWidget {
                             const SizedBox(height: 8),
                             Row(
                               children: [
-                                const Icon(Icons.access_time_rounded, color: Color(0xFF64748B)),
+                                const Icon(
+                                  Icons.access_time_rounded,
+                                  color: Color(0xFF64748B),
+                                ),
                                 const SizedBox(width: 5),
                                 Text(
                                   '${service.duration}min session',
@@ -977,7 +1066,10 @@ class _TutorServicesTab extends StatelessWidget {
                             const SizedBox(height: 4),
                             Row(
                               children: [
-                                const Icon(Icons.location_on_outlined, color: Color(0xFF64748B)),
+                                const Icon(
+                                  Icons.location_on_outlined,
+                                  color: Color(0xFF64748B),
+                                ),
                                 const SizedBox(width: 5),
                                 Text(
                                   serviceMode,
@@ -995,7 +1087,10 @@ class _TutorServicesTab extends StatelessWidget {
                             if (service.maxnum - service.enrollednum <= 10)
                               Row(
                                 children: [
-                                  const Icon(Icons.error_outline_rounded, color: Color(0xFFDD0D0D)),
+                                  const Icon(
+                                    Icons.error_outline_rounded,
+                                    color: Color(0xFFDD0D0D),
+                                  ),
                                   const SizedBox(width: 5),
                                   Text(
                                     '${service.maxnum - service.enrollednum} places left',
@@ -1048,12 +1143,12 @@ class _TutorServicesTab extends StatelessWidget {
                                       ),
                                     ),
                                   ),
-                                )
+                                ),
                               ],
-                            )
+                            ),
                           ],
                         ),
-                      )
+                      ),
                     ],
                   ),
                   Positioned(
@@ -1226,9 +1321,7 @@ Widget _buildTextCard(String title, String value) {
 }
 
 class _ServiceHeaderImage extends StatelessWidget {
-  const _ServiceHeaderImage({
-    required this.imagePath,
-  });
+  const _ServiceHeaderImage({required this.imagePath});
 
   final String imagePath;
 
@@ -1444,7 +1537,8 @@ class _FeedbackComposerCard extends StatelessWidget {
               maxLength: 200,
               maxLines: 3,
               textInputAction: TextInputAction.done,
-              onTapOutside: (_) => FocusManager.instance.primaryFocus?.unfocus(),
+              onTapOutside: (_) =>
+                  FocusManager.instance.primaryFocus?.unfocus(),
               decoration: const InputDecoration(
                 hintText: 'Write something...',
                 border: InputBorder.none,
@@ -1540,8 +1634,9 @@ class _ReviewCard extends StatelessWidget {
               CircleAvatar(
                 radius: 24,
                 backgroundColor: const Color(0xFFE2E8F0),
-                backgroundImage:
-                    reviewer == null ? null : _resolveImageProvider(reviewer!.picture),
+                backgroundImage: reviewer == null
+                    ? null
+                    : _resolveImageProvider(reviewer!.picture),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -1565,10 +1660,7 @@ class _ReviewCard extends StatelessWidget {
               ),
               Text(
                 reviewService.formatShortDate(review.createdAt),
-                style: const TextStyle(
-                  fontSize: 14,
-                  color: Color(0xFF94A3B8),
-                ),
+                style: const TextStyle(fontSize: 14, color: Color(0xFF94A3B8)),
               ),
             ],
           ),
@@ -1598,11 +1690,7 @@ class _ReviewCard extends StatelessWidget {
 }
 
 class _InfoCard extends StatelessWidget {
-  const _InfoCard({
-    required this.title,
-    required this.child,
-    this.trailing,
-  });
+  const _InfoCard({required this.title, required this.child, this.trailing});
 
   final String title;
   final Widget child;
@@ -1651,10 +1739,7 @@ class _InfoCard extends StatelessWidget {
 }
 
 class _FeedbackErrorState extends StatelessWidget {
-  const _FeedbackErrorState({
-    required this.message,
-    required this.onRetry,
-  });
+  const _FeedbackErrorState({required this.message, required this.onRetry});
 
   final String message;
   final Future<void> Function() onRetry;
@@ -1667,7 +1752,11 @@ class _FeedbackErrorState extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.rate_review_outlined, size: 48, color: Color(0xFF000080)),
+            const Icon(
+              Icons.rate_review_outlined,
+              size: 48,
+              color: Color(0xFF000080),
+            ),
             const SizedBox(height: 12),
             Text(
               message,
@@ -1697,11 +1786,7 @@ class _FeedbackErrorState extends StatelessWidget {
 }
 
 class _MetaText extends StatelessWidget {
-  const _MetaText({
-    required this.text,
-    required this.color,
-    this.leading,
-  });
+  const _MetaText({required this.text, required this.color, this.leading});
 
   final String text;
   final Color color;
@@ -1712,10 +1797,7 @@ class _MetaText extends StatelessWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        if (leading != null) ...[
-          leading!,
-          const SizedBox(width: 4),
-        ],
+        if (leading != null) ...[leading!, const SizedBox(width: 4)],
         Text(
           text,
           style: TextStyle(
@@ -1730,10 +1812,7 @@ class _MetaText extends StatelessWidget {
 }
 
 class _StarSelector extends StatelessWidget {
-  const _StarSelector({
-    required this.selectedRating,
-    required this.onChanged,
-  });
+  const _StarSelector({required this.selectedRating, required this.onChanged});
 
   final double selectedRating;
   final ValueChanged<double> onChanged;
@@ -1759,10 +1838,7 @@ class _StarSelector extends StatelessWidget {
 }
 
 class _StarsRow extends StatelessWidget {
-  const _StarsRow({
-    required this.rating,
-    required this.size,
-  });
+  const _StarsRow({required this.rating, required this.size});
 
   final double rating;
   final double size;
@@ -1784,12 +1860,8 @@ class _StarsRow extends StatelessWidget {
 }
 
 class _TeacherReportDraft {
-  const _TeacherReportDraft({
-    required this.reason,
-    required this.description,
-  });
+  const _TeacherReportDraft({required this.description});
 
-  final String reason;
   final String description;
 }
 
@@ -1801,16 +1873,7 @@ class _ReportTeacherSheet extends StatefulWidget {
 }
 
 class _ReportTeacherSheetState extends State<_ReportTeacherSheet> {
-  static const List<String> _reasons = <String>[
-    'Inappropriate behavior',
-    'Harassment',
-    'Spam or scam',
-    'False information',
-    'Other',
-  ];
-
   final TextEditingController _descriptionController = TextEditingController();
-  String? _selectedReason;
 
   @override
   void dispose() {
@@ -1819,17 +1882,12 @@ class _ReportTeacherSheetState extends State<_ReportTeacherSheet> {
   }
 
   void _submit() {
-    if (_selectedReason == null) {
+    final String description = _descriptionController.text.trim();
+    if (description.isEmpty) {
       return;
     }
 
-    Navigator.pop(
-      context,
-      _TeacherReportDraft(
-        reason: _selectedReason!,
-        description: _descriptionController.text.trim(),
-      ),
-    );
+    Navigator.pop(context, _TeacherReportDraft(description: description));
   }
 
   @override
@@ -1853,51 +1911,7 @@ class _ReportTeacherSheetState extends State<_ReportTeacherSheet> {
             ),
             const SizedBox(height: 14),
             const Text(
-              'Reason',
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w700,
-                color: Color(0xFF1F2937),
-              ),
-            ),
-            const SizedBox(height: 8),
-            DropdownButtonFormField<String>(
-              value: _selectedReason,
-              isExpanded: true,
-              hint: const Text('Select reason'),
-              items: _reasons
-                  .map(
-                    (String reason) => DropdownMenuItem<String>(
-                      value: reason,
-                      child: Text(reason),
-                    ),
-                  )
-                  .toList(),
-              onChanged: (String? value) {
-                setState(() {
-                  _selectedReason = value;
-                });
-              },
-              decoration: InputDecoration(
-                filled: true,
-                fillColor: Colors.white,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: Color(0xFFD1D5DB)),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: Color(0xFFD1D5DB)),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: Color(0xFF000080), width: 1.2),
-                ),
-              ),
-            ),
-            const SizedBox(height: 12),
-            const Text(
-              'Description (optional)',
+              'Description',
               style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w700,
@@ -1909,8 +1923,9 @@ class _ReportTeacherSheetState extends State<_ReportTeacherSheet> {
               controller: _descriptionController,
               minLines: 3,
               maxLines: 4,
+              onChanged: (_) => setState(() {}),
               decoration: InputDecoration(
-                hintText: 'Provide more details',
+                hintText: 'Describe your report',
                 filled: true,
                 fillColor: Colors.white,
                 border: OutlineInputBorder(
@@ -1923,7 +1938,10 @@ class _ReportTeacherSheetState extends State<_ReportTeacherSheet> {
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: Color(0xFF000080), width: 1.2),
+                  borderSide: const BorderSide(
+                    color: Color(0xFF000080),
+                    width: 1.2,
+                  ),
                 ),
               ),
             ),
@@ -1932,7 +1950,9 @@ class _ReportTeacherSheetState extends State<_ReportTeacherSheet> {
               width: double.infinity,
               height: 48,
               child: ElevatedButton(
-                onPressed: _selectedReason == null ? null : _submit,
+                onPressed: _descriptionController.text.trim().isEmpty
+                    ? null
+                    : _submit,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF000080),
                   foregroundColor: Colors.white,
@@ -1944,6 +1964,137 @@ class _ReportTeacherSheetState extends State<_ReportTeacherSheet> {
                 child: const Text(
                   'Submit',
                   style: TextStyle(fontWeight: FontWeight.w700),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ParentChildSelectionSheet extends StatefulWidget {
+  const _ParentChildSelectionSheet({
+    required this.title,
+    required this.submitLabel,
+    required this.children,
+  });
+
+  final String title;
+  final String submitLabel;
+  final List<StudentModel> children;
+
+  @override
+  State<_ParentChildSelectionSheet> createState() =>
+      _ParentChildSelectionSheetState();
+}
+
+class _ParentChildSelectionSheetState
+    extends State<_ParentChildSelectionSheet> {
+  StudentModel? _selectedChild;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.children.isNotEmpty) {
+      _selectedChild = widget.children.first;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final bool hasChildren = widget.children.isNotEmpty;
+
+    return SafeArea(
+      child: Padding(
+        padding: EdgeInsets.fromLTRB(
+          16,
+          16,
+          16,
+          16 + MediaQuery.of(context).viewInsets.bottom,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              widget.title,
+              style: const TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.w800,
+                color: Color(0xFF1F2937),
+              ),
+            ),
+            const SizedBox(height: 14),
+            DropdownButtonFormField<StudentModel>(
+              value: hasChildren ? _selectedChild : null,
+              isExpanded: true,
+              hint: Text(hasChildren ? 'Select Child' : 'No child linked yet'),
+              items: widget.children
+                  .map(
+                    (StudentModel child) => DropdownMenuItem<StudentModel>(
+                      value: child,
+                      child: Text(
+                        '${child.firstName} ${child.lastName}'.trim(),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  )
+                  .toList(),
+              onChanged: hasChildren
+                  ? (StudentModel? value) {
+                      setState(() {
+                        _selectedChild = value;
+                      });
+                    }
+                  : null,
+              decoration: InputDecoration(
+                filled: true,
+                fillColor: Colors.white,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: Color(0xFFD1D5DB)),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: Color(0xFFD1D5DB)),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(
+                    color: Color(0xFF000080),
+                    width: 1.2,
+                  ),
+                ),
+              ),
+            ),
+            if (!hasChildren) ...[
+              const SizedBox(height: 10),
+              const Text(
+                'No linked child account found. Please link a child first.',
+                style: TextStyle(fontSize: 13, color: Color(0xFF64748B)),
+              ),
+            ],
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              height: 48,
+              child: ElevatedButton(
+                onPressed: hasChildren && _selectedChild != null
+                    ? () => Navigator.pop(context, _selectedChild)
+                    : null,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF000080),
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(24),
+                  ),
+                  elevation: 0,
+                ),
+                child: Text(
+                  widget.submitLabel,
+                  style: const TextStyle(fontWeight: FontWeight.w700),
                 ),
               ),
             ),
@@ -1980,8 +2131,7 @@ class _CircleIconButton extends StatelessWidget {
           border: Border.all(color: const Color(0xFFE5E7EB)),
           color: Colors.white,
         ),
-        child: child ??
-            Icon(icon, color: iconColor, size: 20),
+        child: child ?? Icon(icon, color: iconColor, size: 20),
       ),
     );
   }

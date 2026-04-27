@@ -42,7 +42,9 @@ class _SchedulePageState extends State<SchedulePage> {
 
   Future<_ScheduleViewData> _loadSchedule() async {
     final StudentModel student = await _service.getStudentData();
-    final List<SessionModel> sessions = await _service.getCourses(student.Courses);
+    final List<SessionModel> sessions = await _service.getCourses(
+      student.Courses,
+    );
     sessions.sort((a, b) => _sessionStart(a).compareTo(_sessionStart(b)));
 
     final List<_ScheduledSession> items = <_ScheduledSession>[];
@@ -54,16 +56,22 @@ class _SchedulePageState extends State<SchedulePage> {
         // Skip sessions whose tutor document is missing rather than crashing.
         continue;
       }
-      final ServiceModel? service = await _service.getServiceData(session.serviceId);
-      items.add(_ScheduledSession(session: session, tutor: tutor, service: service));
+      final ServiceModel? service = await _service.getServiceData(
+        session.serviceId,
+      );
+      items.add(
+        _ScheduledSession(session: session, tutor: tutor, service: service),
+      );
     }
 
     // Navigate to the nearest upcoming session's week; fall back to today.
     final DateTime now = DateTime.now();
-    final _ScheduledSession? nearest = items.cast<_ScheduledSession?>().firstWhere(
-      (item) => item != null && _sessionStart(item.session).isAfter(now),
-      orElse: () => items.isNotEmpty ? items.first : null,
-    );
+    final _ScheduledSession? nearest = items
+        .cast<_ScheduledSession?>()
+        .firstWhere(
+          (item) => item != null && _sessionStart(item.session).isAfter(now),
+          orElse: () => items.isNotEmpty ? items.first : null,
+        );
     if (nearest != null) {
       _focusedDate = _startOfWeek(_sessionStart(nearest.session));
     } else {
@@ -87,7 +95,11 @@ class _SchedulePageState extends State<SchedulePage> {
           _focusedDate = _focusedDate.subtract(const Duration(days: 7));
           break;
         case _ScheduleMode.month:
-          _focusedDate = DateTime(_focusedDate.year, _focusedDate.month - 1, _focusedDate.day);
+          _focusedDate = DateTime(
+            _focusedDate.year,
+            _focusedDate.month - 1,
+            _focusedDate.day,
+          );
           break;
         case _ScheduleMode.day:
           _focusedDate = _focusedDate.subtract(const Duration(days: 1));
@@ -103,7 +115,11 @@ class _SchedulePageState extends State<SchedulePage> {
           _focusedDate = _focusedDate.add(const Duration(days: 7));
           break;
         case _ScheduleMode.month:
-          _focusedDate = DateTime(_focusedDate.year, _focusedDate.month + 1, _focusedDate.day);
+          _focusedDate = DateTime(
+            _focusedDate.year,
+            _focusedDate.month + 1,
+            _focusedDate.day,
+          );
           break;
         case _ScheduleMode.day:
           _focusedDate = _focusedDate.add(const Duration(days: 1));
@@ -117,7 +133,11 @@ class _SchedulePageState extends State<SchedulePage> {
       case _ScheduleMode.week:
         final List<DateTime> weekDays = _weekDaysFor(_focusedDate);
         final List<_ScheduledSession> weekSessions = sessions
-            .where((item) => weekDays.any((day) => _isSameDay(_sessionStart(item.session), day)))
+            .where(
+              (item) => weekDays.any(
+                (day) => _isSameDay(_sessionStart(item.session), day),
+              ),
+            )
             .toList();
         return Padding(
           padding: const EdgeInsets.symmetric(horizontal: 14),
@@ -152,10 +172,18 @@ class _SchedulePageState extends State<SchedulePage> {
           ),
         );
       case _ScheduleMode.day:
-        final List<_ScheduledSession> daySessions = sessions
-            .where((item) => _isSameDay(_sessionStart(item.session), _focusedDate))
-            .toList()
-          ..sort((a, b) => _sessionStart(a.session).compareTo(_sessionStart(b.session)));
+        final List<_ScheduledSession> daySessions =
+            sessions
+                .where(
+                  (item) =>
+                      _isSameDay(_sessionStart(item.session), _focusedDate),
+                )
+                .toList()
+              ..sort(
+                (a, b) => _sessionStart(
+                  a.session,
+                ).compareTo(_sessionStart(b.session)),
+              );
         return Padding(
           padding: const EdgeInsets.symmetric(horizontal: 14),
           child: _DayView(
@@ -238,15 +266,6 @@ class _SchedulePageState extends State<SchedulePage> {
             }
 
             final _ScheduleViewData data = snapshot.data!;
-            if (data.sessions.isEmpty) {
-              return _ScheduleMessageState(
-                title: 'No sessions yet',
-                subtitle: 'Booked sessions will appear here in agenda form.',
-                actionLabel: 'Refresh',
-                onAction: _refresh,
-              );
-            }
-
             return Column(
               children: [
                 Padding(
@@ -273,7 +292,15 @@ class _SchedulePageState extends State<SchedulePage> {
                 ),
                 const SizedBox(height: 14),
                 Expanded(
-                  child: _buildModeBody(data.sessions),
+                  child: data.sessions.isEmpty
+                      ? _ScheduleMessageState(
+                          title: 'No sessions yet',
+                          subtitle:
+                              'Booked sessions will appear here in agenda form.',
+                          actionLabel: 'Refresh',
+                          onAction: _refresh,
+                        )
+                      : _buildModeBody(data.sessions),
                 ),
               ],
             );
@@ -299,20 +326,20 @@ class _SchedulePageState extends State<SchedulePage> {
   }
 
   static DateTime _sessionStart(SessionModel session) => DateTime(
-        session.date.year,
-        session.date.month,
-        session.date.day,
-        session.startTime.hour,
-        session.startTime.minute,
-      );
+    session.date.year,
+    session.date.month,
+    session.date.day,
+    session.startTime.hour,
+    session.startTime.minute,
+  );
 
   static DateTime _sessionEnd(SessionModel session) => DateTime(
-        session.date.year,
-        session.date.month,
-        session.date.day,
-        session.endTime.hour,
-        session.endTime.minute,
-      );
+    session.date.year,
+    session.date.month,
+    session.date.day,
+    session.endTime.hour,
+    session.endTime.minute,
+  );
 
   static DateTime _stripTime(DateTime date) =>
       DateTime(date.year, date.month, date.day);
@@ -324,7 +351,10 @@ class _SchedulePageState extends State<SchedulePage> {
 
   static List<DateTime> _weekDaysFor(DateTime date) {
     final DateTime start = _startOfWeek(date);
-    return List<DateTime>.generate(7, (index) => start.add(Duration(days: index)));
+    return List<DateTime>.generate(
+      7,
+      (index) => start.add(Duration(days: index)),
+    );
   }
 
   static bool _isSameDay(DateTime a, DateTime b) =>
@@ -391,9 +421,15 @@ class _ScheduleHeader extends StatelessWidget {
             const SizedBox(width: 12),
             Text(
               switch (mode) {
-                _ScheduleMode.week => DateFormat('dd MMMM yyyy').format(focusedDate),
-                _ScheduleMode.month => DateFormat('MMMM yyyy').format(focusedDate),
-                _ScheduleMode.day => DateFormat('dd MMMM yyyy').format(focusedDate),
+                _ScheduleMode.week => DateFormat(
+                  'dd MMMM yyyy',
+                ).format(focusedDate),
+                _ScheduleMode.month => DateFormat(
+                  'MMMM yyyy',
+                ).format(focusedDate),
+                _ScheduleMode.day => DateFormat(
+                  'dd MMMM yyyy',
+                ).format(focusedDate),
               },
               style: const TextStyle(
                 fontSize: 16,
@@ -414,10 +450,7 @@ class _ScheduleHeader extends StatelessWidget {
 }
 
 class _OutlinedCircleArrow extends StatelessWidget {
-  const _OutlinedCircleArrow({
-    required this.icon,
-    required this.onTap,
-  });
+  const _OutlinedCircleArrow({required this.icon, required this.onTap});
 
   final IconData icon;
   final VoidCallback onTap;
@@ -440,10 +473,7 @@ class _OutlinedCircleArrow extends StatelessWidget {
 }
 
 class _ModeSwitcher extends StatelessWidget {
-  const _ModeSwitcher({
-    required this.mode,
-    required this.onChanged,
-  });
+  const _ModeSwitcher({required this.mode, required this.onChanged});
 
   final _ScheduleMode mode;
   final ValueChanged<_ScheduleMode> onChanged;
@@ -466,7 +496,9 @@ class _ModeSwitcher extends StatelessWidget {
                 duration: const Duration(milliseconds: 180),
                 padding: const EdgeInsets.symmetric(vertical: 10),
                 decoration: BoxDecoration(
-                  color: selected ? const Color(0xFF000080) : Colors.transparent,
+                  color: selected
+                      ? const Color(0xFF000080)
+                      : Colors.transparent,
                   borderRadius: BorderRadius.circular(14),
                 ),
                 child: Text(
@@ -523,8 +555,11 @@ class _WeekAgendaView extends StatelessWidget {
       builder: (context, constraints) {
         final double availableWidth = constraints.maxWidth - timeColumnWidth;
         final double dayColumnWidth = availableWidth / days.length;
-        final int selectedIndex =
-            days.indexWhere((day) => _SchedulePageState._isSameDay(day, selectedDay)).clamp(0, days.length - 1);
+        final int selectedIndex = days
+            .indexWhere(
+              (day) => _SchedulePageState._isSameDay(day, selectedDay),
+            )
+            .clamp(0, days.length - 1);
 
         return SingleChildScrollView(
           scrollDirection: Axis.vertical,
@@ -570,7 +605,9 @@ class _WeekAgendaView extends StatelessWidget {
                           child: Container(
                             margin: const EdgeInsets.symmetric(horizontal: 2),
                             decoration: BoxDecoration(
-                              color: selected ? const Color(0xFFEEEAFE) : Colors.transparent,
+                              color: selected
+                                  ? const Color(0xFFEEEAFE)
+                                  : Colors.transparent,
                               borderRadius: BorderRadius.circular(18),
                             ),
                             child: Column(
@@ -636,7 +673,9 @@ class _WeekAgendaView extends StatelessWidget {
                         child: Align(
                           alignment: Alignment.topLeft,
                           child: Text(
-                            DateFormat('hh a').format(DateTime(2026, 1, 1, hour)),
+                            DateFormat(
+                              'hh a',
+                            ).format(DateTime(2026, 1, 1, hour)),
                             style: const TextStyle(
                               fontSize: 11,
                               fontWeight: FontWeight.w600,
@@ -651,14 +690,21 @@ class _WeekAgendaView extends StatelessWidget {
                 ...days.asMap().entries.map((entry) {
                   final int dayIndex = entry.key;
                   final DateTime day = entry.value;
-                  final List<_ScheduledSession> daySessions = sessions
-                      .where((item) => _SchedulePageState._isSameDay(
-                            _SchedulePageState._sessionStart(item.session),
-                            day,
-                          ))
-                      .toList()
-                    ..sort((a, b) => _SchedulePageState._sessionStart(a.session)
-                        .compareTo(_SchedulePageState._sessionStart(b.session)));
+                  final List<_ScheduledSession> daySessions =
+                      sessions
+                          .where(
+                            (item) => _SchedulePageState._isSameDay(
+                              _SchedulePageState._sessionStart(item.session),
+                              day,
+                            ),
+                          )
+                          .toList()
+                        ..sort(
+                          (a, b) => _SchedulePageState._sessionStart(a.session)
+                              .compareTo(
+                                _SchedulePageState._sessionStart(b.session),
+                              ),
+                        );
 
                   return Positioned(
                     top: headerHeight,
@@ -669,10 +715,19 @@ class _WeekAgendaView extends StatelessWidget {
                       children: daySessions.asMap().entries.map((itemEntry) {
                         final int position = itemEntry.key;
                         final _ScheduledSession item = itemEntry.value;
-                        final DateTime start = _SchedulePageState._sessionStart(item.session);
-                        final DateTime end = _SchedulePageState._sessionEnd(item.session);
-                        final double top = ((start.hour + (start.minute / 60)) - agendaStartHour) * hourRowHeight;
-                        final double height = (end.difference(start).inMinutes / 60) * hourRowHeight;
+                        final DateTime start = _SchedulePageState._sessionStart(
+                          item.session,
+                        );
+                        final DateTime end = _SchedulePageState._sessionEnd(
+                          item.session,
+                        );
+                        final double top =
+                            ((start.hour + (start.minute / 60)) -
+                                agendaStartHour) *
+                            hourRowHeight;
+                        final double height =
+                            (end.difference(start).inMinutes / 60) *
+                            hourRowHeight;
 
                         return Positioned(
                           top: top,
@@ -681,7 +736,10 @@ class _WeekAgendaView extends StatelessWidget {
                           height: height,
                           child: _ScheduleSessionCard(
                             item: item,
-                            palette: _paletteForSession(item, fallbackIndex: position),
+                            palette: _paletteForSession(
+                              item,
+                              fallbackIndex: position,
+                            ),
                           ),
                         );
                       }).toList(),
@@ -710,11 +768,18 @@ class _MonthView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final DateTime monthStart = DateTime(focusedDate.year, focusedDate.month, 1);
-    final DateTime gridStart =
-        monthStart.subtract(Duration(days: monthStart.weekday - 1));
-    final List<DateTime> days =
-        List<DateTime>.generate(35, (index) => gridStart.add(Duration(days: index)));
+    final DateTime monthStart = DateTime(
+      focusedDate.year,
+      focusedDate.month,
+      1,
+    );
+    final DateTime gridStart = monthStart.subtract(
+      Duration(days: monthStart.weekday - 1),
+    );
+    final List<DateTime> days = List<DateTime>.generate(
+      35,
+      (index) => gridStart.add(Duration(days: index)),
+    );
 
     return Column(
       children: [
@@ -723,13 +788,41 @@ class _MonthView extends StatelessWidget {
           child: Row(
             children: const [
               SizedBox(width: 6),
-              Expanded(child: Center(child: Text('Mon', style: _MonthWeekdayStyle.textStyle))),
-              Expanded(child: Center(child: Text('Tue', style: _MonthWeekdayStyle.textStyle))),
-              Expanded(child: Center(child: Text('Wed', style: _MonthWeekdayStyle.textStyle))),
-              Expanded(child: Center(child: Text('Thu', style: _MonthWeekdayStyle.textStyle))),
-              Expanded(child: Center(child: Text('Fri', style: _MonthWeekdayStyle.textStyle))),
-              Expanded(child: Center(child: Text('Sat', style: _MonthWeekdayStyle.textStyle))),
-              Expanded(child: Center(child: Text('Sun', style: _MonthWeekdayStyle.textStyle))),
+              Expanded(
+                child: Center(
+                  child: Text('Mon', style: _MonthWeekdayStyle.textStyle),
+                ),
+              ),
+              Expanded(
+                child: Center(
+                  child: Text('Tue', style: _MonthWeekdayStyle.textStyle),
+                ),
+              ),
+              Expanded(
+                child: Center(
+                  child: Text('Wed', style: _MonthWeekdayStyle.textStyle),
+                ),
+              ),
+              Expanded(
+                child: Center(
+                  child: Text('Thu', style: _MonthWeekdayStyle.textStyle),
+                ),
+              ),
+              Expanded(
+                child: Center(
+                  child: Text('Fri', style: _MonthWeekdayStyle.textStyle),
+                ),
+              ),
+              Expanded(
+                child: Center(
+                  child: Text('Sat', style: _MonthWeekdayStyle.textStyle),
+                ),
+              ),
+              Expanded(
+                child: Center(
+                  child: Text('Sun', style: _MonthWeekdayStyle.textStyle),
+                ),
+              ),
             ],
           ),
         ),
@@ -746,12 +839,17 @@ class _MonthView extends StatelessWidget {
             itemBuilder: (context, index) {
               final DateTime day = days[index];
               final bool inMonth = day.month == focusedDate.month;
-              final bool selected = _SchedulePageState._isSameDay(day, focusedDate);
+              final bool selected = _SchedulePageState._isSameDay(
+                day,
+                focusedDate,
+              );
               final List<_ScheduledSession> daySessions = sessions
-                  .where((item) => _SchedulePageState._isSameDay(
-                        _SchedulePageState._sessionStart(item.session),
-                        day,
-                      ))
+                  .where(
+                    (item) => _SchedulePageState._isSameDay(
+                      _SchedulePageState._sessionStart(item.session),
+                      day,
+                    ),
+                  )
                   .toList();
 
               return GestureDetector(
@@ -762,8 +860,8 @@ class _MonthView extends StatelessWidget {
                     color: selected
                         ? const Color(0xFFEEEAFE)
                         : inMonth
-                            ? const Color(0xFFF9FAFB)
-                            : const Color(0xFFF3F4F6),
+                        ? const Color(0xFFF9FAFB)
+                        : const Color(0xFFF3F4F6),
                     borderRadius: BorderRadius.circular(16),
                   ),
                   child: Column(
@@ -780,10 +878,14 @@ class _MonthView extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(height: 6),
-                      ...daySessions.take(3).toList().asMap().entries.map((entry) {
+                      ...daySessions.take(3).toList().asMap().entries.map((
+                        entry,
+                      ) {
                         final _ScheduledSession item = entry.value;
-                        final _EventPalette palette =
-                            _paletteForSession(item, fallbackIndex: entry.key);
+                        final _EventPalette palette = _paletteForSession(
+                          item,
+                          fallbackIndex: entry.key,
+                        );
                         return Container(
                           margin: const EdgeInsets.only(bottom: 4),
                           height: 12,
@@ -898,7 +1000,9 @@ class _DayView extends StatelessWidget {
                           child: Align(
                             alignment: Alignment.topLeft,
                             child: Text(
-                              DateFormat('hh a').format(DateTime(2026, 1, 1, hour)),
+                              DateFormat(
+                                'hh a',
+                              ).format(DateTime(2026, 1, 1, hour)),
                               style: const TextStyle(
                                 fontSize: 11,
                                 fontWeight: FontWeight.w600,
@@ -918,13 +1022,19 @@ class _DayView extends StatelessWidget {
                     child: Stack(
                       children: sessions.asMap().entries.map((entry) {
                         final _ScheduledSession item = entry.value;
-                        final DateTime start = _SchedulePageState._sessionStart(item.session);
-                        final DateTime end = _SchedulePageState._sessionEnd(item.session);
+                        final DateTime start = _SchedulePageState._sessionStart(
+                          item.session,
+                        );
+                        final DateTime end = _SchedulePageState._sessionEnd(
+                          item.session,
+                        );
                         final double top =
-                            ((start.hour + (start.minute / 60)) - agendaStartHour) *
-                                hourRowHeight;
+                            ((start.hour + (start.minute / 60)) -
+                                agendaStartHour) *
+                            hourRowHeight;
                         final double height =
-                            (end.difference(start).inMinutes / 60) * hourRowHeight;
+                            (end.difference(start).inMinutes / 60) *
+                            hourRowHeight;
                         return Positioned(
                           top: top,
                           left: 0,
@@ -932,7 +1042,10 @@ class _DayView extends StatelessWidget {
                           height: height,
                           child: _ScheduleSessionCard(
                             item: item,
-                            palette: _paletteForSession(item, fallbackIndex: entry.key),
+                            palette: _paletteForSession(
+                              item,
+                              fallbackIndex: entry.key,
+                            ),
                           ),
                         );
                       }).toList(),
@@ -949,10 +1062,7 @@ class _DayView extends StatelessWidget {
 }
 
 class _ScheduleSessionCard extends StatelessWidget {
-  const _ScheduleSessionCard({
-    required this.item,
-    required this.palette,
-  });
+  const _ScheduleSessionCard({required this.item, required this.palette});
 
   final _ScheduledSession item;
   final _EventPalette palette;
@@ -1029,10 +1139,7 @@ class _ScheduleMessageState extends StatelessWidget {
             Text(
               subtitle,
               textAlign: TextAlign.center,
-              style: const TextStyle(
-                fontSize: 14,
-                color: Color(0xFF6B7280),
-              ),
+              style: const TextStyle(fontSize: 14, color: Color(0xFF6B7280)),
             ),
             const SizedBox(height: 16),
             TextButton(
@@ -1053,10 +1160,7 @@ class _ScheduleMessageState extends StatelessWidget {
 }
 
 class _ScheduleViewData {
-  const _ScheduleViewData({
-    required this.student,
-    required this.sessions,
-  });
+  const _ScheduleViewData({required this.student, required this.sessions});
 
   final StudentModel student;
   final List<_ScheduledSession> sessions;
@@ -1111,9 +1215,14 @@ class _EventPalette {
   final Color primary;
 }
 
-_EventPalette _paletteForSession(_ScheduledSession item, {required int fallbackIndex}) {
+_EventPalette _paletteForSession(
+  _ScheduledSession item, {
+  required int fallbackIndex,
+}) {
   final String seed = item.title.toLowerCase();
-  if (seed.contains('org') || seed.contains('management') || seed.contains('mgt')) {
+  if (seed.contains('org') ||
+      seed.contains('management') ||
+      seed.contains('mgt')) {
     return const _EventPalette(primary: Color(0xFFE2C83D));
   }
   if (seed.contains('macro')) {

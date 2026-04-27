@@ -286,15 +286,7 @@ class _ParentSchedulePageState extends State<ParentSchedulePage> {
 
             final _ParentScheduleViewData data = snapshot.data!;
             _selectedChild = data.selectedChild;
-
-            if (data.children.isEmpty) {
-              return _ScheduleMessageState(
-                title: 'No linked children',
-                subtitle: 'Link a child account to view schedules.',
-                actionLabel: 'Refresh',
-                onAction: _refresh,
-              );
-            }
+            final bool hasLinkedChildren = data.children.isNotEmpty;
 
             return Column(
               children: [
@@ -314,7 +306,7 @@ class _ParentSchedulePageState extends State<ParentSchedulePage> {
                   child: _ChildSelector(
                     children: data.children,
                     selectedChild: data.selectedChild,
-                    onChanged: _handleChildChanged,
+                    onChanged: hasLinkedChildren ? _handleChildChanged : null,
                   ),
                 ),
                 const SizedBox(height: 12),
@@ -331,7 +323,15 @@ class _ParentSchedulePageState extends State<ParentSchedulePage> {
                 ),
                 const SizedBox(height: 14),
                 Expanded(
-                  child: data.sessions.isEmpty
+                  child: !hasLinkedChildren
+                      ? _ScheduleMessageState(
+                          title: 'No linked children yet',
+                          subtitle:
+                              'Link a child account and their schedule will appear here.',
+                          actionLabel: 'Refresh',
+                          onAction: _refresh,
+                        )
+                      : data.sessions.isEmpty
                       ? _ScheduleMessageState(
                           title: 'No sessions yet for this child',
                           subtitle:
@@ -486,7 +486,7 @@ class _ChildSelector extends StatelessWidget {
 
   final List<StudentModel> children;
   final StudentModel? selectedChild;
-  final ValueChanged<StudentModel?> onChanged;
+  final ValueChanged<StudentModel?>? onChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -509,9 +509,9 @@ class _ChildSelector extends StatelessWidget {
         child: DropdownButton<StudentModel>(
           value: selectedChild,
           isExpanded: true,
-          hint: const Text(
-            'Select Child',
-            style: TextStyle(
+          hint: Text(
+            children.isEmpty ? 'No linked children' : 'Select Child',
+            style: const TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w500,
               color: Color(0xFF6B7280),

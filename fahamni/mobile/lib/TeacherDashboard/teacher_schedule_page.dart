@@ -36,8 +36,8 @@ class _TeacherSchedulePageState extends State<TeacherSchedulePage> {
   }
 
   Future<TeacherScheduleModel> _loadSchedule() async {
-    final TeacherScheduleModel schedule =
-        await TeacherDashboardService().loadSchedule(days: 90);
+    final TeacherScheduleModel schedule = await TeacherDashboardService()
+        .loadSchedule(days: 90);
     if (schedule.days.isNotEmpty) {
       _focusedDate = _startOfWeek(schedule.days.first.date);
     }
@@ -100,13 +100,15 @@ class _TeacherSchedulePageState extends State<TeacherSchedulePage> {
         break;
       case 1:
         Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (_) => const TeacherServicesDashboardScreen()),
+          MaterialPageRoute(
+            builder: (_) => const TeacherServicesDashboardScreen(),
+          ),
         );
         break;
       case 2:
-        Navigator.of(context).push(
-          MaterialPageRoute(builder: (_) => const ChatPage()),
-        );
+        Navigator.of(
+          context,
+        ).push(MaterialPageRoute(builder: (_) => const ChatPage()));
         break;
       default:
         ScaffoldMessenger.of(context).showSnackBar(
@@ -155,10 +157,11 @@ class _TeacherSchedulePageState extends State<TeacherSchedulePage> {
           ),
         );
       case _TeacherScheduleMode.day:
-        final List<_TeacherScheduledSession> daySessions = sessions
-            .where((item) => _isSameDay(item.start, _focusedDate))
-            .toList()
-          ..sort((a, b) => a.start.compareTo(b.start));
+        final List<_TeacherScheduledSession> daySessions =
+            sessions
+                .where((item) => _isSameDay(item.start, _focusedDate))
+                .toList()
+              ..sort((a, b) => a.start.compareTo(b.start));
         return Padding(
           padding: const EdgeInsets.symmetric(horizontal: 14),
           child: _TeacherDayView(
@@ -199,20 +202,14 @@ class _TeacherSchedulePageState extends State<TeacherSchedulePage> {
             }
 
             final TeacherScheduleModel schedule = snapshot.data!;
-            final List<_TeacherScheduledSession> sessions = schedule.days
-                .expand((day) => day.sessions)
-                .map((session) => _TeacherScheduledSession(session: session))
-                .toList()
-              ..sort((a, b) => a.start.compareTo(b.start));
-
-            if (sessions.isEmpty) {
-              return _TeacherScheduleMessageState(
-                title: 'No sessions yet',
-                subtitle: 'Your teaching sessions will appear here in agenda form.',
-                actionLabel: 'Refresh',
-                onAction: _refresh,
-              );
-            }
+            final List<_TeacherScheduledSession> sessions =
+                schedule.days
+                    .expand((day) => day.sessions)
+                    .map(
+                      (session) => _TeacherScheduledSession(session: session),
+                    )
+                    .toList()
+                  ..sort((a, b) => a.start.compareTo(b.start));
 
             return Column(
               children: [
@@ -241,10 +238,18 @@ class _TeacherSchedulePageState extends State<TeacherSchedulePage> {
                 ),
                 const SizedBox(height: 14),
                 Expanded(
-                  child: RefreshIndicator(
-                    onRefresh: _refresh,
-                    child: _buildModeBody(sessions),
-                  ),
+                  child: sessions.isEmpty
+                      ? _TeacherScheduleMessageState(
+                          title: 'No sessions yet',
+                          subtitle:
+                              'Your teaching sessions will appear here in agenda form.',
+                          actionLabel: 'Refresh',
+                          onAction: _refresh,
+                        )
+                      : RefreshIndicator(
+                          onRefresh: _refresh,
+                          child: _buildModeBody(sessions),
+                        ),
                 ),
               ],
             );
@@ -264,7 +269,10 @@ class _TeacherSchedulePageState extends State<TeacherSchedulePage> {
 
   static List<DateTime> _weekDaysFor(DateTime date) {
     final DateTime start = _startOfWeek(date);
-    return List<DateTime>.generate(7, (index) => start.add(Duration(days: index)));
+    return List<DateTime>.generate(
+      7,
+      (index) => start.add(Duration(days: index)),
+    );
   }
 
   static bool _isSameDay(DateTime a, DateTime b) =>
@@ -334,9 +342,15 @@ class _TeacherScheduleHeader extends StatelessWidget {
             const SizedBox(width: 12),
             Text(
               switch (mode) {
-                _TeacherScheduleMode.week => DateFormat('dd MMMM yyyy').format(focusedDate),
-                _TeacherScheduleMode.month => DateFormat('MMMM yyyy').format(focusedDate),
-                _TeacherScheduleMode.day => DateFormat('dd MMMM yyyy').format(focusedDate),
+                _TeacherScheduleMode.week => DateFormat(
+                  'dd MMMM yyyy',
+                ).format(focusedDate),
+                _TeacherScheduleMode.month => DateFormat(
+                  'MMMM yyyy',
+                ).format(focusedDate),
+                _TeacherScheduleMode.day => DateFormat(
+                  'dd MMMM yyyy',
+                ).format(focusedDate),
               },
               style: const TextStyle(
                 fontSize: 16,
@@ -358,10 +372,7 @@ class _TeacherScheduleHeader extends StatelessWidget {
 }
 
 class _TeacherOutlinedCircleArrow extends StatelessWidget {
-  const _TeacherOutlinedCircleArrow({
-    required this.icon,
-    required this.onTap,
-  });
+  const _TeacherOutlinedCircleArrow({required this.icon, required this.onTap});
 
   final IconData icon;
   final VoidCallback onTap;
@@ -384,10 +395,7 @@ class _TeacherOutlinedCircleArrow extends StatelessWidget {
 }
 
 class _TeacherModeSwitcher extends StatelessWidget {
-  const _TeacherModeSwitcher({
-    required this.mode,
-    required this.onChanged,
-  });
+  const _TeacherModeSwitcher({required this.mode, required this.onChanged});
 
   final _TeacherScheduleMode mode;
   final ValueChanged<_TeacherScheduleMode> onChanged;
@@ -410,7 +418,9 @@ class _TeacherModeSwitcher extends StatelessWidget {
                 duration: const Duration(milliseconds: 180),
                 padding: const EdgeInsets.symmetric(vertical: 10),
                 decoration: BoxDecoration(
-                  color: selected ? const Color(0xFF000080) : Colors.transparent,
+                  color: selected
+                      ? const Color(0xFF000080)
+                      : Colors.transparent,
                   borderRadius: BorderRadius.circular(14),
                 ),
                 child: Text(
@@ -468,9 +478,11 @@ class _TeacherWeekAgendaView extends StatelessWidget {
       builder: (context, constraints) {
         final double availableWidth = constraints.maxWidth - timeColumnWidth;
         final double dayColumnWidth = availableWidth / days.length;
-        final int selectedIndex =
-            days.indexWhere((day) => _TeacherSchedulePageState._isSameDay(day, selectedDay))
-                .clamp(0, days.length - 1);
+        final int selectedIndex = days
+            .indexWhere(
+              (day) => _TeacherSchedulePageState._isSameDay(day, selectedDay),
+            )
+            .clamp(0, days.length - 1);
 
         return SingleChildScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
@@ -517,7 +529,9 @@ class _TeacherWeekAgendaView extends StatelessWidget {
                           child: Container(
                             margin: const EdgeInsets.symmetric(horizontal: 2),
                             decoration: BoxDecoration(
-                              color: selected ? const Color(0xFFEEEAFE) : Colors.transparent,
+                              color: selected
+                                  ? const Color(0xFFEEEAFE)
+                                  : Colors.transparent,
                               borderRadius: BorderRadius.circular(18),
                             ),
                             child: Column(
@@ -585,7 +599,9 @@ class _TeacherWeekAgendaView extends StatelessWidget {
                         child: Align(
                           alignment: Alignment.topLeft,
                           child: Text(
-                            DateFormat('hh a').format(DateTime(2026, 1, 1, hour)),
+                            DateFormat(
+                              'hh a',
+                            ).format(DateTime(2026, 1, 1, hour)),
                             style: const TextStyle(
                               fontSize: 11,
                               fontWeight: FontWeight.w600,
@@ -601,10 +617,16 @@ class _TeacherWeekAgendaView extends StatelessWidget {
                 ...days.asMap().entries.map((entry) {
                   final int dayIndex = entry.key;
                   final DateTime day = entry.value;
-                  final List<_TeacherScheduledSession> daySessions = sessions
-                      .where((item) => _TeacherSchedulePageState._isSameDay(item.start, day))
-                      .toList()
-                    ..sort((a, b) => a.start.compareTo(b.start));
+                  final List<_TeacherScheduledSession> daySessions =
+                      sessions
+                          .where(
+                            (item) => _TeacherSchedulePageState._isSameDay(
+                              item.start,
+                              day,
+                            ),
+                          )
+                          .toList()
+                        ..sort((a, b) => a.start.compareTo(b.start));
 
                   return Positioned(
                     top: headerHeight,
@@ -615,12 +637,13 @@ class _TeacherWeekAgendaView extends StatelessWidget {
                       children: daySessions.asMap().entries.map((itemEntry) {
                         final int position = itemEntry.key;
                         final _TeacherScheduledSession item = itemEntry.value;
-                        final double top = ((item.start.hour + (item.start.minute / 60)) -
+                        final double top =
+                            ((item.start.hour + (item.start.minute / 60)) -
                                 agendaStartHour) *
                             hourRowHeight;
                         final double height =
                             (item.end.difference(item.start).inMinutes / 60) *
-                                hourRowHeight;
+                            hourRowHeight;
 
                         return Positioned(
                           top: top,
@@ -661,11 +684,18 @@ class _TeacherMonthView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final DateTime monthStart = DateTime(focusedDate.year, focusedDate.month, 1);
-    final DateTime gridStart =
-        monthStart.subtract(Duration(days: monthStart.weekday - 1));
-    final List<DateTime> days =
-        List<DateTime>.generate(35, (index) => gridStart.add(Duration(days: index)));
+    final DateTime monthStart = DateTime(
+      focusedDate.year,
+      focusedDate.month,
+      1,
+    );
+    final DateTime gridStart = monthStart.subtract(
+      Duration(days: monthStart.weekday - 1),
+    );
+    final List<DateTime> days = List<DateTime>.generate(
+      35,
+      (index) => gridStart.add(Duration(days: index)),
+    );
 
     return Column(
       children: [
@@ -674,13 +704,62 @@ class _TeacherMonthView extends StatelessWidget {
           child: Row(
             children: const [
               SizedBox(width: 6),
-              Expanded(child: Center(child: Text('Mon', style: _TeacherMonthWeekdayStyle.textStyle))),
-              Expanded(child: Center(child: Text('Tue', style: _TeacherMonthWeekdayStyle.textStyle))),
-              Expanded(child: Center(child: Text('Wed', style: _TeacherMonthWeekdayStyle.textStyle))),
-              Expanded(child: Center(child: Text('Thu', style: _TeacherMonthWeekdayStyle.textStyle))),
-              Expanded(child: Center(child: Text('Fri', style: _TeacherMonthWeekdayStyle.textStyle))),
-              Expanded(child: Center(child: Text('Sat', style: _TeacherMonthWeekdayStyle.textStyle))),
-              Expanded(child: Center(child: Text('Sun', style: _TeacherMonthWeekdayStyle.textStyle))),
+              Expanded(
+                child: Center(
+                  child: Text(
+                    'Mon',
+                    style: _TeacherMonthWeekdayStyle.textStyle,
+                  ),
+                ),
+              ),
+              Expanded(
+                child: Center(
+                  child: Text(
+                    'Tue',
+                    style: _TeacherMonthWeekdayStyle.textStyle,
+                  ),
+                ),
+              ),
+              Expanded(
+                child: Center(
+                  child: Text(
+                    'Wed',
+                    style: _TeacherMonthWeekdayStyle.textStyle,
+                  ),
+                ),
+              ),
+              Expanded(
+                child: Center(
+                  child: Text(
+                    'Thu',
+                    style: _TeacherMonthWeekdayStyle.textStyle,
+                  ),
+                ),
+              ),
+              Expanded(
+                child: Center(
+                  child: Text(
+                    'Fri',
+                    style: _TeacherMonthWeekdayStyle.textStyle,
+                  ),
+                ),
+              ),
+              Expanded(
+                child: Center(
+                  child: Text(
+                    'Sat',
+                    style: _TeacherMonthWeekdayStyle.textStyle,
+                  ),
+                ),
+              ),
+              Expanded(
+                child: Center(
+                  child: Text(
+                    'Sun',
+                    style: _TeacherMonthWeekdayStyle.textStyle,
+                  ),
+                ),
+              ),
             ],
           ),
         ),
@@ -697,9 +776,15 @@ class _TeacherMonthView extends StatelessWidget {
             itemBuilder: (context, index) {
               final DateTime day = days[index];
               final bool inMonth = day.month == focusedDate.month;
-              final bool selected = _TeacherSchedulePageState._isSameDay(day, focusedDate);
+              final bool selected = _TeacherSchedulePageState._isSameDay(
+                day,
+                focusedDate,
+              );
               final List<_TeacherScheduledSession> daySessions = sessions
-                  .where((item) => _TeacherSchedulePageState._isSameDay(item.start, day))
+                  .where(
+                    (item) =>
+                        _TeacherSchedulePageState._isSameDay(item.start, day),
+                  )
                   .toList();
 
               return GestureDetector(
@@ -710,8 +795,8 @@ class _TeacherMonthView extends StatelessWidget {
                     color: selected
                         ? const Color(0xFFEEEAFE)
                         : inMonth
-                            ? const Color(0xFFF9FAFB)
-                            : const Color(0xFFF3F4F6),
+                        ? const Color(0xFFF9FAFB)
+                        : const Color(0xFFF3F4F6),
                     borderRadius: BorderRadius.circular(16),
                   ),
                   child: Column(
@@ -729,10 +814,15 @@ class _TeacherMonthView extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(height: 6),
-                      ...daySessions.take(3).toList().asMap().entries.map((entry) {
+                      ...daySessions.take(3).toList().asMap().entries.map((
+                        entry,
+                      ) {
                         final _TeacherScheduledSession item = entry.value;
                         final _TeacherEventPalette palette =
-                            _teacherPaletteForSession(item, fallbackIndex: entry.key);
+                            _teacherPaletteForSession(
+                              item,
+                              fallbackIndex: entry.key,
+                            );
                         return Container(
                           margin: const EdgeInsets.only(bottom: 4),
                           height: 12,
@@ -851,7 +941,9 @@ class _TeacherDayView extends StatelessWidget {
                           child: Align(
                             alignment: Alignment.topLeft,
                             child: Text(
-                              DateFormat('hh a').format(DateTime(2026, 1, 1, hour)),
+                              DateFormat(
+                                'hh a',
+                              ).format(DateTime(2026, 1, 1, hour)),
                               style: const TextStyle(
                                 fontSize: 11,
                                 fontWeight: FontWeight.w600,
@@ -874,11 +966,11 @@ class _TeacherDayView extends StatelessWidget {
                         final _TeacherScheduledSession item = entry.value;
                         final double top =
                             ((item.start.hour + (item.start.minute / 60)) -
-                                    agendaStartHour) *
-                                hourRowHeight;
+                                agendaStartHour) *
+                            hourRowHeight;
                         final double height =
                             (item.end.difference(item.start).inMinutes / 60) *
-                                hourRowHeight;
+                            hourRowHeight;
                         return Positioned(
                           top: top,
                           left: 0,
@@ -906,10 +998,7 @@ class _TeacherDayView extends StatelessWidget {
 }
 
 class _TeacherAgendaSessionCard extends StatelessWidget {
-  const _TeacherAgendaSessionCard({
-    required this.item,
-    required this.palette,
-  });
+  const _TeacherAgendaSessionCard({required this.item, required this.palette});
 
   final _TeacherScheduledSession item;
   final _TeacherEventPalette palette;
@@ -1015,27 +1104,25 @@ class _TeacherScheduleMessageState extends StatelessWidget {
 }
 
 class _TeacherScheduledSession {
-  const _TeacherScheduledSession({
-    required this.session,
-  });
+  const _TeacherScheduledSession({required this.session});
 
   final TeacherScheduleSession session;
 
   DateTime get start => DateTime(
-        session.date.year,
-        session.date.month,
-        session.date.day,
-        session.startTime.hour,
-        session.startTime.minute,
-      );
+    session.date.year,
+    session.date.month,
+    session.date.day,
+    session.startTime.hour,
+    session.startTime.minute,
+  );
 
   DateTime get end => DateTime(
-        session.date.year,
-        session.date.month,
-        session.date.day,
-        session.endTime.hour,
-        session.endTime.minute,
-      );
+    session.date.year,
+    session.date.month,
+    session.date.day,
+    session.endTime.hour,
+    session.endTime.minute,
+  );
 
   String get title => session.title;
 
@@ -1075,7 +1162,9 @@ _TeacherEventPalette _teacherPaletteForSession(
   if (seed.contains('physics')) {
     return const _TeacherEventPalette(primary: Color(0xFF3730C7));
   }
-  if (seed.contains('language') || seed.contains('english') || seed.contains('french')) {
+  if (seed.contains('language') ||
+      seed.contains('english') ||
+      seed.contains('french')) {
     return const _TeacherEventPalette(primary: Color(0xFFB14FE6));
   }
   if (seed.contains('program') || seed.contains('computer')) {
