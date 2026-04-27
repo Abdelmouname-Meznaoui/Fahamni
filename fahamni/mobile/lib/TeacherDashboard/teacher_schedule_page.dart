@@ -237,6 +237,14 @@ class _TeacherSchedulePageState extends State<TeacherSchedulePage> {
                   ),
                 ),
                 const SizedBox(height: 14),
+                if (sessions.isEmpty)
+                  const Padding(
+                    padding: EdgeInsets.fromLTRB(18, 0, 18, 10),
+                    child: _TeacherScheduleInlineNotice(
+                      title: 'No sessions yet',
+                      subtitle: 'Your teaching sessions will appear here.',
+                    ),
+                  ),
                 Expanded(
                   child: sessions.isEmpty
                       ? _TeacherScheduleMessageState(
@@ -1098,6 +1106,47 @@ class _TeacherScheduleMessageState extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _TeacherScheduleInlineNotice extends StatelessWidget {
+  const _TeacherScheduleInlineNotice({
+    required this.title,
+    required this.subtitle,
+  });
+
+  final String title;
+  final String subtitle;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: const TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w700,
+              color: Color(0xFF111827),
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            subtitle,
+            style: const TextStyle(fontSize: 12, color: Color(0xFF6B7280)),
+          ),
+        ],
       ),
     );
   }

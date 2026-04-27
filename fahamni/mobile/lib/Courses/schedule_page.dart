@@ -291,6 +291,14 @@ class _SchedulePageState extends State<SchedulePage> {
                   ),
                 ),
                 const SizedBox(height: 14),
+                if (data.sessions.isEmpty)
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(18, 0, 18, 10),
+                    child: _ScheduleInlineNotice(
+                      title: 'No sessions yet',
+                      subtitle: 'Booked sessions will appear here.',
+                    ),
+                  ),
                 Expanded(
                   child: data.sessions.isEmpty
                       ? _ScheduleMessageState(
@@ -1154,6 +1162,44 @@ class _ScheduleMessageState extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _ScheduleInlineNotice extends StatelessWidget {
+  const _ScheduleInlineNotice({required this.title, required this.subtitle});
+
+  final String title;
+  final String subtitle;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8FAFC),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: const TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w700,
+              color: Color(0xFF111827),
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            subtitle,
+            style: const TextStyle(fontSize: 12, color: Color(0xFF6B7280)),
+          ),
+        ],
       ),
     );
   }

@@ -63,7 +63,6 @@ class StudentProfileService {
     await batch.commit();
 
     await user.delete();
-    try { await _googleSignIn.signOut(); } catch (_) {}
   }
 
   Future<int> getSessionCount(List<String> courseIds) async {

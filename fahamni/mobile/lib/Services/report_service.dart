@@ -34,8 +34,9 @@ class ReportService {
 
     final String normalizedDescription = description.trim();
     if (normalizedDescription.isEmpty) {
-      throw Exception('Please provide a description.');
+      throw Exception('Description is required.');
     }
+    final DateTime now = DateTime.now();
 
     final ReportModel report = ReportModel(
       reportId: reportRef.id,
@@ -45,17 +46,17 @@ class ReportService {
       reportedName: teacherName,
       type: ReportType.teacher,
       text: normalizedDescription,
-      createdAt: DateTime.now(),
+      createdAt: now,
     );
 
     await reportRef.set({
       ...report.toMap(),
       'reporterId': user.uid,
       'teacherId': teacherId,
-      'teacherName': teacherName,
       'description': normalizedDescription,
       'reporterRole': role,
-      'createdAt': FieldValue.serverTimestamp(),
+      'reporter_role': role,
+      'createdAt': Timestamp.fromDate(now),
       'timestamp': FieldValue.serverTimestamp(),
     });
   }

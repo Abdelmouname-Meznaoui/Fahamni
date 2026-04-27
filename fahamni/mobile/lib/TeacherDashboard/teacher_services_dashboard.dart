@@ -1,4 +1,3 @@
-import 'package:fahamni/Account_Settings_Teacher/account_screen.dart' as teacher_account;
 import 'package:fahamni/TeacherDashboard/models/teacher_portal_models.dart';
 import 'package:fahamni/TeacherDashboard/teacher_create_service_page.dart';
 import 'package:fahamni/TeacherDashboard/teacher_portal_service.dart';
@@ -59,12 +58,9 @@ class _TeacherServicesDashboardScreenState
       );
       return;
     }
-    if (index == 3) {
-      Navigator.of(context).push(
-        MaterialPageRoute(builder: (_) => const teacher_account.AccountScreen()),
-      );
-      return;
-    }
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Teacher profile is coming soon.')),
+    );
   }
 
   Future<void> _openCreateService() async {

@@ -6,8 +6,8 @@ import 'package:fahamni/Account_Settings_Parent/account_screen.dart';
 import 'package:fahamni/Explore_map_pages/map.dart';
 import 'package:fahamni/ParentDashboread/ParentHomePage/home_page.dart';
 import 'package:fahamni/ParentDashboread/ParentSchedulePage/parent_schedule_page.dart';
-import 'package:fahamni/StudentHomePage/studenthome_service.dart';
 import 'package:fahamni/feedback/feedback_pages.dart';
+import 'package:fahamni/Services/parent_child_service.dart';
 import 'package:fahamni/messaging/chat_page.dart';
 import 'package:fahamni/models/child_model.dart';
 import 'package:fahamni/models/parent_model.dart';
@@ -16,7 +16,7 @@ import 'package:fahamni/models/tutor_model.dart';
 import 'package:fahamni/widgets/customnavbar.dart';
 import 'package:fahamni/widgets/explore_service.dart';
 import 'package:fahamni/widgets/servicecard.dart';
-import 'package:fahamni/widgets/servicedetails.dart';
+import 'package:fahamni/widgets/servicedetails.dart' as sd;
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:geocoding/geocoding.dart';
@@ -55,8 +55,8 @@ class _ParentExplorePageState extends State<ParentExplorePage> {
 
   int _selectedIndex = 1;
 
-  // ignore: unused_field
-  final studenthomepage_service _studentService = studenthomepage_service();
+  // Parent child service to load linked children consistently.
+  final ParentChildService _childService = ParentChildService();
   final FirebaseFirestore _db = FirebaseFirestore.instance;
   final TextEditingController _searchController = TextEditingController();
 
@@ -92,21 +92,16 @@ class _ParentExplorePageState extends State<ParentExplorePage> {
 
     final DocumentSnapshot<Map<String, dynamic>> parentDoc =
         await _db.collection('parents').doc(uid).get();
-    final QuerySnapshot<Map<String, dynamic>> childrenQuery =
-        await _db.collection('children').where('parentUid', isEqualTo: uid).get();
 
     if (!parentDoc.exists || parentDoc.data() == null) {
       throw Exception('Parent profile not found.');
     }
 
     final ParentModel parent = ParentModel.fromMap(parentDoc.data()!);
-    final List<ChildModel> children = childrenQuery.docs
-        .map((doc) => ChildModel.fromMap(doc.data()))
-        .toList();
 
-    if (!mounted) {
-      return;
-    }
+    final List<ChildModel> children = await _childService.fetchLinkedChildren();
+
+    if (!mounted) return;
 
     setState(() {
       _parent = parent;
@@ -750,7 +745,7 @@ class _ParentExplorePageState extends State<ParentExplorePage> {
                 ],
               ),
               SizedBox(
-                height: 320,
+                height: 450,
                 width: double.infinity,
                 child: services!.isEmpty
                     ? const Center(
@@ -779,7 +774,7 @@ class _ParentExplorePageState extends State<ParentExplorePage> {
                                 Navigator.push(
                                   context,
                                   MaterialPageRoute(
-                                    builder: (context) => Servicedetails(
+                                    builder: (context) => sd.Servicedetails(
                                       tutor: entry.tutor,
                                       service: entry.service,
                                     ),

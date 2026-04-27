@@ -2,11 +2,12 @@ import 'package:fahamni/Account_Settings_Parent/account_screen.dart';
 import 'package:fahamni/ParentDashboread/ParentExplorePage/parent_explore_page.dart';
 import 'package:fahamni/ParentDashboread/ParentHomePage/home_page.dart';
 import 'package:fahamni/StudentHomePage/studenthome_service.dart';
+import 'package:fahamni/Services/parent_child_service.dart';
+import 'package:fahamni/models/child_model.dart';
 import 'package:fahamni/messaging/chat_page.dart';
-import 'package:fahamni/models/parent_model.dart';
 import 'package:fahamni/models/service_model.dart';
 import 'package:fahamni/models/session_model.dart';
-import 'package:fahamni/models/student_model.dart';
+
 import 'package:fahamni/models/tutor_model.dart';
 import 'package:fahamni/widgets/customnavbar.dart';
 import 'package:flutter/material.dart';
@@ -24,8 +25,8 @@ class ParentSchedulePage extends StatefulWidget {
 class _ParentSchedulePageState extends State<ParentSchedulePage> {
   final studenthomepage_service _service = studenthomepage_service();
   late Future<_ParentScheduleViewData> _scheduleFuture;
-  StudentModel? _selectedChild;
-  DateTime _focusedDate = DateTime(2026, 12, 18);
+  ChildModel? _selectedChild;
+  late DateTime _focusedDate;
   _ScheduleMode _mode = _ScheduleMode.week;
   final int _selectedIndex = 2;
 
@@ -38,21 +39,21 @@ class _ParentSchedulePageState extends State<ParentSchedulePage> {
   @override
   void initState() {
     super.initState();
+    _focusedDate = DateTime.now();
     _scheduleFuture = _loadSchedule();
   }
 
   Future<_ParentScheduleViewData> _loadSchedule({
     String? selectedChildId,
   }) async {
-    final ParentModel parent = await _service.getParentData();
-    final List<StudentModel> children = await _service.getLinkedChildren(
-      parent.childrenUids,
-    );
+    // Load linked children using ParentChildService to match Parent home logic.
+    final List<ChildModel> children = await ParentChildService()
+        .fetchLinkedChildren();
 
-    StudentModel? selectedChild;
+    ChildModel? selectedChild;
     if (children.isNotEmpty) {
       selectedChild = children.firstWhere(
-        (child) => child.uid == selectedChildId,
+        (child) => child.id == selectedChildId,
         orElse: () => children.first,
       );
     }
@@ -65,9 +66,10 @@ class _ParentSchedulePageState extends State<ParentSchedulePage> {
       );
     }
 
+    // ChildModel doesn't include a Courses list; rely on studentId path in getCourses.
     final List<SessionModel> sessions = await _service.getCourses(
-      selectedChild.Courses,
-      studentId: selectedChild.uid,
+      <String>[],
+      studentId: selectedChild.id,
     );
     sessions.sort((a, b) => _sessionStart(a).compareTo(_sessionStart(b)));
 
@@ -95,19 +97,19 @@ class _ParentSchedulePageState extends State<ParentSchedulePage> {
 
   Future<void> _refresh() async {
     setState(() {
-      _scheduleFuture = _loadSchedule(selectedChildId: _selectedChild?.uid);
+      _scheduleFuture = _loadSchedule(selectedChildId: _selectedChild?.id);
     });
     await _scheduleFuture;
   }
 
-  void _handleChildChanged(StudentModel? child) {
+  void _handleChildChanged(ChildModel? child) {
     if (child == null) {
       return;
     }
 
     setState(() {
       _selectedChild = child;
-      _scheduleFuture = _loadSchedule(selectedChildId: child.uid);
+      _scheduleFuture = _loadSchedule(selectedChildId: child.id);
     });
   }
 
@@ -322,6 +324,22 @@ class _ParentSchedulePageState extends State<ParentSchedulePage> {
                   ),
                 ),
                 const SizedBox(height: 14),
+                if (data.children.isEmpty)
+                  const Padding(
+                    padding: EdgeInsets.fromLTRB(18, 0, 18, 10),
+                    child: _ScheduleInlineNotice(
+                      title: 'No linked children',
+                      subtitle: 'Link a child account to load sessions.',
+                    ),
+                  )
+                else if (data.sessions.isEmpty)
+                  const Padding(
+                    padding: EdgeInsets.fromLTRB(18, 0, 18, 10),
+                    child: _ScheduleInlineNotice(
+                      title: 'No sessions yet',
+                      subtitle: 'Booked sessions will appear here.',
+                    ),
+                  ),
                 Expanded(
                   child: !hasLinkedChildren
                       ? _ScheduleMessageState(
@@ -484,12 +502,13 @@ class _ChildSelector extends StatelessWidget {
     required this.onChanged,
   });
 
-  final List<StudentModel> children;
-  final StudentModel? selectedChild;
-  final ValueChanged<StudentModel?>? onChanged;
+  final List<ChildModel> children;
+  final ChildModel? selectedChild;
+  final ValueChanged<ChildModel?>? onChanged;
 
   @override
   Widget build(BuildContext context) {
+    final bool hasChildren = children.isNotEmpty;
     return Container(
       height: 48,
       padding: const EdgeInsets.symmetric(horizontal: 14),
@@ -506,7 +525,7 @@ class _ChildSelector extends StatelessWidget {
         ],
       ),
       child: DropdownButtonHideUnderline(
-        child: DropdownButton<StudentModel>(
+        child: DropdownButton<ChildModel>(
           value: selectedChild,
           isExpanded: true,
           hint: Text(
@@ -523,10 +542,10 @@ class _ChildSelector extends StatelessWidget {
           ),
           items: children
               .map(
-                (child) => DropdownMenuItem<StudentModel>(
+                (child) => DropdownMenuItem<ChildModel>(
                   value: child,
                   child: Text(
-                    '${child.firstName} ${child.lastName}'.trim(),
+                    child.displayName,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
                       fontSize: 16,
@@ -537,8 +556,46 @@ class _ChildSelector extends StatelessWidget {
                 ),
               )
               .toList(),
-          onChanged: onChanged,
+          onChanged: hasChildren ? onChanged : null,
         ),
+      ),
+    );
+  }
+}
+
+class _ScheduleInlineNotice extends StatelessWidget {
+  const _ScheduleInlineNotice({required this.title, required this.subtitle});
+
+  final String title;
+  final String subtitle;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8FAFC),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: const TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w700,
+              color: Color(0xFF111827),
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            subtitle,
+            style: const TextStyle(fontSize: 12, color: Color(0xFF6B7280)),
+          ),
+        ],
       ),
     );
   }
@@ -1267,8 +1324,8 @@ class _ParentScheduleViewData {
     required this.sessions,
   });
 
-  final List<StudentModel> children;
-  final StudentModel? selectedChild;
+  final List<ChildModel> children;
+  final ChildModel? selectedChild;
   final List<_ScheduledSession> sessions;
 }
 

@@ -5,6 +5,7 @@ import '../Services/chat_service.dart';
 import '../Services/notification_service.dart';
 import '../models/chat_model.dart';
 import '../models/notification_model.dart';
+import '../models/parent_model.dart';
 import '../models/service_model.dart';
 import '../models/student_model.dart';
 import '../models/tutor_model.dart';
@@ -28,11 +29,16 @@ class StudentTutorActionService {
   final ChatService _chatService;
   final NotificationService _notificationService;
 
-  Future<StudentModel> getCurrentStudent() async {
+  User _requireSignedInUser() {
     final User? currentUser = _auth.currentUser;
     if (currentUser == null) {
       throw Exception('You need to be signed in first.');
     }
+    return currentUser;
+  }
+
+  Future<StudentModel> getCurrentStudent() async {
+    final User currentUser = _requireSignedInUser();
 
     final DocumentSnapshot<Map<String, dynamic>> snapshot = await _firestore
         .collection('students')
@@ -42,10 +48,98 @@ class StudentTutorActionService {
       throw Exception('Student profile not found.');
     }
 
-    return StudentModel.fromMap(<String, dynamic>{
-      ...snapshot.data()!,
-      'uid': snapshot.data()?['uid'] ?? snapshot.id,
+    return StudentModel.fromMap({...snapshot.data()!, 'uid': snapshot.id});
+  }
+
+  Future<StudentModel?> getStudentDataById(String id) async {
+    final String studentId = id.trim();
+    if (studentId.isEmpty) {
+      return null;
+    }
+
+    final DocumentSnapshot<Map<String, dynamic>> snapshot = await _firestore
+        .collection('students')
+        .doc(studentId)
+        .get();
+    if (!snapshot.exists || snapshot.data() == null) {
+      return null;
+    }
+
+    return StudentModel.fromMap({...snapshot.data()!, 'uid': snapshot.id});
+  }
+
+  Future<ParentModel> getCurrentParent() async {
+    final User currentUser = _requireSignedInUser();
+
+    final DocumentSnapshot<Map<String, dynamic>> snapshot = await _firestore
+        .collection('parents')
+        .doc(currentUser.uid)
+        .get();
+    if (!snapshot.exists || snapshot.data() == null) {
+      throw Exception('Parent profile not found.');
+    }
+
+    return ParentModel.fromMap({...snapshot.data()!, 'uid': snapshot.id});
+  }
+
+  Future<String> getCurrentUserRole() async {
+    final User currentUser = _requireSignedInUser();
+
+    final DocumentSnapshot<Map<String, dynamic>> userSnapshot = await _firestore
+        .collection('users')
+        .doc(currentUser.uid)
+        .get();
+    final String role = (userSnapshot.data()?['role'] as String?)?.trim() ?? '';
+    if (role == 'student' || role == 'parent' || role == 'tutor') {
+      return role;
+    }
+
+    final DocumentSnapshot<Map<String, dynamic>> parentSnapshot =
+        await _firestore.collection('parents').doc(currentUser.uid).get();
+    if (parentSnapshot.exists) {
+      return 'parent';
+    }
+
+    final DocumentSnapshot<Map<String, dynamic>> studentSnapshot =
+        await _firestore.collection('students').doc(currentUser.uid).get();
+    if (studentSnapshot.exists) {
+      return 'student';
+    }
+
+    return 'student';
+  }
+
+  Future<List<StudentModel>> getLinkedChildrenForCurrentParent() async {
+    final ParentModel parent = await getCurrentParent();
+    final List<String> childIds = parent.childrenUids
+        .map((id) => id.trim())
+        .where((id) => id.isNotEmpty)
+        .toSet()
+        .toList();
+
+    if (childIds.isEmpty) {
+      return <StudentModel>[];
+    }
+
+    final List<DocumentSnapshot<Map<String, dynamic>>> snapshots =
+        await Future.wait(
+          childIds.map((id) => _firestore.collection('students').doc(id).get()),
+        );
+
+    final List<StudentModel> children = snapshots
+        .where((snapshot) => snapshot.exists && snapshot.data() != null)
+        .map(
+          (snapshot) =>
+              StudentModel.fromMap({...snapshot.data()!, 'uid': snapshot.id}),
+        )
+        .toList();
+
+    children.sort((a, b) {
+      final String aName = '${a.firstName} ${a.lastName}'.trim().toLowerCase();
+      final String bName = '${b.firstName} ${b.lastName}'.trim().toLowerCase();
+      return aName.compareTo(bName);
     });
+    return children;
   }
 
   Future<bool> isFavoriteTutor(String tutorId) async {
@@ -72,18 +166,12 @@ class StudentTutorActionService {
   Future<void> createBookingRequest({
     required TutorModel tutor,
     ServiceModel? service,
-    String? studentId,
+    String? childStudentId,
   }) async {
-    final User? currentUser = _auth.currentUser;
-    if (currentUser == null) {
-      throw Exception('You need to be signed in first.');
-    }
-
-    final String role = await _loadCurrentRole(currentUser.uid);
-    final StudentModel student = await _resolveQuoteStudent(
-      role: role,
-      selectedStudentId: studentId,
+    final _ActionActor actor = await _resolveActionActor(
+      childStudentId: childStudentId,
     );
+    final StudentModel student = actor.student;
 
     if (service != null) {
       final DocumentReference<Map<String, dynamic>> serviceRef = _firestore
@@ -119,37 +207,123 @@ class StudentTutorActionService {
     final DocumentReference<Map<String, dynamic>> quoteRef = _firestore
         .collection('quotes')
         .doc();
+    final Timestamp now = Timestamp.now();
 
-    await quoteRef.set({
+    final Map<String, dynamic> quoteData = {
       'quote_id': quoteRef.id,
       'student_id': student.uid,
       'tutor_id': tutor.uid,
       'service_id': service?.serviceId ?? '',
+      'service_name': service?.name ?? '',
       'subject': service?.subject ?? tutor.expertiseDomain,
       'level': service?.level ?? student.schoolLevel,
       'objective': service?.name.isNotEmpty == true
-          ? 'Quote request for ${service!.name}'
-          : 'Quote request with ${tutor.firstName} ${tutor.lastName}',
+          ? 'Join request for ${service!.name}'
+          : 'Join request for ${tutor.firstName} ${tutor.lastName}'.trim(),
+      'description': '',
+      'teaching_mode': service?.mode ?? tutor.teachingMode,
+      'sessions_count': service?.sessionsnum ?? 0,
       'frequency': 'To be discussed',
       'duration': service != null ? '${service.duration} min' : '60 min',
       'budget': service != null
           ? '${service.price.toInt()} DA'
           : 'To be discussed',
       'status': 'pending',
-      'createdAt': Timestamp.now(),
-    });
+      'request_by': actor.role,
+      'created_at': now,
+      'createdAt': now,
+    };
+    if (actor.role == 'parent') {
+      quoteData['parent_id'] = actor.actorId;
+    }
+
+    await quoteRef.set(quoteData);
 
     await _notificationService.sendNotification(
       NotificationModel(
-        title: 'New booking request',
+        title: 'New join request',
         content:
-            '${student.firstName} sent a booking request${service != null ? ' for ${service.name}' : ''}.',
+            '${student.firstName} sent a join request${service != null ? ' for ${service.name}' : ''}.',
         dateTime: DateTime.now(),
         isRead: false,
         notificationId: '',
         receiverId: tutor.uid,
         type: 'quote_request',
-        senderId: currentUser.uid,
+        senderId: student.uid,
+        tutorId: tutor.uid,
+        serviceId: service?.serviceId ?? '',
+      ),
+    );
+  }
+
+  Future<void> submitQuoteRequest({
+    required TutorModel tutor,
+    required String subject,
+    required String description,
+    required String teachingMode,
+    required int sessionsCount,
+    required int sessionDurationMinutes,
+    ServiceModel? service,
+    String? childStudentId,
+  }) async {
+    final _ActionActor actor = await _resolveActionActor(
+      childStudentId: childStudentId,
+    );
+    final StudentModel student = actor.student;
+    final DocumentReference<Map<String, dynamic>> quoteRef = _firestore
+        .collection('quotes')
+        .doc();
+    final Timestamp now = Timestamp.now();
+    final String normalizedDescription = description.trim();
+    final String normalizedSubject = subject.trim().isEmpty
+        ? (service?.subject.isNotEmpty == true
+              ? service!.subject
+              : tutor.expertiseDomain)
+        : subject.trim();
+    final int normalizedSessionsCount = sessionsCount < 1 ? 1 : sessionsCount;
+    final int normalizedDuration = sessionDurationMinutes < 15
+        ? 30
+        : sessionDurationMinutes;
+
+    final Map<String, dynamic> quoteData = {
+      'quote_id': quoteRef.id,
+      'student_id': student.uid,
+      'tutor_id': tutor.uid,
+      'service_id': service?.serviceId ?? '',
+      'service_name': service?.name ?? '',
+      'subject': normalizedSubject,
+      'level': student.schoolLevel,
+      'objective': normalizedDescription,
+      'description': normalizedDescription,
+      'teaching_mode': teachingMode.trim(),
+      'sessions_count': normalizedSessionsCount,
+      'frequency': '$normalizedSessionsCount sessions',
+      'duration': '$normalizedDuration min',
+      'budget': service != null
+          ? '${service.price.toInt()} DA'
+          : 'To be discussed',
+      'status': 'pending',
+      'request_by': actor.role,
+      'created_at': now,
+      'createdAt': now,
+    };
+    if (actor.role == 'parent') {
+      quoteData['parent_id'] = actor.actorId;
+    }
+
+    await quoteRef.set(quoteData);
+
+    await _notificationService.sendNotification(
+      NotificationModel(
+        title: 'New quote request',
+        content:
+            '${student.firstName} sent a quote request${service != null ? ' for ${service.name}' : ''}.',
+        dateTime: DateTime.now(),
+        isRead: false,
+        notificationId: '',
+        receiverId: tutor.uid,
+        type: 'quote_request',
+        senderId: actor.actorId,
         tutorId: tutor.uid,
         serviceId: service?.serviceId ?? '',
       ),
@@ -159,14 +333,14 @@ class StudentTutorActionService {
   Future<ConversationModel> createOrGetConversation({
     required TutorModel tutor,
   }) async {
-    final User? currentUser = _auth.currentUser;
-    if (currentUser == null) {
-      throw Exception('You need to be signed in first.');
-    }
-
+    final User user = _requireSignedInUser();
+    final String role = await getCurrentUserRole();
+    final String viewerId = role == 'parent'
+        ? user.uid
+        : (await getCurrentStudent()).uid;
     final ConversationModel conversation = await _chatService
         .ensureDirectConversation(
-          currentUserId: currentUser.uid,
+          currentUserId: viewerId,
           otherUserId: tutor.uid,
         );
 
@@ -175,84 +349,54 @@ class StudentTutorActionService {
       participantDisplayName: '${tutor.firstName} ${tutor.lastName}'.trim(),
       participantAvatarUrl: tutor.picture,
       participantSubtitle: tutor.expertiseDomain,
-      isVerified: tutor.certified,
+      isVerified: (tutor as dynamic).Certified ?? false,
       isOnline: tutor.isAvailable,
     );
   }
 
-  Future<List<StudentModel>> getCurrentParentChildren() async {
-    final User? currentUser = _auth.currentUser;
-    if (currentUser == null) {
-      throw Exception('You need to be signed in first.');
-    }
+  Future<_ActionActor> _resolveActionActor({String? childStudentId}) async {
+    final User user = _requireSignedInUser();
+    final String role = await getCurrentUserRole();
 
-    final DocumentSnapshot<Map<String, dynamic>> parentDoc = await _firestore
-        .collection('parents')
-        .doc(currentUser.uid)
-        .get();
-    if (!parentDoc.exists || parentDoc.data() == null) {
-      return <StudentModel>[];
-    }
+    if (role == 'parent') {
+      final String childId = childStudentId?.trim() ?? '';
+      if (childId.isEmpty) {
+        throw Exception('Please select a child account first.');
+      }
 
-    final List<String> childrenUids = List<String>.from(
-      parentDoc.data()?['children_uids'] ?? const <String>[],
-    );
-    if (childrenUids.isEmpty) {
-      return <StudentModel>[];
-    }
+      final ParentModel parent = await getCurrentParent();
+      if (parent.childrenUids.isNotEmpty &&
+          !parent.childrenUids.contains(childId)) {
+        throw Exception('Selected child is not linked to this parent.');
+      }
 
-    final List<DocumentSnapshot<Map<String, dynamic>>> childDocs =
-        await Future.wait(
-          childrenUids
-              .where((id) => id.trim().isNotEmpty)
-              .toSet()
-              .map((id) => _firestore.collection('students').doc(id).get()),
-        );
-
-    return childDocs
-        .where((doc) => doc.exists && doc.data() != null)
-        .map(
-          (doc) => StudentModel.fromMap(<String, dynamic>{
-            ...doc.data()!,
-            'uid': doc.data()?['uid'] ?? doc.id,
-          }),
-        )
-        .toList();
-  }
-
-  Future<String> _loadCurrentRole(String uid) async {
-    final DocumentSnapshot<Map<String, dynamic>> userDoc = await _firestore
-        .collection('users')
-        .doc(uid)
-        .get();
-    return ((userDoc.data()?['role'] as String?) ?? 'student').toLowerCase();
-  }
-
-  Future<StudentModel> _resolveQuoteStudent({
-    required String role,
-    String? selectedStudentId,
-  }) async {
-    if (role != 'parent') {
-      return getCurrentStudent();
-    }
-
-    final List<StudentModel> children = await getCurrentParentChildren();
-    if (children.isEmpty) {
-      throw Exception('No child linked to your account.');
-    }
-
-    if (selectedStudentId != null && selectedStudentId.trim().isNotEmpty) {
-      final String targetId = selectedStudentId.trim();
-      final StudentModel? selected = children.cast<StudentModel?>().firstWhere(
-        (child) => child?.uid == targetId,
-        orElse: () => null,
-      );
-      if (selected == null) {
+      final StudentModel? child = await getStudentDataById(childId);
+      if (child == null) {
         throw Exception('Selected child account was not found.');
       }
-      return selected;
+
+      return _ActionActor(actorId: user.uid, role: role, student: child);
     }
 
-    return children.first;
+    if (role != 'student') {
+      throw Exception(
+        'Only student and parent accounts can perform this action.',
+      );
+    }
+
+    final StudentModel student = await getCurrentStudent();
+    return _ActionActor(actorId: user.uid, role: role, student: student);
   }
+}
+
+class _ActionActor {
+  const _ActionActor({
+    required this.actorId,
+    required this.role,
+    required this.student,
+  });
+
+  final String actorId;
+  final String role;
+  final StudentModel student;
 }

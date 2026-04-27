@@ -1,15 +1,57 @@
-# Claude Code local settings (machine-specific, never commit)
-.claude/settings.local.json
+# ----------------------------------------------------------------------------
+# Flutter & Dart
+# ----------------------------------------------------------------------------
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+.pub-cache/
+.pub/
+build/
+fahamni/mobile/build/
 
-# Environment files
-.env
-*.env.local
+# ----------------------------------------------------------------------------
+# Android
+# ----------------------------------------------------------------------------
+.gradle/
+**/android/.gradle/
+**/android/app/build/
+**/android/local.properties
+**/android/key.properties
+**/android/app/google-services.json
+android-backup/
+**/*.keystore
+**/*.jks
 
-# OS
+# ----------------------------------------------------------------------------
+# iOS & macOS
+# ----------------------------------------------------------------------------
+**/ios/.generated/
+**/ios/Pods/
+**/ios/Runner/GeneratedPluginRegistrant.h
+**/ios/Runner/GeneratedPluginRegistrant.m
+**/ios/Flutter/Generated.xcconfig
+**/ios/Flutter/flutter_export_environment.sh
+**/ios/Flutter/ephemeral/
+**/ios/ServiceDefinitions.json
+**/macos/Flutter/ephemeral/
+**/macos/Pods/
+Podfile.lock
+
+# ----------------------------------------------------------------------------
+# Firebase & Web
+# ----------------------------------------------------------------------------
+.firebase/
+fahamni/mobile/.firebase/
+fahamni/mobile/public/
+fahamni/web/node_modules/
+fahamni/web/dist/
+
+# ----------------------------------------------------------------------------
+# IDEs & System
+# ----------------------------------------------------------------------------
+.vscode/
+.idea/
+*.swp
+*.lock
 .DS_Store
-Thumbs.db
-
-# Root-level firebase-admin scripts (local tooling, not part of any app)
-node_modules/
-package-lock.json
-package.json
