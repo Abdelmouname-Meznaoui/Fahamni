@@ -232,7 +232,7 @@ class _PhoneVerificationPageState extends State<PhoneVerificationPage> {
         levelsTaught:           List<String>.from(data['levelsTaught'] ?? []),
         teachingMode:           data['teachingMode']           ?? '',
         isAvailable:            data['isAvailable']            ?? false,
-        Certified:              data['certified']              ?? false,
+        certified:              data['certified']              ?? false,
         pedagogicalDescription: data['pedagogicalDescription'] ?? '',
         averageRating:          data['averageRating']          ?? 0.0,
         yearsOfExperience:      data['yearsOfExperience']      ?? 0,

@@ -1,6 +1,14 @@
 import { useState, useEffect } from "react";
-import { doc, updateDoc, collection, query, where, getDocs } from "firebase/firestore";
+import { doc, updateDoc, collection, query, where, getDocs, addDoc, serverTimestamp } from "firebase/firestore";
 import { db } from "./firebase";
+
+const REJECTION_CAUSES = [
+  "Invalid or fake identity documents",
+  "Name mismatch between profile and documents",
+  "Unclear / unreadable uploaded files",
+  "Qualifications not relevant to the subject taught",
+  "Insufficient academic level",
+];
 
 const MONTHS = ["January","February","March","April","May","June",
                  "July","August","September","October","November","December"];
@@ -22,11 +30,14 @@ function formatLevel(levels) {
   return levels.map(l => l.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase())).join(", ");
 }
 
-export default function TeacherProfilePage({ teacher: initial, onBack, onStatusChange }) {
+export default function TeacherProfilePage({ teacher: initial, adminUser, onBack, onStatusChange }) {
   const [teacher, setTeacher] = useState(initial);
   const [certified, setCertified] = useState(initial.certified ?? false);
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState(null);
   const [certificates, setCertificates] = useState([]);
+  const [showRejectModal, setShowRejectModal] = useState(false);
+  const [selectedCause, setSelectedCause] = useState(null);
 
   useEffect(() => {
     if (!initial.uid) return;
@@ -37,12 +48,39 @@ export default function TeacherProfilePage({ teacher: initial, onBack, onStatusC
 
   async function handleStatus(status) {
     setSaving(true);
+    setError(null);
     try {
       await updateDoc(doc(db, "tutors", teacher.id), { account_status: status });
       onStatusChange?.(teacher.id, status);
       onBack();
     } catch (e) {
       console.error(e);
+      setError("Failed to update status. Check Firestore rules.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleConfirmReject() {
+    if (!selectedCause) return;
+    setSaving(true);
+    setError(null);
+    try {
+      await Promise.all([
+        updateDoc(doc(db, "tutors", teacher.id), { account_status: "rejected" }),
+        addDoc(collection(db, "rejections"), {
+          teacher_id: teacher.id,
+          admin_id: adminUser?.uid ?? null,
+          cause: selectedCause,
+          rejected_at: serverTimestamp(),
+        }),
+      ]);
+      onStatusChange?.(teacher.id, "rejected");
+      setShowRejectModal(false);
+      onBack();
+    } catch (e) {
+      console.error(e);
+      setError("Failed to reject. Check Firestore rules.");
     } finally {
       setSaving(false);
     }
@@ -80,7 +118,10 @@ export default function TeacherProfilePage({ teacher: initial, onBack, onStatusC
                 </svg>
               </div>
           }
-          <div style={s.teacherName}>{fullName}</div>
+          <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 8 }}>
+            <div style={s.teacherName}>{fullName}</div>
+            {certified && <VerifiedBadge size={18} />}
+          </div>
           <span style={s.teacherBadge}>Teacher</span>
 
           <div style={s.contactRow}>
@@ -195,20 +236,22 @@ export default function TeacherProfilePage({ teacher: initial, onBack, onStatusC
             </span>
           </label>
 
+          {error && <div style={{ fontSize: 11, color: "#ef4444", textAlign: "center" }}>{error}</div>}
+
           {teacher.account_status !== "validated" && (
             <button
-              style={{ ...s.actionBtn, background: "#22c55e" }}
+              style={{ ...s.actionBtn, background: "#22c55e", opacity: saving ? 0.6 : 1 }}
               disabled={saving}
               onClick={() => handleStatus("validated")}
             >
-              Validate
+              {saving ? "Saving…" : "Validate"}
             </button>
           )}
           {teacher.account_status !== "rejected" && (
             <button
-              style={{ ...s.actionBtn, background: "#ef4444" }}
+              style={{ ...s.actionBtn, background: "#ef4444", opacity: saving ? 0.6 : 1 }}
               disabled={saving}
-              onClick={() => handleStatus("rejected")}
+              onClick={() => { setSelectedCause(null); setShowRejectModal(true); }}
             >
               Reject
             </button>
@@ -216,7 +259,57 @@ export default function TeacherProfilePage({ teacher: initial, onBack, onStatusC
         </div>
 
       </div>
+
+      {showRejectModal && (
+        <div style={s.overlay}>
+          <div style={s.modal}>
+            <div style={s.modalHeader}>
+              <span style={s.modalTitle}>Rejection Cause</span>
+              <button style={s.closeBtn} onClick={() => setShowRejectModal(false)}>✕</button>
+            </div>
+            <p style={s.modalSub}>Choose the main cause of rejection</p>
+            <div style={s.causeList}>
+              {REJECTION_CAUSES.map(cause => (
+                <div
+                  key={cause}
+                  style={{ ...s.causeRow, ...(selectedCause === cause ? s.causeRowSelected : {}) }}
+                  onClick={() => setSelectedCause(cause)}
+                >
+                  <span style={s.causeLabel}>{cause}</span>
+                  <div style={{ ...s.radio, ...(selectedCause === cause ? s.radioSelected : {}) }} />
+                </div>
+              ))}
+            </div>
+            {error && <div style={{ fontSize: 11, color: "#ef4444", marginTop: 8 }}>{error}</div>}
+            <button
+              style={{ ...s.actionBtn, background: "#ef4444", marginTop: 20, opacity: (!selectedCause || saving) ? 0.5 : 1 }}
+              disabled={!selectedCause || saving}
+              onClick={handleConfirmReject}
+            >
+              {saving ? "Saving…" : "Reject"}
+            </button>
+          </div>
+        </div>
+      )}
     </div>
+  );
+}
+
+function VerifiedBadge({ size = 16 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" title="Certified">
+      <path
+        d="M12 1.5L14.74 4.01L18.27 3.27L18.96 6.82L22.05 8.5L20.5 12L22.05 15.5L18.96 17.18L18.27 20.73L14.74 19.99L12 22.5L9.26 19.99L5.73 20.73L5.04 17.18L1.95 15.5L3.5 12L1.95 8.5L5.04 6.82L5.73 3.27L9.26 4.01Z"
+        fill="#2196f3"
+      />
+      <path
+        d="M8 12.5L10.5 15L16 9"
+        stroke="#fff"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
   );
 }
 
@@ -241,7 +334,7 @@ const s = {
     width: 80, height: 80, borderRadius: "50%", background: "#000080",
     display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 14,
   },
-  teacherName: { fontSize: 15, fontWeight: 700, color: "#1F2937", textAlign: "center", marginBottom: 8 },
+  teacherName: { fontSize: 15, fontWeight: 700, color: "#1F2937", textAlign: "center" },
   teacherBadge: {
     fontSize: 11, fontWeight: 600, color: "#6366f1", background: "#eef2ff",
     borderRadius: 20, padding: "3px 12px", marginBottom: 20,
@@ -291,4 +384,34 @@ const s = {
     width: "100%", padding: "10px 0", borderRadius: 10, border: "none",
     color: "#fff", fontSize: 14, fontWeight: 700, cursor: "pointer",
   },
+
+  /* rejection modal */
+  overlay: {
+    position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)",
+    display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000,
+  },
+  modal: {
+    background: "#fff", borderRadius: 16, padding: "28px 28px 24px",
+    width: 480, maxWidth: "90vw", boxShadow: "0 8px 32px rgba(0,0,0,0.18)",
+  },
+  modalHeader: { display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 },
+  modalTitle: { fontSize: 18, fontWeight: 700, color: "#1F2937" },
+  closeBtn: {
+    background: "none", border: "none", fontSize: 16, cursor: "pointer", color: "#94a3b8", lineHeight: 1,
+  },
+  modalSub: { fontSize: 13, color: "#64748b", margin: "0 0 16px" },
+  causeList: { display: "flex", flexDirection: "column", gap: 10 },
+  causeRow: {
+    display: "flex", alignItems: "center", justifyContent: "space-between",
+    padding: "12px 14px", borderRadius: 8, border: "1px solid #e2e8f0",
+    cursor: "pointer", background: "#fff", transition: "border-color 0.15s",
+  },
+  causeRowSelected: { borderColor: "#000080" },
+  causeLabel: { fontSize: 13, color: "#1F2937" },
+  radio: {
+    width: 18, height: 18, borderRadius: "50%", border: "2px solid #cbd5e1",
+    flexShrink: 0, boxSizing: "border-box",
+    display: "flex", alignItems: "center", justifyContent: "center",
+  },
+  radioSelected: { border: "5px solid #000080" },
 };

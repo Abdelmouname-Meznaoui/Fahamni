@@ -1,8 +1,13 @@
-import { useState, useEffect } from "react";
-import { collection, query, where, getDocs, getCountFromServer } from "firebase/firestore";
+import { useState, useEffect, Component } from "react";
+import { collection, query, where, getDocs, getDoc, doc, setDoc, getCountFromServer } from "firebase/firestore";
 import { db } from "./firebase";
 import TeachersPage from "./TeachersPage";
 import TeacherProfilePage from "./TeacherProfilePage";
+import UsersPage from "./UsersPage";
+import UserProfilePage from "./UserProfilePage";
+import ReportsPage from "./ReportsPage";
+import MessagesPage from "./MessagesPage";
+
 
 const MOCK_NOTIFICATIONS = [
   { id: 1, title: "New Report", desc: "A new report has been submitted", time: "09:15AM", read: false },
@@ -52,6 +57,30 @@ const STATS_CONFIG = [
 
 
 
+class PageErrorBoundary extends Component {
+  constructor(props) { super(props); this.state = { error: null }; }
+  static getDerivedStateFromError(error) { return { error }; }
+  componentDidCatch(err, info) { console.error("Page render error:", err, info.componentStack); }
+  componentDidUpdate(prev) {
+    if (prev.pageKey !== this.props.pageKey) this.setState({ error: null });
+  }
+  render() {
+    if (this.state.error) return (
+      <div style={{ display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", height:"100%", gap:12 }}>
+        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="1.5">
+          <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+        </svg>
+        <div style={{ fontSize:15, fontWeight:600, color:"#1F2937" }}>Something went wrong</div>
+        <div style={{ fontSize:13, color:"#94a3b8" }}>{this.state.error?.message}</div>
+        <button onClick={() => this.setState({ error:null })} style={{ padding:"8px 24px", background:"#000080", color:"#fff", border:"none", borderRadius:20, cursor:"pointer", fontSize:13, fontWeight:600 }}>
+          Try again
+        </button>
+      </div>
+    );
+    return this.props.children;
+  }
+}
+
 export default function Dashboard({ user, onLogout }) {
   const [active, setActive] = useState("dashboard");
   const [showNotif, setShowNotif] = useState(false);
@@ -60,11 +89,16 @@ export default function Dashboard({ user, onLogout }) {
   const [adminData, setAdminData] = useState(null);
   const [statValues, setStatValues] = useState([null, null, null, null]);
   const [selectedTeacher, setSelectedTeacher] = useState(null);
+  const [selectedUser, setSelectedUser] = useState(null);
   const [pendingTeachers, setPendingTeachers] = useState(null);
   const [sessionReports, setSessionReports] = useState(null);
   const [suspendedUsers, setSuspendedUsers] = useState(null);
+  const [pendingContact, setPendingContact] = useState(null);
+  const [usersInitialTab, setUsersInitialTab] = useState("all");
 
   useEffect(() => {
+    if (active !== "dashboard") return;
+    setStatValues([null, null, null, null]);
     async function fetchStats() {
       const safeCount = async (col, q) => {
         try {
@@ -93,9 +127,12 @@ export default function Dashboard({ user, onLogout }) {
       ]);
     }
     fetchStats();
-  }, []);
+  }, [active]);
 
   useEffect(() => {
+    if (active !== "dashboard") return;
+    setPendingTeachers(null);
+    setSessionReports(null);
     async function fetchTasks() {
       try {
         const [teacherSnap, reportSnap] = await Promise.all([
@@ -114,9 +151,11 @@ export default function Dashboard({ user, onLogout }) {
       }
     }
     fetchTasks();
-  }, []);
+  }, [active]);
 
   useEffect(() => {
+    if (active !== "dashboard") return;
+    setSuspendedUsers(null);
     async function fetchSuspended() {
       try {
         const suspended = (col, role) =>
@@ -137,16 +176,24 @@ export default function Dashboard({ user, onLogout }) {
       }
     }
     fetchSuspended();
-  }, []);
+  }, [active]);
 
   useEffect(() => {
-    if (!user?.email) return;
+    if (!user?.uid || !user?.email) return;
     getDocs(query(collection(db, "admins"), where("email", "==", user.email)))
-      .then(snap => {
-        if (!snap.empty) setAdminData(snap.docs[0].data());
+      .then(async snap => {
+        if (snap.empty) return;
+        const data = snap.docs[0].data();
+        setAdminData(data);
+        // Ensure a doc at admins/{uid} exists so isAdmin() rule works
+        const uidRef = doc(db, "admins", user.uid);
+        const uidSnap = await getDoc(uidRef).catch(() => null);
+        if (uidSnap && !uidSnap.exists()) {
+          await setDoc(uidRef, data).catch(() => {});
+        }
       })
       .catch(err => console.error("Firestore error:", err));
-  }, [user?.email]);
+  }, [user?.uid, user?.email]);
 
   return (
     <div style={s.shell}>
@@ -189,7 +236,7 @@ export default function Dashboard({ user, onLogout }) {
           {NAV.map(item => (
             <button
               key={item.id}
-              onClick={() => { setActive(item.id); setShowNotif(false); setSelectedTeacher(null); }}
+              onClick={() => { setActive(item.id); setShowNotif(false); setSelectedTeacher(null); setSelectedUser(null); setUsersInitialTab("all"); }}
               style={{
                 ...s.navItem,
                 ...(active === item.id ? s.navActive : {}),
@@ -235,6 +282,34 @@ export default function Dashboard({ user, onLogout }) {
                 <div style={{ fontSize: 12, color: "#64748b", marginTop: 2 }}>Manage all teachers on the platform</div>
               </div>
             )}
+            {active === "users" && !showNotif && !selectedUser && (
+              <div>
+                <div style={{ fontSize: 20, fontWeight: 700, color: "#000080", lineHeight: 1.2 }}>User Management</div>
+                <div style={{ fontSize: 12, color: "#64748b", marginTop: 2 }}>Manage all users on the platform</div>
+              </div>
+            )}
+            {active === "reports" && !showNotif && (
+              <div>
+                <div style={{ fontSize: 20, fontWeight: 700, color: "#000080", lineHeight: 1.2 }}>Reports Management</div>
+                <div style={{ fontSize: 12, color: "#64748b", marginTop: 2 }}>Manage all reports on the platform</div>
+              </div>
+            )}
+            {active === "messages" && !showNotif && (
+              <div>
+                <div style={{ fontSize: 20, fontWeight: 700, color: "#000080", lineHeight: 1.2 }}>Messages</div>
+                <div style={{ fontSize: 12, color: "#64748b", marginTop: 2 }}>Manage all conversations</div>
+              </div>
+            )}
+            {active === "users" && !showNotif && selectedUser && (
+              <button
+                onClick={() => setSelectedUser(null)}
+                style={{ background: "none", border: "none", cursor: "pointer", display: "flex", alignItems: "center", gap: 8, padding: 0 }}
+              >
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1F2937" strokeWidth="2">
+                  <line x1="19" y1="12" x2="5" y2="12" /><polyline points="12 19 5 12 12 5" />
+                </svg>
+              </button>
+            )}
             {active === "teachers" && !showNotif && selectedTeacher && (
               <button
                 onClick={() => setSelectedTeacher(null)}
@@ -259,6 +334,7 @@ export default function Dashboard({ user, onLogout }) {
 
         {/* Content */}
         <div style={s.content}>
+        <PageErrorBoundary pageKey={active}>
 
           {/* ── Notifications page ── */}
           {showNotif && (() => {
@@ -322,6 +398,7 @@ export default function Dashboard({ user, onLogout }) {
           {!showNotif && active === "teachers" && selectedTeacher && (
             <TeacherProfilePage
               teacher={selectedTeacher}
+              adminUser={user}
               onBack={() => setSelectedTeacher(null)}
               onStatusChange={(id, status) => setSelectedTeacher(t => ({ ...t, account_status: status }))}
             />
@@ -377,20 +454,20 @@ export default function Dashboard({ user, onLogout }) {
                       <div style={s.taskTitle}>{pendingTeachers} teacher{pendingTeachers > 1 ? "s" : ""} awaiting validation</div>
                       <div style={s.taskDesc}>Credentials submitted for review</div>
                     </div>
-                    <button style={{ ...s.actionBtn, background: "#000080" }}>Review</button>
+                    <button style={{ ...s.actionBtn, background: "#000080" }} onClick={() => { setActive("teachers"); setShowNotif(false); setSelectedTeacher(null); }}>Review</button>
                   </div>
                 )}
 
-                {/* Messages — coming soon */}
-                <div style={{ ...s.taskCard, opacity: 0.45 }}>
+                {/* Messages */}
+                <div style={s.taskCard}>
                   <div style={s.taskIcon}>
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#6366f1" strokeWidth="1.8"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>
                   </div>
                   <div style={s.taskText}>
                     <div style={s.taskTitle}>Messages</div>
-                    <div style={s.taskDesc}>Messaging section coming soon</div>
+                    <div style={s.taskDesc}>View and respond to user conversations</div>
                   </div>
-                  <button style={{ ...s.actionBtn, background: "#94a3b8", cursor: "default" }}>Check</button>
+                  <button style={{ ...s.actionBtn, background: "#000080" }} onClick={() => { setActive("messages"); setShowNotif(false); }}>Open</button>
                 </div>
 
                 {/* Session reports */}
@@ -410,7 +487,7 @@ export default function Dashboard({ user, onLogout }) {
                       <div style={s.taskTitle}>{sessionReports.length} urgent session report{sessionReports.length > 1 ? "s" : ""}</div>
                       <div style={s.taskDesc}>{sessionReports[0].text?.slice(0, 60) || "Reported session behavior"}{sessionReports[0].text?.length > 60 ? "…" : ""}</div>
                     </div>
-                    <button style={{ ...s.actionBtn, background: "#dc2626" }}>View</button>
+                    <button style={{ ...s.actionBtn, background: "#dc2626" }} onClick={() => { setActive("reports"); setShowNotif(false); }}>View</button>
                   </div>
                 )}
 
@@ -431,7 +508,11 @@ export default function Dashboard({ user, onLogout }) {
                 ) : (
                   <>
                     {suspendedUsers.slice(0, 3).map((u, i) => (
-                      <div key={i} style={s.suspendedRow}>
+                      <div
+                        key={i}
+                        style={{ ...s.suspendedRow, cursor: "pointer" }}
+                        onClick={() => { setActive("users"); setUsersInitialTab("suspended"); setShowNotif(false); setSelectedUser(null); }}
+                      >
                         <div style={s.suspendedAvatar}>
                           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="1.5">
                             <circle cx="12" cy="8" r="4" />
@@ -445,7 +526,10 @@ export default function Dashboard({ user, onLogout }) {
                       </div>
                     ))}
                     {suspendedUsers.length > 3 && (
-                      <button style={s.seeAllBtn}>
+                      <button
+                        style={s.seeAllBtn}
+                        onClick={() => { setActive("users"); setUsersInitialTab("suspended"); setShowNotif(false); setSelectedUser(null); }}
+                      >
                         See Full List ({suspendedUsers.length - 3} more)
                       </button>
                     )}
@@ -456,13 +540,51 @@ export default function Dashboard({ user, onLogout }) {
           </div>
           </>}
 
+          {/* ── Users page ── */}
+          {!showNotif && active === "users" && !selectedUser && (
+            <UsersPage onSelect={setSelectedUser} initialTab={usersInitialTab} />
+          )}
+          {!showNotif && active === "users" && selectedUser && (
+            <UserProfilePage
+              user={selectedUser}
+              onBack={() => setSelectedUser(null)}
+              onSuspendChange={(id, next) => setSelectedUser(u => ({ ...u, is_suspended: next }))}
+              onViewUser={setSelectedUser}
+              onContact={userData => {
+                setPendingContact(userData);
+                setActive("messages");
+                setShowNotif(false);
+                setSelectedUser(null);
+              }}
+            />
+          )}
+
+          {/* ── Reports page ── */}
+          {!showNotif && active === "reports" && (
+            <ReportsPage />
+          )}
+
+          {/* ── Messages page ── */}
+          {!showNotif && active === "messages" && (
+            <MessagesPage
+              adminUser={user}
+              pendingContact={pendingContact}
+              onContactHandled={() => setPendingContact(null)}
+              onViewUser={userData => {
+                setSelectedUser(userData);
+                setActive("users");
+              }}
+            />
+          )}
+
           {/* placeholder for other pages */}
-          {!showNotif && !["dashboard","teachers"].includes(active) && (
+          {!showNotif && !["dashboard","teachers","users","reports","messages","settings"].includes(active) && (
             <div style={{ color: "#94a3b8", fontSize: 14, paddingTop: 40, textAlign: "center" }}>
               {active.charAt(0).toUpperCase() + active.slice(1)} — coming soon.
             </div>
           )}
 
+        </PageErrorBoundary>
         </div>
       </main>
     </div>
@@ -487,6 +609,9 @@ function MessagesIcon() {
 }
 function SettingsIcon() {
   return <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" /></svg>;
+}
+function SeedIcon() {
+  return <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>;
 }
 function PendingIcon({ color }) {
   return <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>;

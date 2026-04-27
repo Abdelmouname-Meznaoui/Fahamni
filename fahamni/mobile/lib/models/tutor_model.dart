@@ -7,11 +7,13 @@ class TutorModel extends UserModel {
   final List<String> levelsTaught;
   final String teachingMode;
   final bool isAvailable;
-  final bool Certified;
+  final bool certified;
   final String pedagogicalDescription;
   final double averageRating;
   final int yearsOfExperience;
   final String academicDescription;
+  final int studentsCount;
+  final int coursesCount;
 
   TutorModel({
     required super.uid,
@@ -29,11 +31,14 @@ class TutorModel extends UserModel {
     required this.levelsTaught,
     required this.teachingMode,
     required this.isAvailable,
-    required this.Certified,
+    this.certified = false,
     required this.pedagogicalDescription,
     required this.averageRating,
     required this.yearsOfExperience,
     required this.academicDescription,
+    this.studentsCount = 0,
+    this.coursesCount = 0,
+    super.lastLoginDate,
   }) : super(role: UserRole.tutor);
 
   @override
@@ -55,11 +60,14 @@ class TutorModel extends UserModel {
       'levels_taught':           levelsTaught,
       'teaching_mode':           teachingMode,
       'is_available':            isAvailable,
-      'certified':               Certified,
+      'certified':               certified,
       'pedagogical_description': pedagogicalDescription,
       'average_rating':          averageRating,
       'years_of_experience':     yearsOfExperience,
       'academic_description':    academicDescription,
+      'students_count':          studentsCount,
+      'courses_count':           coursesCount,
+      'last_login_date': lastLoginDate != null ? Timestamp.fromDate(lastLoginDate!) : null,
     };
   }
 
@@ -76,11 +84,14 @@ class TutorModel extends UserModel {
     levelsTaught: levelsTaught,
     teachingMode: teachingMode,
     isAvailable: isAvailable,
-    Certified: Certified,
+    certified: certified,
     pedagogicalDescription: pedagogicalDescription,
     averageRating: averageRating,
     yearsOfExperience: yearsOfExperience,
     academicDescription: academicDescription,
+    studentsCount: studentsCount,
+    coursesCount: coursesCount,
+    lastLoginDate: lastLoginDate,
   );
 
   factory TutorModel.fromMap(Map<String, dynamic> map) {
@@ -149,12 +160,15 @@ class TutorModel extends UserModel {
       teachingMode:
           (map['teaching_mode'] ?? map['teachingMode'] ?? '').toString(),
       isAvailable: map['is_available'] ?? false,
-      Certified: map['certified'] ?? false,
+      certified: map['certified'] ?? false,
       pedagogicalDescription:
           (map['pedagogical_description'] ?? '').toString(),
       averageRating: parseDouble(map['average_rating']),
       yearsOfExperience: parseInt(map['years_of_experience']),
       academicDescription: (map['academic_description'] ?? '').toString(),
+      studentsCount: parseInt(map['students_count']),
+      coursesCount: parseInt(map['courses_count']),
+      lastLoginDate: map['last_login_date'] != null ? parseDate(map['last_login_date']) : null,
     );
   }
 }
