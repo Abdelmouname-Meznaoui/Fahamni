@@ -66,7 +66,6 @@ export default function MessagesPage({ adminUser, onViewUser, pendingContact, on
         },
         err => {
           console.error("Conversations listener error:", err);
-          // Fallback: fetch without ordering
           getDocs(collection(db, "conversations"))
             .then(snap => {
               const list = snap.docs
@@ -121,28 +120,26 @@ export default function MessagesPage({ adminUser, onViewUser, pendingContact, on
     );
   }, [selected?.id]);
 
-  // ── Handle pendingContact: show conversation immediately (local-first) ──
+  // ── Handle pendingContact: wait for conversations to load first ──
   useEffect(() => {
-    if (!pendingContact?.uid) return;
-    // Check if a real conversation already exists in our loaded list
+    if (!pendingContact?.uid || loadingConvs) return;
     const existing = conversations.find(c => c.user_uid === pendingContact.uid);
     if (existing) {
       setSelected(existing);
     } else {
-      // Show a local placeholder — Firestore doc is created when first message is sent
       setSelected({
-        _isNew:      true,
-        user_uid:    pendingContact.uid,
-        user_name:   pendingContact.name,
-        user_role:   pendingContact.role,
+        _isNew:       true,
+        user_uid:     pendingContact.uid,
+        user_name:    pendingContact.name,
+        user_role:    pendingContact.role,
         user_picture: pendingContact.picture ?? null,
         unread_admin: 0,
-        is_closed:   false,
+        is_closed:    false,
       });
     }
     setInput("");
     onContactHandled?.();
-  }, [pendingContact?.uid]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [pendingContact?.uid, loadingConvs]); // eslint-disable-line react-hooks/exhaustive-deps
 
   async function sendMessage() {
     if (!input.trim() || !selected || sending) return;
@@ -431,11 +428,6 @@ const s = {
     border: "1.5px solid #e2e8f0", borderRadius: 24,
     background: "#fff", fontSize: 14, color: "#1F2937",
     outline: "none", boxSizing: "border-box",
-  },
-  attachBtn: {
-    width: 40, height: 40, borderRadius: "50%", border: "none",
-    background: "transparent", cursor: "pointer",
-    display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
   },
   sendBtn: {
     width: 40, height: 40, borderRadius: "50%", border: "none",
