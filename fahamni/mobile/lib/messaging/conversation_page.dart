@@ -95,7 +95,10 @@ class _ConversationPageState extends State<ConversationPage> {
     });
   }
 
-  Future<void> _handleSend(String text) async {
+  Future<void> _handleSend(
+    String text,
+    List<ComposerAttachment> attachments,
+  ) async {
     final String senderId = _auth.currentUser?.uid ?? widget.currentUserId;
     final String receiverId = _receiverIdFor(senderId);
     if (senderId.isEmpty || receiverId.isEmpty) {
@@ -115,6 +118,16 @@ class _ConversationPageState extends State<ConversationPage> {
         receiverId: receiverId,
         content: text,
         controller: _messageController,
+        attachments: attachments
+            .map(
+              (ComposerAttachment attachment) => AttachmentModel(
+                url: attachment.localPath,
+                name: attachment.name,
+                size: attachment.sizeBytes,
+                mimeType: attachment.mimeType,
+              ),
+            )
+            .toList(),
       );
       _scheduleScrollToBottom();
     } catch (error) {
