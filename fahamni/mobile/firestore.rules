@@ -75,10 +75,19 @@ service cloud.firestore {
         exists(/databases/$(database)/documents/admins/$(request.auth.uid));
     }
 
+    function parentChildIds() {
+      return (
+        exists(/databases/$(database)/documents/parents/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/parents/$(request.auth.uid)).data.children_uids is list
+      )
+        ? get(/databases/$(database)/documents/parents/$(request.auth.uid)).data.children_uids
+        : [];
+    }
+
     function isStudentServiceJoinRequest() {
       return signedIn() &&
         request.resource.data.pending_ids is list &&
-        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['pending_ids', 'enrolled_num']) &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['pending_ids', 'updated_at']) &&
         (
           !('pending_ids' in resource.data) ||
           resource.data.pending_ids is list
@@ -98,21 +107,10 @@ service cloud.firestore {
             ? resource.data.pending_ids
             : []
         ) &&
-        request.auth.uid in request.resource.data.pending_ids &&
-        !(
-          ('pending_ids' in resource.data && resource.data.pending_ids is list) &&
-          request.auth.uid in resource.data.pending_ids
-        ) &&
-        !(
-          ('student_ids' in resource.data && resource.data.student_ids is list) &&
-          request.auth.uid in resource.data.student_ids
-        ) &&
-        request.resource.data.enrolled_num ==
-          (
-            ('enrolled_num' in resource.data && resource.data.enrolled_num is int)
-              ? resource.data.enrolled_num
-              : 0
-          ) + 1;
+        (
+          request.auth.uid in request.resource.data.pending_ids ||
+          request.resource.data.pending_ids.hasAny(parentChildIds())
+        );
     }
 
     // Public lookups are required for registration and phone-based login.
@@ -131,6 +129,9 @@ service cloud.firestore {
     match /tutors/{userId} {
       allow read: if true;
       allow write: if isSelf(userId) || isAdmin();
+      // Allow updating average_rating when submitting reviews
+      allow update: if signedIn() && 
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['average_rating']);
     }
 
     match /parents/{userId} {

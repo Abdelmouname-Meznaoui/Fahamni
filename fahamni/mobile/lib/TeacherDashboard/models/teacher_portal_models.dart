@@ -31,6 +31,7 @@ class TeacherJoinRequestDetail {
     required this.sessionsCount,
     required this.sessionDurationLabel,
     required this.createdAtLabel,
+    this.isChild = false,
   });
 
   final QuoteModel quote;
@@ -44,6 +45,7 @@ class TeacherJoinRequestDetail {
   final int sessionsCount;
   final String sessionDurationLabel;
   final String createdAtLabel;
+  final bool isChild;
 }
 
 class TeacherServiceDraft {
@@ -111,5 +113,3 @@ class TeacherResourceDraft {
   final String filePath;
   final String link;
 }
-
-

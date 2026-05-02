@@ -1,19 +1,15 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:google_sign_in/google_sign_in.dart';
 import 'package:flutter/material.dart';
-import 'package:fahamni/Login_Screen/LoginScreen.dart';
-import 'package:fahamni/TeacherDashboard/teacher_dashboard.dart';
+import 'package:flutter_svg/svg.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:fahamni/TeacherDashboard/teacher_dashboard_service.dart';
 import 'package:fahamni/TeacherDashboard/teacher_services_dashboard.dart';
 import 'package:fahamni/TeacherDashboard/widgets/teacher_navbar.dart';
 import 'package:fahamni/messaging/chat_page.dart';
-import 'package:fahamni/models/tutor_model.dart';
-import 'package:fahamni/models/user_model.dart';
-import 'personalinfo_screen.dart';
-import 'academic_info_screen.dart';
-import 'profilesettings.dart';
-import 'notification_screen.dart';
-import 'helpsupport_screen.dart';
+import 'package:fahamni/models/teacher_dashboard_model.dart';
+import 'package:fahamni/feedback/feedback_pages.dart';
+import '../TeacherDashboard/teacher_dashboard.dart';
+import '../TeacherDashboard/teacher_quotes_page.dart';
+import 'settings_menu_screen.dart';
 
 class AccountScreen extends StatefulWidget {
   const AccountScreen({super.key});
@@ -23,132 +19,34 @@ class AccountScreen extends StatefulWidget {
 }
 
 class _AccountScreenState extends State<AccountScreen> {
-  TutorModel? tutor;
-  bool _isLoading = true;
+  late Future<TeacherDashboardModel> _dashboardFuture;
+  final TeacherDashboardService _service = TeacherDashboardService();
 
   @override
   void initState() {
     super.initState();
-    _loadTutor();
+    _dashboardFuture = _service.loadDashboard();
   }
 
-  Future<void> _loadTutor() async {
-    setState(() => _isLoading = true);
-    try {
-      final user = FirebaseAuth.instance.currentUser;
-      if (user == null) return;
-      final snap = await FirebaseFirestore.instance
-          .collection('tutors')
-          .doc(user.uid)
-          .get();
-      if (!mounted) return;
-      if (snap.exists && snap.data() != null) {
-        setState(() => tutor = TutorModel.fromMap({...snap.data()!, 'uid': snap.id}));
-      }
-    } catch (e) {
-      debugPrint('AccountScreen loadTutor error: $e');
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
-    }
-  }
-
-  Future<void> _logout() async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (_) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text(
-          'Logout',
-          style: TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.w700),
-        ),
-        content: const Text(
-          'Are you sure you want to logout from Fahamni?',
-          style: TextStyle(fontFamily: 'Inter', color: Color(0xFF6B7280)),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel',
-                style: TextStyle(color: Color(0xFF6B7280))),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('Logout',
-                style: TextStyle(
-                    color: Color(0xFFEF4444),
-                    fontWeight: FontWeight.w700)),
-          ),
-        ],
-      ),
-    );
-
-    if (confirmed == true) {
-      try { await GoogleSignIn().signOut(); } catch (_) {}
-      await FirebaseAuth.instance.signOut();
-      if (mounted) {
-        Navigator.of(context).pushAndRemoveUntil(
-          MaterialPageRoute(builder: (_) => const LoginScreen()),
-          (_) => false,
+  void _handleNavigation(int index) {
+    if (index == 3) return;
+    switch (index) {
+      case 0:
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (_) => const TeacherDashboardScreen()),
         );
-      }
+        break;
+      case 1:
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (_) => const TeacherServicesDashboardScreen()),
+        );
+        break;
+      case 2:
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (_) => const ChatPage()),
+        );
+        break;
     }
-  }
-
-  ImageProvider _avatarImage() {
-    if (tutor == null) return const AssetImage("assets/images/studentmale.png");
-    final pic = tutor!.picture;
-    if (pic.startsWith('http')) return NetworkImage(pic);
-    if (pic.startsWith('assets/')) return AssetImage(pic);
-    return tutor!.gender == Gender.female
-        ? const AssetImage("assets/images/studentfemale.png")
-        : const AssetImage("assets/images/studentmale.png");
-  }
-
-  Widget _buildMenuItem(
-    BuildContext context,
-    IconData icon,
-    String title,
-    Widget page,
-  ) {
-    return InkWell(
-      onTap: () async {
-        await Navigator.push(context, MaterialPageRoute(builder: (_) => page));
-        _loadTutor();
-      },
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
-        decoration: const BoxDecoration(
-          border: Border(bottom: BorderSide(color: Color(0xFFE5E7EB))),
-        ),
-        child: Row(
-          children: [
-            Container(
-              width: 36,
-              height: 36,
-              decoration: BoxDecoration(
-                color: const Color(0xFFF1F5F9),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Icon(icon, size: 20, color: const Color(0xFF000080)),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                title,
-                style: const TextStyle(
-                  fontFamily: "Inter",
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                  color: Color(0xFF1F2937),
-                ),
-              ),
-            ),
-            const Icon(Icons.arrow_forward_ios,
-                size: 16, color: Color(0xFF9CA3AF)),
-          ],
-        ),
-      ),
-    );
   }
 
   @override
@@ -157,141 +55,253 @@ class _AccountScreenState extends State<AccountScreen> {
       backgroundColor: const Color(0xFFFAFAFA),
       bottomNavigationBar: TeacherNavbar(
         selectedIndex: 3,
-        onTap: (int index) {
-          if (index == 3) return;
-          if (index == 0) {
-            Navigator.pushReplacement(context,
-                MaterialPageRoute(builder: (_) => const TeacherDashboardScreen()));
-          } else if (index == 1) {
-            Navigator.pushReplacement(context,
-                MaterialPageRoute(builder: (_) => const TeacherServicesDashboardScreen()));
-          } else if (index == 2) {
-            Navigator.pushReplacement(context,
-                MaterialPageRoute(builder: (_) => const ChatPage()));
-          }
-        },
+        onTap: _handleNavigation,
       ),
       body: SafeArea(
-        child: _isLoading
-            ? const Center(
-                child: CircularProgressIndicator(color: Color(0xFF000080)))
-            : RefreshIndicator(
-                color: const Color(0xFF000080),
-                onRefresh: _loadTutor,
-                child: SingleChildScrollView(
-                  physics: const AlwaysScrollableScrollPhysics(),
-                  padding: const EdgeInsets.symmetric(horizontal: 24),
+        child: FutureBuilder<TeacherDashboardModel>(
+          future: _dashboardFuture,
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(child: CircularProgressIndicator(color: Color(0xFF000080)));
+            }
+            if (snapshot.hasError) {
+              return Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(24.0),
                   child: Column(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
+                      const Icon(Icons.error_outline, size: 48, color: Colors.red),
                       const SizedBox(height: 16),
-                      const Text(
-                        "Account",
-                        style: TextStyle(
-                          fontFamily: "Inter",
-                          fontSize: 32,
-                          fontWeight: FontWeight.w700,
-                          color: Color(0xFF1F2937),
-                        ),
-                      ),
-                      const SizedBox(height: 24),
-                      CircleAvatar(
-                        radius: 46,
-                        backgroundColor: Colors.grey.shade200,
-                        backgroundImage: _avatarImage(),
-                      ),
-                      const SizedBox(height: 10),
-                      Text(
-                        tutor != null
-                            ? '${tutor!.firstName} ${tutor!.lastName}'
-                            : '—',
-                        style: const TextStyle(
-                          fontFamily: "Inter",
-                          fontSize: 24,
-                          fontWeight: FontWeight.w700,
-                          color: Color(0xFF1F2937),
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      if (tutor != null &&
-                          tutor!.expertiseDomain.isNotEmpty)
-                        Text(
-                          tutor!.expertiseDomain,
-                          style: const TextStyle(
-                            fontFamily: "Inter",
-                            fontSize: 15,
-                            fontWeight: FontWeight.w500,
-                            color: Color(0xFF6B7280),
-                          ),
-                        ),
-                      const SizedBox(height: 20),
-                      Container(
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(color: const Color(0xFFE5E7EB)),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.03),
-                              blurRadius: 10,
-                              offset: const Offset(0, 4),
-                            ),
-                          ],
-                        ),
-                        child: Column(
-                          children: [
-                            _buildMenuItem(context, Icons.person_outline,
-                                "Personal Information",
-                                const PersonalInfoScreen()),
-                            _buildMenuItem(context, Icons.school_outlined,
-                                "Academic Information",
-                                const AcademicInfoScreen()),
-                            _buildMenuItem(context, Icons.settings_outlined,
-                                "Profile Settings",
-                                const ProfileSettingsScreen()),
-                            _buildMenuItem(context, Icons.notifications_none,
-                                "Notifications", const NotificationScreen()),
-                            _buildMenuItem(context, Icons.help_outline,
-                                "Help & Support", const HelpSupportScreen()),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 34),
-                      Container(
-                        width: double.infinity,
-                        height: 54,
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(16),
-                          border:
-                              Border.all(color: const Color(0xFFFCA5A5)),
-                        ),
-                        child: TextButton(
-                          onPressed: _logout,
-                          child: const Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(Icons.logout, color: Color(0xFFEF4444)),
-                              SizedBox(width: 8),
-                              Text(
-                                "Logout from Fahamni",
-                                style: TextStyle(
-                                  fontFamily: "Inter",
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w600,
-                                  color: Color(0xFFEF4444),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 20),
+                      Text(snapshot.error.toString(), textAlign: TextAlign.center),
+                      const SizedBox(height: 16),
+                      ElevatedButton(
+                        onPressed: () => setState(() {
+                          _dashboardFuture = _service.loadDashboard();
+                        }),
+                        child: const Text("Retry"),
+                      )
                     ],
                   ),
                 ),
+              );
+            }
+
+            final dashboard = snapshot.data!;
+            final tutor = dashboard.tutorProfile;
+
+            return SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: Column(
+                children: [
+                  const SizedBox(height: 20),
+                  Text(
+                    "Account",
+                    style: GoogleFonts.inter(
+                      fontSize: 32,
+                      fontWeight: FontWeight.w800,
+                      color: const Color(0xFF1F2937),
+                    ),
+                  ),
+                  const SizedBox(height: 30),
+                  CircleAvatar(
+                    radius: 50,
+                    backgroundColor: const Color(0xFFE2E8F0),
+                    backgroundImage: tutor.picture.isNotEmpty 
+                      ? NetworkImage(tutor.picture) 
+                      : null,
+                    child: tutor.picture.isEmpty 
+                      ? const Icon(Icons.person, size: 50, color: Color(0xFF64748B)) 
+                      : null,
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    '${tutor.firstName} ${tutor.lastName}',
+                    style: GoogleFonts.inter(
+                      fontSize: 24,
+                      fontWeight: FontWeight.w800,
+                      color: const Color(0xFF1F2937),
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    '${tutor.expertiseDomain} Specialist',
+                    style: GoogleFonts.inter(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: const Color(0xFF000080),
+                    ),
+                  ),
+                  const SizedBox(height: 30),
+                  
+                  // Performance Overview Card
+                  _PerformanceOverviewCard(stats: dashboard.stats),
+                  
+                  const SizedBox(height: 30),
+                  
+                  // Menu Items
+                  _AccountMenuItem(
+                    icon: Icons.star_border,
+                    title: "FeedBacks",
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => FeedbacksPage(
+                            tutorId: tutor.uid,
+                            tutorName: '${tutor.firstName} ${tutor.lastName}',
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                  _AccountMenuItem(
+                    icon: Icons.description_outlined,
+                    title: "Quote Requests",
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const TeacherQuotesPage()),
+                      );
+                    },
+                  ),
+                  _AccountMenuItem(
+                    icon: Icons.settings_outlined,
+                    title: "Settings",
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const TeacherSettingsPage()),
+                      );
+                    },
+                  ),
+                  const SizedBox(height: 20),
+                ],
               ),
+            );
+          },
+        ),
       ),
     );
   }
 }
 
+class _PerformanceOverviewCard extends StatelessWidget {
+  final List<TeacherDashboardStat> stats;
 
+  const _PerformanceOverviewCard({required this.stats});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: const Color(0xFFEDEFF5),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            "Performance Overview",
+            style: GoogleFonts.inter(
+              fontSize: 16,
+              fontWeight: FontWeight.w700,
+              color: const Color(0xFF1F2937),
+            ),
+          ),
+          const SizedBox(height: 16),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: stats.map((stat) {
+              return Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 4.0),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: Column(
+                      children: [
+                        Text(
+                          stat.label,
+                          style: const TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                            color: Color(0xFF94A3B8),
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        if (stat.label == 'RATING')
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(
+                                stat.value,
+                                style: const TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w800,
+                                  color: Color(0xFF1A237E),
+                                ),
+                              ),
+                              SvgPicture.asset(
+                                "assets/images/star.svg",
+                                height: 14,
+                                width: 14,
+                              ),
+                            ],
+                          )
+                        else
+                          Text(
+                            stat.value,
+                            style: const TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w800,
+                              color: Color(0xFF1A237E),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _AccountMenuItem extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final VoidCallback onTap;
+
+  const _AccountMenuItem({
+    required this.icon,
+    required this.title,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return ListTile(
+      onTap: onTap,
+      leading: Icon(icon, color: const Color(0xFF64748B)),
+      title: Text(
+        title,
+        style: GoogleFonts.inter(
+          fontSize: 16,
+          fontWeight: FontWeight.w600,
+          color: const Color(0xFF1F2937),
+        ),
+      ),
+      trailing: const Icon(Icons.chevron_right, color: Color(0xFFD1D5DB)),
+      contentPadding: const EdgeInsets.symmetric(vertical: 8),
+    );
+  }
+}

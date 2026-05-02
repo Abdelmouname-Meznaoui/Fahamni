@@ -160,7 +160,7 @@ class _TeacherServicesDashboardScreenState
                           const SizedBox(height: 22),
                           _TopTabSwitcher(
                             selectedIndex: _selectedTab,
-                            labels: const ['Services', 'Quote Requests'],
+                            labels: const ['Services', 'Join Requests'],
                             onChanged: (index) {
                               setState(() {
                                 _selectedTab = index;

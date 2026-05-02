@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart';
 
 import '../models/chat_model.dart';
 import '../models/parent_model.dart';
@@ -27,40 +28,29 @@ class FirestoreChatRepository implements ChatRepository {
         .snapshots()
         .asyncMap(
           (snapshot) async {
-            try {
-              final List<ConversationModel?> conversationResults = await Future.wait(
-                snapshot.docs.map(
-                  (doc) async {
-                    try {
-                      return await _hydrateConversationFromData(
-                        userId: userId,
-                        docId: doc.id,
-                        data: doc.data(),
-                      );
-                    } catch (error) {
-                      // Log error but don't fail the entire stream
-                      print('Error hydrating conversation ${doc.id}: $error');
-                      return null;
-                    }
-                  },
-                ),
-                eagerError: false,
-              );
+            final List<ConversationModel?> conversations = await Future.wait(
+              snapshot.docs.map(
+                (doc) async {
+                  try {
+                    return await _hydrateConversationFromData(
+                      userId: userId,
+                      docId: doc.id,
+                      data: doc.data(),
+                    );
+                  } catch (e) {
+                    debugPrint('Error hydrating conversation ${doc.id}: $e');
+                    return null;
+                  }
+                },
+              ),
+            );
 
-              final List<ConversationModel> conversations = conversationResults
-                  .whereType<ConversationModel>()
-                  .toList();
+            final List<ConversationModel> validConversations = conversations
+                .whereType<ConversationModel>()
+                .where((conversation) => _matchesFilter(conversation, filter))
+                .toList();
 
-              final List<ConversationModel> filteredConversations = conversations
-                  .where((conversation) => _matchesFilter(conversation, filter))
-                  .toList();
-
-              return _deduplicateConversations(filteredConversations);
-            } catch (error) {
-              // If something goes wrong with the entire batch, log but return empty
-              print('Error loading conversations for user $userId: $error');
-              return <ConversationModel>[];
-            }
+            return _deduplicateConversations(validConversations);
           },
         );
   }
@@ -73,30 +63,15 @@ class FirestoreChatRepository implements ChatRepository {
         .orderBy('sendingDateTime')
         .snapshots()
         .map(
-          (snapshot) {
-            try {
-              return snapshot.docs
-                  .map(
-                    (doc) {
-                      try {
-                        return MessageModel.fromMap({
-                          ...doc.data(),
-                          'messageId': doc.data()['messageId'] ?? doc.id,
-                          'conversationId': conversationId,
-                        });
-                      } catch (error) {
-                        print('Error parsing message ${doc.id}: $error');
-                        return null;
-                      }
-                    },
-                  )
-                  .whereType<MessageModel>()
-                  .toList();
-            } catch (error) {
-              print('Error loading messages for conversation $conversationId: $error');
-              return <MessageModel>[];
-            }
-          },
+          (snapshot) => snapshot.docs
+              .map(
+                (doc) => MessageModel.fromMap({
+                  ...doc.data(),
+                  'id': doc.data()['id'] ?? doc.data()['messageId'] ?? doc.data()['message_id'] ?? doc.id,
+                  'conversationId': conversationId,
+                }),
+              )
+              .toList(),
         );
   }
 
@@ -113,7 +88,7 @@ class FirestoreChatRepository implements ChatRepository {
         conversationRef.collection('messages');
 
     final String messageId =
-        message.messageId.isNotEmpty ? message.messageId : messagesRef.doc().id;
+        message.id.isNotEmpty ? message.id : messagesRef.doc().id;
 
     final MessageModel messageToSave = message.copyWith(id: messageId);
 
@@ -130,10 +105,6 @@ class FirestoreChatRepository implements ChatRepository {
         'conversationId': messageToSave.conversationId,
         'conversation_id':
             existingConversation['conversation_id'] ?? messageToSave.conversationId,
-        'conversationName':
-            existingConversation['conversationName'] ??
-            existingConversation['conversation_name'] ??
-            '',
         'participants': (existingConversation['participants'] as List<dynamic>?)
                 ?.map((participant) => participant.toString())
                 .toList() ??
@@ -148,6 +119,7 @@ class FirestoreChatRepository implements ChatRepository {
         'status': existingConversation['status'] ?? 'active',
         'lastMessage': messageToSave.toMap(),
         'lastMessageTime': messageToSave.sendingDateTime,
+        'updatedAt': Timestamp.now(),
       },
       SetOptions(merge: true),
     );
@@ -218,6 +190,7 @@ class FirestoreChatRepository implements ChatRepository {
       'isGroup': false,
       'createdAt': Timestamp.fromDate(now),
       'status': 'active',
+      'updatedAt': Timestamp.fromDate(now),
     });
 
     final DocumentSnapshot<Map<String, dynamic>> createdSnapshot =
@@ -235,144 +208,64 @@ class FirestoreChatRepository implements ChatRepository {
     required String docId,
     required Map<String, dynamic> data,
   }) async {
-    try {
-      final ConversationModel baseConversation = ConversationModel.fromMap({
-        ...data,
-        'conversationId':
-            data['conversationId'] ?? data['conversation_id'] ?? docId,
-      });
+    final ConversationModel baseConversation = ConversationModel.fromMap({
+      ...data,
+      'conversationId':
+          data['conversationId'] ?? data['conversation_id'] ?? docId,
+    });
 
-      final bool isGroup =
-          baseConversation.isGroup || baseConversation.participants.length > 2;
-      final String otherParticipantId = isGroup
-          ? ''
-          : baseConversation.participants.firstWhere(
-              (participantId) => participantId != userId,
-              orElse: () => '',
-            );
-      
-      UserRole? otherParticipantRole;
-      _ParticipantPresentation participantPresentation;
-      
-      if (isGroup) {
-        try {
-          participantPresentation = await _getGroupPresentation(
+    final bool isGroup =
+        baseConversation.isGroup || baseConversation.participants.length > 2;
+    final String otherParticipantId = isGroup
+        ? ''
+        : baseConversation.participants.firstWhere(
+            (participantId) => participantId != userId,
+            orElse: () => '',
+          );
+    
+    UserRole? otherParticipantRole;
+    if (otherParticipantId.isNotEmpty) {
+      otherParticipantRole = await _getUserRole(otherParticipantId);
+    }
+
+    final _ParticipantPresentation participantPresentation = isGroup
+        ? await _getGroupPresentation(
             currentUserId: userId,
             conversation: baseConversation,
-          );
-        } catch (error) {
-          print('Error getting group presentation: $error');
-          participantPresentation = _ParticipantPresentation.empty();
-        }
-      } else {
-        try {
-          otherParticipantRole = await _getUserRole(otherParticipantId);
-        } catch (error) {
-          print('Error getting user role for $otherParticipantId: $error');
-          otherParticipantRole = null;
-        }
-        
-        if (otherParticipantId.isEmpty) {
-          participantPresentation = _ParticipantPresentation.empty();
-        } else {
-          try {
-            participantPresentation = await _getParticipantPresentation(
-              userId: otherParticipantId,
-              role: otherParticipantRole,
-            );
-          } catch (error) {
-            print('Error getting participant presentation for $otherParticipantId: $error');
-            participantPresentation = _ParticipantPresentation.empty();
-          }
-        }
-      }
+          )
+        : otherParticipantId.isEmpty
+            ? _ParticipantPresentation.empty()
+            : await _getParticipantPresentation(
+                userId: otherParticipantId,
+                role: otherParticipantRole,
+              );
 
-      final String resolvedConversationName =
-          baseConversation.conversationName.trim().isNotEmpty
-              ? baseConversation.conversationName.trim()
-              : participantPresentation.displayName;
+    final String resolvedConversationName =
+        baseConversation.conversationName.trim().isNotEmpty
+            ? baseConversation.conversationName.trim()
+            : participantPresentation.displayName;
 
-      return baseConversation.copyWith(
-        conversationName: resolvedConversationName,
-        isGroup: isGroup,
-        otherParticipantRole: otherParticipantRole,
-        participantDisplayName: participantPresentation.displayName,
-        participantAvatarUrl: participantPresentation.avatarUrl,
-        participantSubtitle: participantPresentation.subtitle,
-        isVerified: participantPresentation.isVerified,
-        isOnline: participantPresentation.isOnline,
-      );
-    } catch (error) {
-      print('Error hydrating conversation $docId: $error');
-      // Return a basic conversation model without hydrated data
-      final ConversationModel baseConversation = ConversationModel.fromMap({
-        ...data,
-        'conversationId':
-            data['conversationId'] ?? data['conversation_id'] ?? docId,
-      });
-      return baseConversation;
-    }
+    return baseConversation.copyWith(
+      conversationName: resolvedConversationName,
+      isGroup: isGroup,
+      otherParticipantRole: otherParticipantRole,
+      participantDisplayName: participantPresentation.displayName,
+      participantAvatarUrl: participantPresentation.avatarUrl,
+      participantSubtitle: participantPresentation.subtitle,
+      isVerified: participantPresentation.isVerified,
+      isOnline: participantPresentation.isOnline,
+    );
   }
 
   Future<_ParticipantPresentation> _getGroupPresentation({
     required String currentUserId,
     required ConversationModel conversation,
   }) async {
-    try {
-      final List<String> otherParticipantIds = conversation.participants
-          .where((participantId) => participantId != currentUserId)
-          .toList();
+    final List<String> otherParticipantIds = conversation.participants
+        .where((participantId) => participantId != currentUserId)
+        .toList();
 
-      if (otherParticipantIds.isEmpty) {
-        return _ParticipantPresentation(
-          displayName: conversation.conversationName.trim().isNotEmpty
-              ? conversation.conversationName.trim()
-              : 'Group Conversation',
-          avatarUrl: '',
-          subtitle: '',
-        );
-      }
-
-      final List<_ParticipantPresentation?> memberResults = await Future.wait(
-        otherParticipantIds.map((participantId) async {
-          try {
-            final UserRole? role = await _getUserRole(participantId);
-            return await _getParticipantPresentation(
-              userId: participantId,
-              role: role,
-            );
-          } catch (error) {
-            print('Error getting presentation for group member $participantId: $error');
-            return null;
-          }
-        }),
-        eagerError: false,
-      );
-
-      final List<_ParticipantPresentation> members = memberResults
-          .whereType<_ParticipantPresentation>()
-          .where((member) => member.displayName.trim().isNotEmpty)
-          .toList();
-
-      final List<String> memberNames = members
-          .map((member) => member.displayName.trim())
-          .where((name) => name.isNotEmpty)
-          .toList();
-
-      final String subtitle = _formatGroupMembers(memberNames);
-      final String displayName = conversation.conversationName.trim().isNotEmpty
-          ? conversation.conversationName.trim()
-          : subtitle.isNotEmpty
-              ? subtitle
-              : 'Group Conversation';
-
-      return _ParticipantPresentation(
-        displayName: displayName,
-        avatarUrl: '',
-        subtitle: subtitle,
-      );
-    } catch (error) {
-      print('Error getting group presentation: $error');
+    if (otherParticipantIds.isEmpty) {
       return _ParticipantPresentation(
         displayName: conversation.conversationName.trim().isNotEmpty
             ? conversation.conversationName.trim()
@@ -381,6 +274,36 @@ class FirestoreChatRepository implements ChatRepository {
         subtitle: '',
       );
     }
+
+    final List<_ParticipantPresentation> members = (await Future.wait(
+      otherParticipantIds.map((participantId) async {
+        final UserRole? role = await _getUserRole(participantId);
+        return _getParticipantPresentation(
+          userId: participantId,
+          role: role,
+        );
+      }),
+    ))
+        .where((member) => member.displayName.trim().isNotEmpty)
+        .toList();
+
+    final List<String> memberNames = members
+        .map((member) => member.displayName.trim())
+        .where((name) => name.isNotEmpty)
+        .toList();
+
+    final String subtitle = _formatGroupMembers(memberNames);
+    final String displayName = conversation.conversationName.trim().isNotEmpty
+        ? conversation.conversationName.trim()
+        : subtitle.isNotEmpty
+            ? subtitle
+            : 'Group Conversation';
+
+    return _ParticipantPresentation(
+      displayName: displayName,
+      avatarUrl: '',
+      subtitle: subtitle,
+    );
   }
 
   String _formatGroupMembers(List<String> memberNames) {
@@ -427,35 +350,37 @@ class FirestoreChatRepository implements ChatRepository {
       return _userRoleCache[userId];
     }
 
-    final DocumentSnapshot<Map<String, dynamic>> userSnapshot =
-        await _firestore.collection('users').doc(userId).get();
-    final String? roleName = userSnapshot.data()?['role'] as String?;
     UserRole? role;
-    if (roleName != null) {
-      for (final UserRole candidate in UserRole.values) {
-        if (candidate.name == roleName) {
-          role = candidate;
-          break;
+    try {
+      final DocumentSnapshot<Map<String, dynamic>> userSnapshot =
+          await _firestore.collection('users').doc(userId).get();
+      
+      if (userSnapshot.exists) {
+        final dynamic roleValue = userSnapshot.data()?['role'];
+        if (roleValue != null) {
+          role = UserModel.parseRole(roleValue);
         }
       }
-    }
 
-    if (role == null) {
-      final List<MapEntry<String, UserRole>> collectionChecks =
-          <MapEntry<String, UserRole>>[
-        const MapEntry<String, UserRole>('tutors', UserRole.tutor),
-        const MapEntry<String, UserRole>('students', UserRole.student),
-        const MapEntry<String, UserRole>('parents', UserRole.parent),
-      ];
+      if (role == null) {
+        final List<MapEntry<String, UserRole>> collectionChecks =
+            <MapEntry<String, UserRole>>[
+          const MapEntry<String, UserRole>('tutors', UserRole.tutor),
+          const MapEntry<String, UserRole>('students', UserRole.student),
+          const MapEntry<String, UserRole>('parents', UserRole.parent),
+        ];
 
-      for (final MapEntry<String, UserRole> check in collectionChecks) {
-        final DocumentSnapshot<Map<String, dynamic>> snapshot =
-            await _firestore.collection(check.key).doc(userId).get();
-        if (snapshot.exists) {
-          role = check.value;
-          break;
+        for (final MapEntry<String, UserRole> check in collectionChecks) {
+          final DocumentSnapshot<Map<String, dynamic>> snapshot =
+              await _firestore.collection(check.key).doc(userId).get();
+          if (snapshot.exists) {
+            role = check.value;
+            break;
+          }
         }
       }
+    } catch (e) {
+      debugPrint('Error getting user role for $userId: $e');
     }
 
     _userRoleCache[userId] = role;
@@ -473,80 +398,69 @@ class FirestoreChatRepository implements ChatRepository {
     try {
       switch (role) {
         case UserRole.tutor:
-          try {
-            final DocumentSnapshot<Map<String, dynamic>> snapshot =
-                await _firestore.collection('tutors').doc(userId).get();
-            if (!snapshot.exists || snapshot.data() == null) {
-              return _ParticipantPresentation.empty();
-            }
-            final TutorModel tutor = TutorModel.fromMap(snapshot.data()!);
-            final String fullName =
-                '${tutor.firstName} ${tutor.lastName.isNotEmpty ? '${tutor.lastName[0]}.' : ''}'
-                    .trim();
-            final String subtitle = [
-              if (tutor.levelsTaught.isNotEmpty) tutor.levelsTaught.first,
-              if (tutor.expertiseDomain.isNotEmpty) tutor.expertiseDomain,
-            ].join(' • ');
-            return _ParticipantPresentation(
-              displayName: fullName.isNotEmpty ? fullName : 'Tutor',
-              avatarUrl: tutor.picture,
-              subtitle: subtitle,
-              isVerified: tutor.certified,
-              isOnline: tutor.isAvailable,
-            );
-          } catch (error) {
-            print('Error loading tutor $userId: $error');
-            return _ParticipantPresentation.empty();
+          final DocumentSnapshot<Map<String, dynamic>> snapshot =
+              await _firestore.collection('tutors').doc(userId).get();
+          if (!snapshot.exists || snapshot.data() == null) {
+            return _ParticipantPresentation(displayName: 'Tutor', avatarUrl: '', subtitle: '');
           }
+          final TutorModel tutor = TutorModel.fromMap(snapshot.data()!);
+          final String fullName =
+              '${tutor.firstName} ${tutor.lastName.isNotEmpty ? '${tutor.lastName[0]}.' : ''}'
+                  .trim();
+          final String subtitle = [
+            if (tutor.levelsTaught.isNotEmpty) tutor.levelsTaught.first,
+            if (tutor.expertiseDomain.isNotEmpty) tutor.expertiseDomain,
+          ].join(' • ');
+          return _ParticipantPresentation(
+            displayName: fullName.isNotEmpty ? fullName : 'Tutor',
+            avatarUrl: tutor.picture,
+            subtitle: subtitle,
+            isVerified: tutor.certified,
+            isOnline: tutor.isAvailable,
+          );
         case UserRole.student:
-          try {
-            final DocumentSnapshot<Map<String, dynamic>> snapshot =
-                await _firestore.collection('students').doc(userId).get();
-            if (!snapshot.exists || snapshot.data() == null) {
-              return _ParticipantPresentation.empty();
-            }
-            final StudentModel student = StudentModel.fromMap(snapshot.data()!);
-            final String fullName =
-                '${student.firstName} ${student.lastName.isNotEmpty ? '${student.lastName[0]}.' : ''}'
-                    .trim();
-            final String subtitle = [
-              if (student.schoolLevel.isNotEmpty) student.schoolLevel,
-              if (student.preferredSubjects.isNotEmpty) student.preferredSubjects.first,
-            ].join(' • ');
-            return _ParticipantPresentation(
-              displayName: fullName.isNotEmpty ? fullName : 'Student',
-              avatarUrl: student.picture,
-              subtitle: subtitle,
-              isOnline: false,
-            );
-          } catch (error) {
-            print('Error loading student $userId: $error');
-            return _ParticipantPresentation.empty();
+          final DocumentSnapshot<Map<String, dynamic>> snapshot =
+              await _firestore.collection('students').doc(userId).get();
+          if (!snapshot.exists || snapshot.data() == null) {
+            return _ParticipantPresentation(displayName: 'Student', avatarUrl: '', subtitle: '');
           }
+          final StudentModel student = StudentModel.fromMap(snapshot.data()!);
+          final String fullName =
+              '${student.firstName} ${student.lastName.isNotEmpty ? '${student.lastName[0]}.' : ''}'
+                  .trim();
+          final String subtitle = [
+            if (student.schoolLevel.isNotEmpty) student.schoolLevel,
+            if (student.preferredSubjects.isNotEmpty) student.preferredSubjects.first,
+          ].join(' • ');
+          return _ParticipantPresentation(
+            displayName: fullName.isNotEmpty ? fullName : 'Student',
+            avatarUrl: student.picture,
+            subtitle: subtitle,
+            isOnline: false,
+          );
         case UserRole.parent:
-          try {
-            final DocumentSnapshot<Map<String, dynamic>> snapshot =
-                await _firestore.collection('parents').doc(userId).get();
-            if (!snapshot.exists || snapshot.data() == null) {
-              return _ParticipantPresentation.empty();
-            }
-            final ParentModel parent = ParentModel.fromMap(snapshot.data()!);
-            final String fullName =
-                '${parent.firstName} ${parent.lastName.isNotEmpty ? '${parent.lastName[0]}.' : ''}'
-                    .trim();
-            return _ParticipantPresentation(
-              displayName: fullName.isNotEmpty ? fullName : 'Parent',
-              avatarUrl: parent.picture,
-              subtitle: parent.location,
-            );
-          } catch (error) {
-            print('Error loading parent $userId: $error');
-            return _ParticipantPresentation.empty();
+          final DocumentSnapshot<Map<String, dynamic>> snapshot =
+              await _firestore.collection('parents').doc(userId).get();
+          if (!snapshot.exists || snapshot.data() == null) {
+            return _ParticipantPresentation(displayName: 'Parent', avatarUrl: '', subtitle: '');
           }
+          final ParentModel parent = ParentModel.fromMap(snapshot.data()!);
+          final String fullName =
+              '${parent.firstName} ${parent.lastName.isNotEmpty ? '${parent.lastName[0]}.' : ''}'
+                  .trim();
+          return _ParticipantPresentation(
+            displayName: fullName.isNotEmpty ? fullName : 'Parent',
+            avatarUrl: parent.picture,
+            subtitle: parent.location,
+          );
       }
-    } catch (error) {
-      print('Error getting participant presentation for $userId: $error');
-      return _ParticipantPresentation.empty();
+    } catch (e) {
+      debugPrint('Error getting presentation for user $userId (role $role): $e');
+      return _ParticipantPresentation(
+        displayName: role.name.toUpperCase(),
+        avatarUrl: '',
+        subtitle: '',
+      );
     }
   }
 
@@ -587,5 +501,3 @@ class _ParticipantPresentation {
   final bool isVerified;
   final bool isOnline;
 }
-
-

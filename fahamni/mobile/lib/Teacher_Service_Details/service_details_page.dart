@@ -45,8 +45,10 @@ class _CourseDetailsPageState extends State<CourseDetailsPage>
         elevation: 0,
         leading: IconButton(
           onPressed: () => Navigator.pop(context),
-          icon: const Icon(Icons.arrow_back_ios_new_outlined,
-              color: Color(0xFF0F172A)),
+          icon: const Icon(
+            Icons.arrow_back_ios_new_outlined,
+            color: Color(0xFF0F172A),
+          ),
         ),
         title: Text(
           widget.service.subject,
@@ -131,6 +133,8 @@ class _CourseDetailsPageState extends State<CourseDetailsPage>
               children: [
                 SessionsTab(
                   serviceId: widget.service.serviceId,
+                  tutorId: widget.service.tutorId,
+                  studentIds: widget.service.studentIds,
                   totalSessions: widget.service.sessionsnum,
                 ),
                 ResourcesTab(serviceId: widget.service.serviceId),
@@ -143,5 +147,3 @@ class _CourseDetailsPageState extends State<CourseDetailsPage>
     );
   }
 }
-
-

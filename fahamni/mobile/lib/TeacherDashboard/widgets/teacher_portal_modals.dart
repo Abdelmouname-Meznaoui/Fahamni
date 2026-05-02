@@ -50,13 +50,44 @@ class _QuoteResponseModalState extends State<QuoteResponseModal> {
                   : null,
             ),
             const SizedBox(height: 16),
-            Text(
-              widget.request.studentName,
-              style: const TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.w800,
-                color: Color(0xFF1F2937),
-              ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Flexible(
+                  child: Text(
+                    widget.request.studentName,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.w800,
+                      color: Color(0xFF1F2937),
+                    ),
+                  ),
+                ),
+                if (widget.request.isChild) ...[
+                  const SizedBox(width: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 5,
+                    ),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFDCD8FF),
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                    child: const Text(
+                      'CHILD',
+                      style: TextStyle(
+                        fontFamily: 'Inter',
+                        fontSize: 12,
+                        fontWeight: FontWeight.w800,
+                        color: Color(0xFF5B5680),
+                      ),
+                    ),
+                  ),
+                ],
+              ],
             ),
             Text(
               widget.request.studentLevel,
@@ -80,7 +111,9 @@ class _QuoteResponseModalState extends State<QuoteResponseModal> {
                     text: widget.request.studentName,
                     style: const TextStyle(fontWeight: FontWeight.w700),
                   ),
-                  const TextSpan(text: ' requests to join the following service :\n'),
+                  const TextSpan(
+                    text: ' requests to join the following service :\n',
+                  ),
                   TextSpan(
                     text: widget.request.serviceTitle,
                     style: const TextStyle(
@@ -95,10 +128,7 @@ class _QuoteResponseModalState extends State<QuoteResponseModal> {
             const Text(
               'You can accept the join request once the payment is done, or reject it.',
               textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 14,
-                color: Color(0xFF64748B),
-              ),
+              style: TextStyle(fontSize: 14, color: Color(0xFF64748B)),
             ),
             const SizedBox(height: 24),
             Container(
@@ -110,7 +140,11 @@ class _QuoteResponseModalState extends State<QuoteResponseModal> {
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Icon(Icons.error_outline, color: Color(0xFFDC2626), size: 20),
+                  const Icon(
+                    Icons.error_outline,
+                    color: Color(0xFFDC2626),
+                    size: 20,
+                  ),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Text(
@@ -187,7 +221,9 @@ class QuoteRespondModal extends StatefulWidget {
 }
 
 class _QuoteRespondModalState extends State<QuoteRespondModal> {
-  final TextEditingController _priceController = TextEditingController(text: '1');
+  final TextEditingController _priceController = TextEditingController(
+    text: '1',
+  );
 
   @override
   void dispose() {
@@ -239,11 +275,19 @@ class _QuoteRespondModalState extends State<QuoteRespondModal> {
             const SizedBox(height: 8),
             TextField(
               controller: _priceController,
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
+              ),
               decoration: InputDecoration(
                 suffixText: 'DA',
-                suffixStyle: const TextStyle(color: Color(0xFF64748B), fontWeight: FontWeight.w600),
-                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                suffixStyle: const TextStyle(
+                  color: Color(0xFF64748B),
+                  fontWeight: FontWeight.w600,
+                ),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 14,
+                ),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                   borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
@@ -273,7 +317,9 @@ class _QuoteRespondModalState extends State<QuoteRespondModal> {
                 width: double.infinity,
                 child: ElevatedButton(
                   onPressed: () {
-                    final double? price = double.tryParse(_priceController.text.trim());
+                    final double? price = double.tryParse(
+                      _priceController.text.trim(),
+                    );
                     Navigator.pop(context, price);
                   },
                   style: ElevatedButton.styleFrom(
@@ -300,5 +346,3 @@ class _QuoteRespondModalState extends State<QuoteRespondModal> {
     );
   }
 }
-
-

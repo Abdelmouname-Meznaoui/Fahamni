@@ -1,5 +1,7 @@
 import 'package:fahamni/Notification_page/notification_page.dart';
-import 'package:fahamni/Account_Settings_Teacher/account_screen.dart' as teacher_account;
+import 'package:fahamni/Account_Settings_Teacher/account_screen.dart'
+    as teacher_account;
+import 'package:fahamni/Services/notification_service.dart';
 import 'package:fahamni/TeacherDashboard/models/teacher_portal_models.dart';
 import 'package:fahamni/TeacherDashboard/teacher_dashboard_service.dart';
 import 'package:fahamni/TeacherDashboard/teacher_quote_request_detail_page.dart';
@@ -7,11 +9,14 @@ import 'package:fahamni/TeacherDashboard/teacher_schedule_page.dart';
 import 'package:fahamni/TeacherDashboard/teacher_services_dashboard.dart';
 import 'package:fahamni/TeacherDashboard/widgets/teacher_navbar.dart';
 import 'package:fahamni/messaging/chat_page.dart';
+import 'package:fahamni/models/notification_model.dart';
 import 'package:fahamni/models/teacher_dashboard_model.dart';
 import 'package:fahamni/navigation/app_navigation.dart';
 import 'package:fahamni/otp_verification_Screen/primarybutton.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'dart:async';
 
 class Teacherpage extends StatelessWidget {
   const Teacherpage({super.key});
@@ -33,16 +38,37 @@ class _TeacherDashboardScreenState extends State<TeacherDashboardScreen> {
 
   late Future<TeacherDashboardModel> _dashboardFuture;
   int _selectedIndex = 0;
+  final NotificationService _notificationService = NotificationService();
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+  bool _hasUnreadNotifications = false;
+  StreamSubscription<List<NotificationModel>>? _notificationSubscription;
 
   @override
   void initState() {
     super.initState();
     _dashboardFuture = TeacherDashboardService().loadDashboard();
+    _startNotificationListener();
+  }
+
+  void _startNotificationListener() {
+    final String? userId = _auth.currentUser?.uid;
+    if (userId != null) {
+      _notificationSubscription = _notificationService.streamNotifications(userId).listen(
+        (notifications) {
+          final bool hasUnread = notifications.any((notification) => !notification.isRead);
+          if (mounted && hasUnread != _hasUnreadNotifications) {
+            setState(() {
+              _hasUnreadNotifications = hasUnread;
+            });
+          }
+        },
+      );
+    }
   }
 
   Future<void> _refreshDashboard() async {
-    final Future<TeacherDashboardModel> future =
-        TeacherDashboardService().loadDashboard();
+    final Future<TeacherDashboardModel> future = TeacherDashboardService()
+        .loadDashboard();
     setState(() {
       _dashboardFuture = future;
     });
@@ -69,9 +95,9 @@ class _TeacherDashboardScreenState extends State<TeacherDashboardScreen> {
         );
         break;
       case 2:
-        Navigator.of(context).push(
-          MaterialPageRoute(builder: (_) => const ChatPage()),
-        );
+        Navigator.of(
+          context,
+        ).push(MaterialPageRoute(builder: (_) => const ChatPage()));
         break;
       case 3:
         Navigator.of(context).push(
@@ -85,6 +111,12 @@ class _TeacherDashboardScreenState extends State<TeacherDashboardScreen> {
           const SnackBar(content: Text('This section is coming soon.')),
         );
     }
+  }
+
+  @override
+  void dispose() {
+    _notificationSubscription?.cancel();
+    super.dispose();
   }
 
   @override
@@ -120,106 +152,123 @@ class _TeacherDashboardScreenState extends State<TeacherDashboardScreen> {
                   SliverPadding(
                     padding: const EdgeInsets.fromLTRB(20, 18, 20, 24),
                     sliver: SliverList(
-                      delegate: SliverChildListDelegate(
-                        [
-                          _DashboardHeader(
-                            teacherName: dashboard.teacherName,
-                            teacherRoleLabel: dashboard.teacherRoleLabel,
-                            profileImage: dashboard.profileImage,
-                          ),
-                          const SizedBox(height: 22),
-                          _PerformanceCard(
-                            stats: dashboard.stats,
-                            title: dashboard.performanceTitle,
-                          ),
-                          const SizedBox(height: 22),
-                          _SectionHeader(
-                            title: dashboard.todaySessionsTitle,
-                            actionLabel: dashboard.seeAllLabel,
-                            onActionTap: () {
-                              Navigator.of(context).push(
-                                MaterialPageRoute(
-                                  builder: (_) => const TeacherSchedulePage(),
+                      delegate: SliverChildListDelegate([
+                        _DashboardHeader(
+                          teacherName: dashboard.teacherName,
+                          teacherRoleLabel: dashboard.teacherRoleLabel,
+                          profileImage: dashboard.profileImage,
+                          hasUnreadNotifications: _hasUnreadNotifications,
+                        ),
+                        const SizedBox(height: 22),
+                        _PerformanceCard(
+                          stats: dashboard.stats,
+                          title: dashboard.performanceTitle,
+                        ),
+                        const SizedBox(height: 22),
+                        _SectionHeader(
+                          title: dashboard.todaySessionsTitle,
+                          actionLabel: dashboard.seeAllLabel,
+                          onActionTap: () {
+                            Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (_) => const TeacherSchedulePage(),
+                              ),
+                            );
+                          },
+                        ),
+                        const SizedBox(height: 12),
+                        if (dashboard.nextSession != null)
+                          _SessionCard(session: dashboard.nextSession!)
+                        else
+                          _EmptyCard(label: dashboard.emptySessionsLabel),
+                        const SizedBox(height: 22),
+                        _SectionHeader(
+                          title: dashboard.myServicesTitle,
+                          actionLabel: dashboard.seeAllLabel,
+                          onActionTap: () {
+                            Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (_) =>
+                                    const TeacherServicesDashboardScreen(),
+                              ),
+                            );
+                          },
+                        ),
+                        const SizedBox(height: 14),
+                        SizedBox(
+                          height: 300,
+                          child: dashboard.services.isEmpty
+                              ? _EmptyCard(label: dashboard.emptyServicesLabel)
+                              : ListView.builder(
+                                  scrollDirection: Axis.horizontal,
+                                  itemCount: dashboard.services.length,
+                                  itemBuilder: (context, index) {
+                                    return Padding(
+                                      padding: EdgeInsets.only(
+                                        right:
+                                            index ==
+                                                dashboard.services.length - 1
+                                            ? 0
+                                            : 16,
+                                      ),
+                                      child: _ServiceCard(
+                                        service: dashboard.services[index],
+                                      ),
+                                    );
+                                  },
                                 ),
-                              );
-                            },
-                          ),
-                          const SizedBox(height: 12),
-                          if (dashboard.nextSession != null)
-                            _SessionCard(session: dashboard.nextSession!)
-                          else
-                            _EmptyCard(label: dashboard.emptySessionsLabel),
-                          const SizedBox(height: 22),
-                          _SectionHeader(
-                            title: dashboard.myServicesTitle,
-                            actionLabel: dashboard.seeAllLabel,
-                            onActionTap: () {
-                              Navigator.of(context).push(
-                                MaterialPageRoute(
-                                  builder: (_) => const TeacherServicesDashboardScreen(),
-                                ),
-                              );
-                            },
-                          ),
-                          const SizedBox(height: 14),
-                          SizedBox(
-                            height: 300,
-                            child: dashboard.services.isEmpty
-                                ? _EmptyCard(label: dashboard.emptyServicesLabel)
-                                : ListView.builder(
-                                    scrollDirection: Axis.horizontal,
-                                    itemCount: dashboard.services.length,
-                                    itemBuilder: (context, index) {
-                                      return Padding(
-                                        padding: EdgeInsets.only(
-                                          right: index == dashboard.services.length - 1 ? 0 : 16,
-                                        ),
-                                        child: _ServiceCard(
-                                          service: dashboard.services[index],
-                                        ),
-                                      );
-                                    },
-                                  ),
-                          ),
-                          const SizedBox(height: 22),
-                          _SectionHeader(
-                            title: dashboard.quoteRequestsTitle,
-                            actionLabel: dashboard.seeAllLabel,
-                            onActionTap: () {
-                              Navigator.of(context).push(
-                                MaterialPageRoute(
-                                  builder: (_) => const TeacherServicesDashboardScreen(),
-                                ),
-                              );
-                            },
-                          ),
-                          const SizedBox(height: 14),
-                          if (dashboard.quoteRequests.isEmpty)
-                            _EmptyCard(label: dashboard.emptyQuotesLabel)
-                          else
-                            ...dashboard.quoteRequests.map(
-                              (request) {
-                                final joinRequest = TeacherJoinRequestDetail(
-                                  quote: request.quote,
-                                  studentName: request.studentName,
-                                  studentLevel: request.studentLevel,
-                                  studentAvatar: request.avatarPath,
-                                  serviceTitle: request.quote.serviceName.isNotEmpty ? request.quote.serviceName : request.subtitle,
-                                  description: request.objective.isNotEmpty ? request.objective : request.quote.description,
-                                  subject: request.subject.isNotEmpty ? request.subject : request.quote.subject,
-                                  teachingMode: request.quote.teachingMode,
-                                  sessionsCount: request.quote.sessionsCount,
-                                  sessionDurationLabel: request.duration.isNotEmpty ? request.duration : request.quote.duration,
-                                  createdAtLabel: request.createdAtLabel,
-                                );
-                                return Padding(
-                                  padding: const EdgeInsets.only(bottom: 12),
-                                  child: _QuoteRequestTile(request: joinRequest),
-                                );
-                              },
-                            ),
-                        ],
-                      ),
+                        ),
+                        const SizedBox(height: 22),
+                        _SectionHeader(
+                          title: dashboard.quoteRequestsTitle,
+                          actionLabel: dashboard.seeAllLabel,
+                          onActionTap: () {
+                            Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (_) =>
+                                    const TeacherServicesDashboardScreen(),
+                              ),
+                            );
+                          },
+                        ),
+                        const SizedBox(height: 14),
+                        if (dashboard.quoteRequests.isEmpty)
+                          _EmptyCard(label: dashboard.emptyQuotesLabel)
+                        else
+                          ...dashboard.quoteRequests.map((request) {
+                            final joinRequest = TeacherJoinRequestDetail(
+                              quote: request.quote,
+                              studentName: request.studentName,
+                              studentLevel: request.studentLevel,
+                              studentAvatar: request.avatarPath,
+                              serviceTitle: request.quote.serviceName.isNotEmpty
+                                  ? request.quote.serviceName
+                                  : request.subtitle,
+                              description: request.objective.isNotEmpty
+                                  ? request.objective
+                                  : request.quote.description,
+                              subject: request.subject.isNotEmpty
+                                  ? request.subject
+                                  : request.quote.subject,
+                              teachingMode: request.quote.teachingMode,
+                              sessionsCount: request.quote.sessionsCount,
+                              sessionDurationLabel: request.duration.isNotEmpty
+                                  ? request.duration
+                                  : request.quote.duration,
+                              createdAtLabel: request.createdAtLabel,
+                              isChild:
+                                  request.quote.level.isEmpty &&
+                                  request.studentLevel.isNotEmpty,
+                            );
+                            return Padding(
+                              padding: const EdgeInsets.only(bottom: 12),
+                              child: _QuoteRequestTile(
+                                request: joinRequest,
+                                onChanged: _refreshDashboard,
+                              ),
+                            );
+                          }),
+                      ]),
                     ),
                   ),
                 ],
@@ -237,11 +286,13 @@ class _DashboardHeader extends StatelessWidget {
     required this.teacherName,
     required this.teacherRoleLabel,
     required this.profileImage,
+    required this.hasUnreadNotifications,
   });
 
   final String teacherName;
   final String teacherRoleLabel;
   final String profileImage;
+  final bool hasUnreadNotifications;
 
   @override
   Widget build(BuildContext context) {
@@ -277,18 +328,35 @@ class _DashboardHeader extends StatelessWidget {
         ),
         IconButton(
           onPressed: () {
-            Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => const NotificationPage()),
-            );
+            Navigator.of(
+              context,
+            ).push(MaterialPageRoute(builder: (_) => const NotificationPage()));
           },
-          icon: SvgPicture.asset(
-            'assets/images/bell.svg',
-            width: 28,
-            height: 28,
-            colorFilter: const ColorFilter.mode(
-              Color(0xFF1F2937),
-              BlendMode.srcIn,
-            ),
+          icon: Stack(
+            children: [
+              SvgPicture.asset(
+                'assets/images/bell.svg',
+                width: 28,
+                height: 28,
+                colorFilter: const ColorFilter.mode(
+                  Color(0xFF1F2937),
+                  BlendMode.srcIn,
+                ),
+              ),
+              if (hasUnreadNotifications)
+                Positioned(
+                  top: 0,
+                  right: 0,
+                  child: Container(
+                    width: 8,
+                    height: 8,
+                    decoration: const BoxDecoration(
+                      color: Colors.red,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                ),
+            ],
           ),
         ),
       ],
@@ -297,10 +365,7 @@ class _DashboardHeader extends StatelessWidget {
 }
 
 class _PerformanceCard extends StatelessWidget {
-  const _PerformanceCard({
-    required this.stats,
-    required this.title,
-  });
+  const _PerformanceCard({required this.stats, required this.title});
 
   final List<TeacherDashboardStat> stats;
   final String title;
@@ -348,6 +413,27 @@ class _PerformanceCard extends StatelessWidget {
                               ),
                             ),
                             const SizedBox(height: 8),
+                            if (stat.label == 'RATING')
+                              Row(
+                                crossAxisAlignment: CrossAxisAlignment.center,
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Text(
+                                    stat.value,
+                                    style: const TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w800,
+                                      color: Color(0xFF1A237E),
+                                    ),
+                                  ),
+                                  SvgPicture.asset(
+                                   "assets/images/star.svg",
+                                   height: 12,
+                                   width: 12,
+                                   ),
+                                ],
+                              )
+                            else
                             Text(
                               stat.value,
                               style: const TextStyle(
@@ -412,9 +498,7 @@ class _SectionHeader extends StatelessWidget {
 }
 
 class _SessionCard extends StatelessWidget {
-  const _SessionCard({
-    required this.session,
-  });
+  const _SessionCard({required this.session});
 
   final TeacherDashboardSession session;
 
@@ -478,7 +562,11 @@ class _SessionCard extends StatelessWidget {
                   const SizedBox(height: 12),
                   Row(
                     children: [
-                      const Icon(Icons.menu_book_rounded, color: Color(0xFF64748B), size: 18),
+                      const Icon(
+                        Icons.menu_book_rounded,
+                        color: Color(0xFF64748B),
+                        size: 18,
+                      ),
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
@@ -495,7 +583,11 @@ class _SessionCard extends StatelessWidget {
                   const SizedBox(height: 8),
                   Row(
                     children: [
-                      const Icon(Icons.schedule_rounded, color: Color(0xFF64748B), size: 18),
+                      const Icon(
+                        Icons.schedule_rounded,
+                        color: Color(0xFF64748B),
+                        size: 18,
+                      ),
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
@@ -520,9 +612,7 @@ class _SessionCard extends StatelessWidget {
 }
 
 class _ServiceCard extends StatelessWidget {
-  const _ServiceCard({
-    required this.service,
-  });
+  const _ServiceCard({required this.service});
 
   final TeacherDashboardServiceCard service;
 
@@ -589,7 +679,11 @@ class _ServiceCard extends StatelessWidget {
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    const Icon(Icons.schedule_rounded, color: Color(0xFF94A3B8), size: 16),
+                    const Icon(
+                      Icons.schedule_rounded,
+                      color: Color(0xFF94A3B8),
+                      size: 16,
+                    ),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
@@ -624,11 +718,10 @@ class _ServiceCard extends StatelessWidget {
 }
 
 class _QuoteRequestTile extends StatelessWidget {
-  const _QuoteRequestTile({
-    required this.request,
-  });
+  const _QuoteRequestTile({required this.request, required this.onChanged});
 
   final TeacherJoinRequestDetail request;
+  final Future<void> Function() onChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -684,10 +777,13 @@ class _QuoteRequestTile extends StatelessWidget {
           const SizedBox(width: 12),
           PrimaryButton(
             text: "see details",
-            onPressed: () {
-              NavigationService.instance.push(
+            onPressed: () async {
+              final bool? changed = await NavigationService.instance.push<bool>(
                 TeacherQuoteRequestDetailPage(request: request),
               );
+              if (changed == true) {
+                await onChanged();
+              }
             },
             minimumSize: const Size(112, 40),
             borderRadius: 20,
@@ -701,10 +797,7 @@ class _QuoteRequestTile extends StatelessWidget {
 }
 
 class _DashboardErrorState extends StatelessWidget {
-  const _DashboardErrorState({
-    required this.message,
-    required this.onRetry,
-  });
+  const _DashboardErrorState({required this.message, required this.onRetry});
 
   final String message;
   final Future<void> Function() onRetry;
@@ -717,7 +810,11 @@ class _DashboardErrorState extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.error_outline_rounded, size: 52, color: Color(0xFF1A237E)),
+            const Icon(
+              Icons.error_outline_rounded,
+              size: 52,
+              color: Color(0xFF1A237E),
+            ),
             const SizedBox(height: 12),
             Text(
               message,
@@ -743,9 +840,7 @@ class _DashboardErrorState extends StatelessWidget {
 }
 
 class _EmptyCard extends StatelessWidget {
-  const _EmptyCard({
-    required this.label,
-  });
+  const _EmptyCard({required this.label});
 
   final String label;
 
@@ -804,10 +899,7 @@ class _TagChip extends StatelessWidget {
 }
 
 class _ProfileAvatar extends StatelessWidget {
-  const _ProfileAvatar({
-    required this.imagePath,
-    required this.radius,
-  });
+  const _ProfileAvatar({required this.imagePath, required this.radius});
 
   final String imagePath;
   final double radius;
@@ -826,15 +918,15 @@ class _ProfileAvatar extends StatelessWidget {
 }
 
 class _DashboardImage extends StatelessWidget {
-  const _DashboardImage({
-    required this.imagePath,
-  });
+  const _DashboardImage({required this.imagePath});
 
   final String imagePath;
 
   @override
   Widget build(BuildContext context) {
-    final ImageProvider<Object>? imageProvider = _resolveImageProvider(imagePath);
+    final ImageProvider<Object>? imageProvider = _resolveImageProvider(
+      imagePath,
+    );
     if (imageProvider == null) {
       return Container(
         color: const Color(0xFF16324F),
@@ -845,19 +937,14 @@ class _DashboardImage extends StatelessWidget {
 
     return Container(
       decoration: BoxDecoration(
-        image: DecorationImage(
-          image: imageProvider,
-          fit: BoxFit.cover,
-        ),
+        image: DecorationImage(image: imageProvider, fit: BoxFit.cover),
       ),
     );
   }
 }
 
 class _QuoteRequestDetailsPage extends StatelessWidget {
-  const _QuoteRequestDetailsPage({
-    required this.request,
-  });
+  const _QuoteRequestDetailsPage({required this.request});
 
   final TeacherDashboardQuoteRequest request;
 
@@ -949,5 +1036,3 @@ ImageProvider<Object>? _resolveImageProvider(String imagePath) {
 
   return null;
 }
-
-

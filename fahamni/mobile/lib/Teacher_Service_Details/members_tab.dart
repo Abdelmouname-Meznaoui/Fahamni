@@ -1,6 +1,10 @@
 import 'package:fahamni/TeacherDashboard/models/teacher_portal_models.dart';
 import 'package:fahamni/TeacherDashboard/widgets/teacher_portal_modals.dart';
+import 'package:fahamni/Services/chat_service.dart';
+import 'package:fahamni/messaging/conversation_page.dart';
 import 'package:fahamni/models/quote_model.dart';
+import 'package:fahamni/repositories/firestore_chat_repository.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import '../models/service_model.dart';
 import '../models/student_model.dart';
@@ -18,9 +22,12 @@ class MembersTab extends StatefulWidget {
 
 class _MembersTabState extends State<MembersTab> {
   final _service = CourseDetailsService();
+  final _chatService = ChatService(FirestoreChatRepository());
+  final _auth = FirebaseAuth.instance;
   List<StudentModel> _members = [];
   List<StudentModel> _pendingRequests = [];
   bool _loading = true;
+  bool _busy = false;
 
   @override
   void initState() {
@@ -30,7 +37,9 @@ class _MembersTabState extends State<MembersTab> {
 
   Future<void> _load() async {
     final membersData = await _service.getMembers(widget.service.serviceId);
-    final pendingData = await _service.getPendingRequests(widget.service.serviceId);
+    final pendingData = await _service.getPendingRequests(
+      widget.service.serviceId,
+    );
     setState(() {
       _members = membersData;
       _pendingRequests = pendingData;
@@ -62,14 +71,281 @@ class _MembersTabState extends State<MembersTab> {
         sessionsCount: widget.service.sessionsnum,
         sessionDurationLabel: '${widget.service.duration} min',
         createdAtLabel: 'Now',
+        isChild: student.email.isEmpty && student.phone.isEmpty,
       );
 
       final response = await QuoteResponseModal.show(context, requestDetail);
       if (response == null) return;
     }
 
-    await _service.handleJoinRequest(widget.service.serviceId, student.uid, accept);
+    await _service.handleJoinRequest(
+      widget.service.serviceId,
+      student.uid,
+      accept,
+    );
     await _load();
+  }
+
+  Future<void> _openChat(StudentModel student) async {
+    final currentUser = _auth.currentUser;
+    if (currentUser == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('You need to be signed in to chat.')),
+      );
+      return;
+    }
+
+    if (student.uid.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Unable to open chat for this student.')),
+      );
+      return;
+    }
+
+    setState(() {
+      _busy = true;
+    });
+
+    try {
+      final conversation = await _chatService.ensureDirectConversation(
+        currentUserId: currentUser.uid,
+        otherUserId: student.uid,
+      );
+      if (!mounted) {
+        return;
+      }
+      await Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => ConversationPage(
+            conversation: conversation.copyWith(
+              conversationName: _studentName(student),
+              participantDisplayName: _studentName(student),
+              participantAvatarUrl: student.picture,
+              participantSubtitle: student.schoolLevel.isNotEmpty
+                  ? student.schoolLevel
+                  : 'Student',
+            ),
+            imageUrl: student.picture,
+            currentUserId: currentUser.uid,
+          ),
+        ),
+      );
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(error.toString())));
+    } finally {
+      if (mounted) {
+        setState(() {
+          _busy = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _showReportDialog(StudentModel student) async {
+    final reportController = TextEditingController();
+    final pageContext = context;
+    bool isSubmitting = false;
+
+    await showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return Dialog(
+              backgroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+              insetPadding: const EdgeInsets.symmetric(horizontal: 22),
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(14, 12, 14, 18),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Row(
+                      children: [
+                        const Expanded(
+                          child: Text(
+                            'Report',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontFamily: 'Inter',
+                              fontSize: 18,
+                              fontWeight: FontWeight.w800,
+                              color: Color(0xFF1F2937),
+                            ),
+                          ),
+                        ),
+                        IconButton(
+                          onPressed: isSubmitting
+                              ? null
+                              : () => Navigator.of(dialogContext).pop(),
+                          icon: const Icon(
+                            Icons.close,
+                            color: Color(0xFF64748B),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    const Text(
+                      'Your Report',
+                      style: TextStyle(
+                        fontFamily: 'Inter',
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF1F2937),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    TextField(
+                      controller: reportController,
+                      maxLength: 200,
+                      maxLines: 5,
+                      minLines: 5,
+                      decoration: InputDecoration(
+                        hintText: 'Write something ...',
+                        hintStyle: const TextStyle(
+                          color: Color(0xFF94A3B8),
+                          fontFamily: 'Nunito',
+                        ),
+                        counterText: '',
+                        filled: true,
+                        fillColor: Colors.white,
+                        contentPadding: const EdgeInsets.all(14),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: const BorderSide(
+                            color: Color(0xFFE2E8F0),
+                          ),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: const BorderSide(
+                            color: Color(0xFF000080),
+                          ),
+                        ),
+                      ),
+                      onChanged: (_) => setDialogState(() {}),
+                    ),
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: Text(
+                        '${reportController.text.length}/200',
+                        style: const TextStyle(
+                          fontFamily: 'Nunito',
+                          fontSize: 11,
+                          color: Color(0xFF64748B),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 18),
+                    Center(
+                      child: SizedBox(
+                        width: 108,
+                        height: 42,
+                        child: ElevatedButton(
+                          onPressed: isSubmitting
+                              ? null
+                              : () async {
+                                  final text = reportController.text.trim();
+                                  if (text.isEmpty) {
+                                    ScaffoldMessenger.of(
+                                      pageContext,
+                                    ).showSnackBar(
+                                      const SnackBar(
+                                        content: Text(
+                                          'Please write your report before sending.',
+                                        ),
+                                      ),
+                                    );
+                                    return;
+                                  }
+
+                                  setDialogState(() {
+                                    isSubmitting = true;
+                                  });
+
+                                  try {
+                                    await _service.submitStudentReport(
+                                      student: student,
+                                      text: text,
+                                    );
+                                    if (!mounted || !pageContext.mounted) {
+                                      return;
+                                    }
+                                    Navigator.of(dialogContext).pop();
+                                    ScaffoldMessenger.of(
+                                      pageContext,
+                                    ).showSnackBar(
+                                      const SnackBar(
+                                        content: Text(
+                                          'Report submitted successfully.',
+                                        ),
+                                      ),
+                                    );
+                                  } catch (error) {
+                                    if (!mounted || !pageContext.mounted) {
+                                      return;
+                                    }
+                                    setDialogState(() {
+                                      isSubmitting = false;
+                                    });
+                                    ScaffoldMessenger.of(
+                                      pageContext,
+                                    ).showSnackBar(
+                                      SnackBar(content: Text(error.toString())),
+                                    );
+                                  }
+                                },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF000080),
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(999),
+                            ),
+                            elevation: 0,
+                          ),
+                          child: isSubmitting
+                              ? const SizedBox(
+                                  width: 16,
+                                  height: 16,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: Colors.white,
+                                  ),
+                                )
+                              : const Text(
+                                  'Send',
+                                  style: TextStyle(
+                                    fontFamily: 'Inter',
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  String _studentName(StudentModel student) {
+    final name = '${student.firstName} ${student.lastName}'.trim();
+    return name.isEmpty ? 'Student' : name;
   }
 
   @override
@@ -79,75 +355,99 @@ class _MembersTabState extends State<MembersTab> {
     final total = _members.length;
     final remaining = widget.service.maxStudents - total;
 
-    return Column(
+    return Stack(
       children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
-          child: Container(
-            margin: const EdgeInsets.fromLTRB(38, 0, 38, 0),
-            child: Row(
-              children: [
-                _StatBox(label: 'TOTAL', value: total.toString()),
-                const SizedBox(width: 12),
-                _StatBox(
-                    label: 'REMAINING',
-                    value: remaining < 0 ? '0' : remaining.toString()),
-              ],
+        Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
+              child: Container(
+                margin: const EdgeInsets.fromLTRB(38, 0, 38, 0),
+                child: Row(
+                  children: [
+                    _StatBox(label: 'TOTAL', value: total.toString()),
+                    const SizedBox(width: 12),
+                    _StatBox(
+                      label: 'REMAINING',
+                      value: remaining < 0 ? '0' : remaining.toString(),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            Expanded(
+              child: ListView(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                children: [
+                  if (_pendingRequests.isNotEmpty) ...[
+                    const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 8),
+                      child: Text(
+                        'Join Requests',
+                        style: TextStyle(
+                          fontFamily: 'Inter',
+                          fontWeight: FontWeight.w700,
+                          fontSize: 16,
+                          color: Color(0xFF1E293B),
+                        ),
+                      ),
+                    ),
+                    ..._pendingRequests.map(
+                      (student) => _PendingRequestItem(
+                        student: student,
+                        service: widget.service,
+                        onAccept: () => _handleRequest(student, true),
+                        onReject: () => _handleRequest(student, false),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                  ],
+                  if (_members.isNotEmpty) ...[
+                    const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 8),
+                      child: Text(
+                        'Members',
+                        style: TextStyle(
+                          fontFamily: 'Inter',
+                          fontWeight: FontWeight.w700,
+                          fontSize: 16,
+                          color: Color(0xFF1E293B),
+                        ),
+                      ),
+                    ),
+                    ..._members.map(
+                      (m) => MemberItem(
+                        student: m,
+                        onChat: () => _openChat(m),
+                        onReport: () => _showReportDialog(m),
+                      ),
+                    ),
+                  ],
+                  if (_members.isEmpty && _pendingRequests.isEmpty)
+                    const Center(
+                      child: Padding(
+                        padding: EdgeInsets.only(top: 40),
+                        child: Text(
+                          'No members or requests yet',
+                          style: TextStyle(
+                            fontFamily: 'Nunito',
+                            color: Color(0xFF94A3B8),
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        if (_busy)
+          const Positioned.fill(
+            child: ColoredBox(
+              color: Color(0x33000000),
+              child: Center(child: CircularProgressIndicator()),
             ),
           ),
-        ),
-        Expanded(
-          child: ListView(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            children: [
-              if (_pendingRequests.isNotEmpty) ...[
-                const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 8),
-                  child: Text(
-                    'Join Requests',
-                    style: TextStyle(
-                      fontFamily: 'Inter',
-                      fontWeight: FontWeight.w700,
-                      fontSize: 16,
-                      color: Color(0xFF1E293B),
-                    ),
-                  ),
-                ),
-                ..._pendingRequests.map((student) => _PendingRequestItem(
-                      student: student,
-                      service: widget.service,
-                      onAccept: () => _handleRequest(student, true),
-                      onReject: () => _handleRequest(student, false),
-                    )),
-                const SizedBox(height: 16),
-              ],
-              if (_members.isNotEmpty) ...[
-                const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 8),
-                  child: Text(
-                    'Members',
-                    style: TextStyle(
-                      fontFamily: 'Inter',
-                      fontWeight: FontWeight.w700,
-                      fontSize: 16,
-                      color: Color(0xFF1E293B),
-                    ),
-                  ),
-                ),
-                ..._members.map((m) => MemberItem(student: m)),
-              ],
-              if (_members.isEmpty && _pendingRequests.isEmpty)
-                const Center(
-                  child: Padding(
-                    padding: EdgeInsets.only(top: 40),
-                    child: Text('No members or requests yet',
-                        style: TextStyle(
-                            fontFamily: 'Nunito', color: Color(0xFF94A3B8))),
-                  ),
-                ),
-            ],
-          ),
-        ),
       ],
     );
   }
@@ -216,10 +516,7 @@ class _PendingRequestItem extends StatelessWidget {
               ),
               const Text(
                 'Now',
-                style: TextStyle(
-                  fontSize: 11,
-                  color: Color(0xFF94A3B8),
-                ),
+                style: TextStyle(fontSize: 11, color: Color(0xFF94A3B8)),
               ),
             ],
           ),
@@ -233,12 +530,15 @@ class _PendingRequestItem extends StatelessWidget {
                     backgroundColor: const Color(0xFF000080),
                     foregroundColor: Colors.white,
                     shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(99)),
+                      borderRadius: BorderRadius.circular(99),
+                    ),
                     elevation: 0,
                     padding: const EdgeInsets.symmetric(vertical: 10),
                   ),
-                  child: const Text('Accept',
-                      style: TextStyle(fontWeight: FontWeight.w700)),
+                  child: const Text(
+                    'Accept',
+                    style: TextStyle(fontWeight: FontWeight.w700),
+                  ),
                 ),
               ),
               const SizedBox(width: 10),
@@ -247,14 +547,18 @@ class _PendingRequestItem extends StatelessWidget {
                   onPressed: onReject,
                   style: OutlinedButton.styleFrom(
                     shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(99)),
+                      borderRadius: BorderRadius.circular(99),
+                    ),
                     side: const BorderSide(color: Color(0xFFD1D5DB)),
                     padding: const EdgeInsets.symmetric(vertical: 10),
                   ),
-                  child: const Text('Reject',
-                      style: TextStyle(
-                          color: Color(0xFF4B5563),
-                          fontWeight: FontWeight.w700)),
+                  child: const Text(
+                    'Reject',
+                    style: TextStyle(
+                      color: Color(0xFF4B5563),
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
                 ),
               ),
             ],
@@ -289,25 +593,29 @@ class _StatBox extends StatelessWidget {
         ),
         child: Column(
           children: [
-            Text(label,
-                style: const TextStyle(
-                    fontFamily: 'Lexend',
-                    fontSize: 10,
-                    fontWeight: FontWeight.w600,
-                    color: Color(0xFF94A3B8),
-                    letterSpacing: 0.8)),
+            Text(
+              label,
+              style: const TextStyle(
+                fontFamily: 'Lexend',
+                fontSize: 10,
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF94A3B8),
+                letterSpacing: 0.8,
+              ),
+            ),
             const SizedBox(height: 4),
-            Text(value,
-                style: const TextStyle(
-                    fontFamily: 'Inter',
-                    fontWeight: FontWeight.w700,
-                    fontSize: 22,
-                    color: Color(0xFF000080))),
+            Text(
+              value,
+              style: const TextStyle(
+                fontFamily: 'Inter',
+                fontWeight: FontWeight.w700,
+                fontSize: 22,
+                color: Color(0xFF000080),
+              ),
+            ),
           ],
         ),
       ),
     );
   }
 }
-
-

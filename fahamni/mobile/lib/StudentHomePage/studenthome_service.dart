@@ -7,6 +7,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 
 import '../models/student_model.dart';
+import '../models/user_model.dart';
 
 class studenthomepage_service {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
@@ -73,10 +74,14 @@ class studenthomepage_service {
       throw Exception('Parent document not found for ${user.uid}');
     }
 
-    final Map<String, dynamic> parentMap =
-        _withDocId(doc, idKey: 'uid', uidKey: 'uid');
+    final Map<String, dynamic> parentMap = _withDocId(
+      doc,
+      idKey: 'uid',
+      uidKey: 'uid',
+    );
 
-    if (parentMap['children_uids'] == null && parentMap['childrenUids'] is List) {
+    if (parentMap['children_uids'] == null &&
+        parentMap['childrenUids'] is List) {
       parentMap['children_uids'] = List<String>.from(parentMap['childrenUids']);
     }
 
@@ -94,33 +99,91 @@ class studenthomepage_service {
       return <StudentModel>[];
     }
 
-    final List<DocumentSnapshot<Map<String, dynamic>>> docs = await Future.wait(
-      childIds.map((id) => _db.collection('students').doc(id).get()),
+    final List<StudentModel?> children = await Future.wait(
+      childIds.map(_loadStudentOrChildProfile),
     );
 
-    return docs
-        .where((doc) => doc.exists && doc.data() != null)
-        .map(
-          (doc) =>
-              StudentModel.fromMap(_withDocId(doc, idKey: 'uid', uidKey: 'uid')),
-        )
-        .toList();
+    return children.whereType<StudentModel>().toList();
+  }
+
+  Future<List<StudentModel>> getChildrenForParent(String parentUid) async {
+    final QuerySnapshot<Map<String, dynamic>> snapshot = await _db
+        .collection('children')
+        .where('parentUid', isEqualTo: parentUid)
+        .get();
+
+    final List<StudentModel?> children = await Future.wait(
+      snapshot.docs.map((doc) => _loadStudentOrChildProfile(doc.id)),
+    );
+
+    return children.whereType<StudentModel>().toList();
+  }
+
+  Future<StudentModel?> _loadStudentOrChildProfile(String id) async {
+    final DocumentSnapshot<Map<String, dynamic>> studentDoc = await _db
+        .collection('students')
+        .doc(id)
+        .get();
+    if (studentDoc.exists && studentDoc.data() != null) {
+      return StudentModel.fromMap(
+        _withDocId(studentDoc, idKey: 'uid', uidKey: 'uid'),
+      );
+    }
+
+    final DocumentSnapshot<Map<String, dynamic>> childDoc = await _db
+        .collection('children')
+        .doc(id)
+        .get();
+    if (!childDoc.exists || childDoc.data() == null) {
+      return null;
+    }
+
+    final Map<String, dynamic> data = childDoc.data()!;
+    final String name = (data['name'] ?? '').toString().trim();
+    final List<String> parts = name.split(RegExp(r'\s+'));
+    return StudentModel(
+      uid: childDoc.id,
+      firstName: parts.isNotEmpty ? parts.first : 'Child',
+      lastName: parts.length > 1 ? parts.sublist(1).join(' ') : '',
+      email: '',
+      phone: '',
+      location: '',
+      gender: data['gender'] == 'female' ? Gender.female : Gender.male,
+      birthday: DateTime(2000),
+      picture: (data['picture'] ?? '').toString(),
+      accountStatus: AccountStatus.validated,
+      schoolLevel: (data['level'] ?? '').toString(),
+      learningObjectives: '',
+      preferredSubjects: List<String>.from(data['subjects'] ?? []),
+      favoriteTeachers: const <String>[],
+      Courses: const <String>[],
+      grade: (data['grade'] ?? '').toString(),
+      speciality: (data['speciality'] ?? '').toString(),
+    );
   }
 
   Future<TutorModel> getTutorData(String id) async {
     if (id.isEmpty) throw Exception('Tutor id is empty');
 
-    final DocumentSnapshot<Map<String, dynamic>> tutorDoc =
-        await _db.collection('tutors').doc(id).get();
+    final DocumentSnapshot<Map<String, dynamic>> tutorDoc = await _db
+        .collection('tutors')
+        .doc(id)
+        .get();
     if (tutorDoc.exists && tutorDoc.data() != null) {
-      return TutorModel.fromMap(_withDocId(tutorDoc, idKey: 'uid', uidKey: 'uid'));
+      return TutorModel.fromMap(
+        _withDocId(tutorDoc, idKey: 'uid', uidKey: 'uid'),
+      );
     }
 
     // Some tutors are registered only in the users collection.
-    final DocumentSnapshot<Map<String, dynamic>> userDoc =
-        await _db.collection('users').doc(id).get();
+    final DocumentSnapshot<Map<String, dynamic>> userDoc = await _db
+        .collection('users')
+        .doc(id)
+        .get();
     if (userDoc.exists && userDoc.data() != null) {
-      return TutorModel.fromMap(_withDocId(userDoc, idKey: 'uid', uidKey: 'uid'));
+      return TutorModel.fromMap(
+        _withDocId(userDoc, idKey: 'uid', uidKey: 'uid'),
+      );
     }
 
     throw Exception('Tutor document not found for $id');
@@ -148,7 +211,10 @@ class studenthomepage_service {
         .toList();
   }
 
-  Future<List<SessionModel>> getCourses(List<String> ids, {String? studentId}) async {
+  Future<List<SessionModel>> getCourses(
+    List<String> ids, {
+    String? studentId,
+  }) async {
     final User? user = _auth.currentUser;
     final String uid = studentId ?? user?.uid ?? '';
     if (uid.isEmpty) {
@@ -163,8 +229,9 @@ class studenthomepage_service {
         .where('student_ids', arrayContains: uid)
         .get();
     for (final doc in byStudentId.docs) {
-      sessionsById[doc.id] =
-          SessionModel.fromMap(_withDocId(doc, idKey: 'session_id'));
+      sessionsById[doc.id] = SessionModel.fromMap(
+        _withDocId(doc, idKey: 'session_id'),
+      );
     }
 
     // Path 2: sessions belonging to services the student is enrolled in.
@@ -176,13 +243,16 @@ class studenthomepage_service {
         .get();
 
     if (enrolledServices.docs.isNotEmpty) {
-      final List<String> serviceIds =
-          enrolledServices.docs.map((d) => d.id).toList();
+      final List<String> serviceIds = enrolledServices.docs
+          .map((d) => d.id)
+          .toList();
 
       // Firestore 'whereIn' limit is 30.
       for (var i = 0; i < serviceIds.length; i += 30) {
-        final List<String> chunk =
-            serviceIds.sublist(i, (i + 30).clamp(0, serviceIds.length));
+        final List<String> chunk = serviceIds.sublist(
+          i,
+          (i + 30).clamp(0, serviceIds.length),
+        );
         final QuerySnapshot<Map<String, dynamic>> snap = await _db
             .collection('sessions')
             .where('service_id', whereIn: chunk)
@@ -207,14 +277,17 @@ class studenthomepage_service {
             extraIds.map((id) => _db.collection('sessions').doc(id).get()),
           );
       for (final doc in docs.where((d) => d.exists && d.data() != null)) {
-        sessionsById[doc.id] =
-            SessionModel.fromMap(_withDocId(doc, idKey: 'session_id'));
+        sessionsById[doc.id] = SessionModel.fromMap(
+          _withDocId(doc, idKey: 'session_id'),
+        );
       }
     }
 
-    debugPrint('[getCourses] uid=$uid | found ${sessionsById.length} sessions '
-        '(${byStudentId.docs.length} by studentId, '
-        '${enrolledServices.docs.length} enrolled services)');
+    debugPrint(
+      '[getCourses] uid=$uid | found ${sessionsById.length} sessions '
+      '(${byStudentId.docs.length} by studentId, '
+      '${enrolledServices.docs.length} enrolled services)',
+    );
     return sessionsById.values.toList();
   }
 
@@ -230,5 +303,3 @@ class studenthomepage_service {
     return ServiceModel.fromMap(_withDocId(doc, idKey: 'service_id'));
   }
 }
-
-

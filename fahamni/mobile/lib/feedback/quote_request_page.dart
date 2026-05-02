@@ -26,16 +26,15 @@ class QuoteRequestPage extends StatefulWidget {
 class _QuoteRequestPageState extends State<QuoteRequestPage> {
   final AuthService _authService = AuthService();
   final studenthomepage_service _studentHomeService = studenthomepage_service();
-  final StudentTutorActionService _studentTutorActionService = StudentTutorActionService();
+  final StudentTutorActionService _studentTutorActionService =
+      StudentTutorActionService();
   final TextEditingController _descriptionController = TextEditingController();
-  final TextEditingController _sessionsController = TextEditingController(text: '1');
+  final TextEditingController _sessionsController = TextEditingController(
+    text: '1',
+  );
 
   final List<String> _subjectOptions = <String>[];
-  final List<String> _modeOptions = <String>[
-    'Online',
-    'In person',
-    'Hybrid',
-  ];
+  final List<String> _modeOptions = <String>['Online', 'In person', 'Hybrid'];
   final List<int> _durationOptions = <int>[30, 45, 60, 90];
 
   bool _isLoading = true;
@@ -74,7 +73,11 @@ class _QuoteRequestPageState extends State<QuoteRequestPage> {
 
       if (user.role == UserRole.parent) {
         final ParentModel parent = user as ParentModel;
-        final List<StudentModel> children = await _studentHomeService.getLinkedChildren(parent.childrenUids);
+        List<StudentModel> children = await _studentHomeService
+            .getLinkedChildren(parent.childrenUids);
+        if (children.isEmpty) {
+          children = await _studentHomeService.getChildrenForParent(parent.uid);
+        }
         if (children.isNotEmpty) {
           _children = children;
           _selectedChildId = children.first.uid;
@@ -129,16 +132,16 @@ class _QuoteRequestPageState extends State<QuoteRequestPage> {
     }
 
     if (_selectedSubject == null || _selectedSubject!.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please choose a subject.')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Please choose a subject.')));
       return;
     }
 
     if (_selectedMode == null || _selectedMode!.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please choose a mode.')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Please choose a mode.')));
       return;
     }
 
@@ -180,9 +183,9 @@ class _QuoteRequestPageState extends State<QuoteRequestPage> {
       Navigator.of(context).pop();
     } catch (error) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(error.toString())),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(error.toString())));
     } finally {
       if (mounted) {
         setState(() {
@@ -216,208 +219,211 @@ class _QuoteRequestPageState extends State<QuoteRequestPage> {
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : _errorMessage != null
-              ? Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(20),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          _errorMessage!,
-                          style: const TextStyle(color: Colors.red),
-                          textAlign: TextAlign.center,
-                        ),
-                        const SizedBox(height: 16),
-                        ElevatedButton(
-                          onPressed: _loadCurrentStudentOrChildren,
-                          child: const Text('Retry'),
-                        ),
-                      ],
+          ? Center(
+              child: Padding(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      _errorMessage!,
+                      style: const TextStyle(color: Colors.red),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 16),
+                    ElevatedButton(
+                      onPressed: _loadCurrentStudentOrChildren,
+                      child: const Text('Retry'),
+                    ),
+                  ],
+                ),
+              ),
+            )
+          : SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  DropdownButtonFormField<String>(
+                    initialValue: _selectedChildId,
+                    items: _children
+                        .map(
+                          (child) => DropdownMenuItem<String>(
+                            value: child.uid,
+                            child: Text(
+                              child.firstName.isNotEmpty
+                                  ? '${child.firstName} ${child.lastName}'
+                                        .trim()
+                                  : child.uid,
+                            ),
+                          ),
+                        )
+                        .toList(),
+                    onChanged: (value) {
+                      setState(() {
+                        _selectedChildId = value;
+                      });
+                    },
+                    decoration: InputDecoration(
+                      labelText: 'Select a Child',
+                      filled: true,
+                      fillColor: Colors.white,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        borderSide: BorderSide.none,
+                      ),
                     ),
                   ),
-                )
-              : SingleChildScrollView(
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                  const SizedBox(height: 16),
+                  DropdownButtonFormField<String>(
+                    initialValue: _selectedSubject,
+                    items: _subjectOptions
+                        .map(
+                          (subject) => DropdownMenuItem<String>(
+                            value: subject,
+                            child: Text(subject),
+                          ),
+                        )
+                        .toList(),
+                    onChanged: (value) {
+                      setState(() {
+                        _selectedSubject = value;
+                      });
+                    },
+                    decoration: InputDecoration(
+                      labelText: 'Choose Subject',
+                      filled: true,
+                      fillColor: Colors.white,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        borderSide: BorderSide.none,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  TextFormField(
+                    controller: _descriptionController,
+                    maxLength: 200,
+                    maxLines: 6,
+                    decoration: InputDecoration(
+                      labelText: 'Description',
+                      hintText: 'Describe your request',
+                      alignLabelWithHint: true,
+                      filled: true,
+                      fillColor: Colors.white,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        borderSide: BorderSide.none,
+                      ),
+                    ),
+                    onChanged: (_) {
+                      setState(() {});
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                  DropdownButtonFormField<String>(
+                    initialValue: _selectedMode,
+                    items: _modeOptions
+                        .map(
+                          (mode) => DropdownMenuItem<String>(
+                            value: mode,
+                            child: Text(mode),
+                          ),
+                        )
+                        .toList(),
+                    onChanged: (value) {
+                      setState(() {
+                        _selectedMode = value;
+                      });
+                    },
+                    decoration: InputDecoration(
+                      labelText: 'Choose Mode',
+                      filled: true,
+                      fillColor: Colors.white,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        borderSide: BorderSide.none,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
                     children: [
-                      DropdownButtonFormField<String>(
-                        initialValue: _selectedChildId,
-                        items: _children
-                            .map(
-                              (child) => DropdownMenuItem<String>(
-                                value: child.uid,
-                                child: Text(child.firstName.isNotEmpty
-                                    ? '${child.firstName} ${child.lastName}'.trim()
-                                    : child.uid),
-                              ),
-                            )
-                            .toList(),
-                        onChanged: (value) {
-                          setState(() {
-                            _selectedChildId = value;
-                          });
-                        },
-                        decoration: InputDecoration(
-                          labelText: 'Select a Child',
-                          filled: true,
-                          fillColor: Colors.white,
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(16),
-                            borderSide: BorderSide.none,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      DropdownButtonFormField<String>(
-                        initialValue: _selectedSubject,
-                        items: _subjectOptions
-                            .map(
-                              (subject) => DropdownMenuItem<String>(
-                                value: subject,
-                                child: Text(subject),
-                              ),
-                            )
-                            .toList(),
-                        onChanged: (value) {
-                          setState(() {
-                            _selectedSubject = value;
-                          });
-                        },
-                        decoration: InputDecoration(
-                          labelText: 'Choose Subject',
-                          filled: true,
-                          fillColor: Colors.white,
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(16),
-                            borderSide: BorderSide.none,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      TextFormField(
-                        controller: _descriptionController,
-                        maxLength: 200,
-                        maxLines: 6,
-                        decoration: InputDecoration(
-                          labelText: 'Description',
-                          hintText: 'Describe your request',
-                          alignLabelWithHint: true,
-                          filled: true,
-                          fillColor: Colors.white,
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(16),
-                            borderSide: BorderSide.none,
-                          ),
-                        ),
-                        onChanged: (_) {
-                          setState(() {});
-                        },
-                      ),
-                      const SizedBox(height: 16),
-                      DropdownButtonFormField<String>(
-                        initialValue: _selectedMode,
-                        items: _modeOptions
-                            .map(
-                              (mode) => DropdownMenuItem<String>(
-                                value: mode,
-                                child: Text(mode),
-                              ),
-                            )
-                            .toList(),
-                        onChanged: (value) {
-                          setState(() {
-                            _selectedMode = value;
-                          });
-                        },
-                        decoration: InputDecoration(
-                          labelText: 'Choose Mode',
-                          filled: true,
-                          fillColor: Colors.white,
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(16),
-                            borderSide: BorderSide.none,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: TextFormField(
-                              controller: _sessionsController,
-                              keyboardType: TextInputType.number,
-                              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                              decoration: InputDecoration(
-                                labelText: 'Sessions Number',
-                                filled: true,
-                                fillColor: Colors.white,
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(16),
-                                  borderSide: BorderSide.none,
-                                ),
-                              ),
+                      Expanded(
+                        child: TextFormField(
+                          controller: _sessionsController,
+                          keyboardType: TextInputType.number,
+                          inputFormatters: [
+                            FilteringTextInputFormatter.digitsOnly,
+                          ],
+                          decoration: InputDecoration(
+                            labelText: 'Sessions Number',
+                            filled: true,
+                            fillColor: Colors.white,
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(16),
+                              borderSide: BorderSide.none,
                             ),
                           ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: DropdownButtonFormField<int>(
-                              initialValue: _selectedDuration,
-                              items: _durationOptions
-                                  .map(
-                                    (value) => DropdownMenuItem<int>(
-                                      value: value,
-                                      child: Text('$value min'),
-                                    ),
-                                  )
-                                  .toList(),
-                              onChanged: (value) {
-                                if (value != null) {
-                                  setState(() {
-                                    _selectedDuration = value;
-                                  });
-                                }
-                              },
-                              decoration: InputDecoration(
-                                labelText: 'Session Duration',
-                                filled: true,
-                                fillColor: Colors.white,
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(16),
-                                  borderSide: BorderSide.none,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
+                        ),
                       ),
-                      const SizedBox(height: 24),
-                      SizedBox(
-                        height: 56,
-                        child: ElevatedButton(
-                          onPressed: _isSubmitting ? null : _submitQuoteRequest,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF000080),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(28),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: DropdownButtonFormField<int>(
+                          initialValue: _selectedDuration,
+                          items: _durationOptions
+                              .map(
+                                (value) => DropdownMenuItem<int>(
+                                  value: value,
+                                  child: Text('$value min'),
+                                ),
+                              )
+                              .toList(),
+                          onChanged: (value) {
+                            if (value != null) {
+                              setState(() {
+                                _selectedDuration = value;
+                              });
+                            }
+                          },
+                          decoration: InputDecoration(
+                            labelText: 'Session Duration',
+                            filled: true,
+                            fillColor: Colors.white,
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(16),
+                              borderSide: BorderSide.none,
                             ),
                           ),
-                          child: _isSubmitting
-                              ? const CircularProgressIndicator(color: Colors.white)
-                              : const Text(
-                                  'Submit',
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.w700,
-                                    fontSize: 16,
-                                  ),
-                                ),
                         ),
                       ),
                     ],
                   ),
-                ),
+                  const SizedBox(height: 24),
+                  SizedBox(
+                    height: 56,
+                    child: ElevatedButton(
+                      onPressed: _isSubmitting ? null : _submitQuoteRequest,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF000080),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(28),
+                        ),
+                      ),
+                      child: _isSubmitting
+                          ? const CircularProgressIndicator(color: Colors.white)
+                          : const Text(
+                              'Submit',
+                              style: TextStyle(
+                                fontWeight: FontWeight.w700,
+                                fontSize: 16,
+                              ),
+                            ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
     );
   }
 }
-
-

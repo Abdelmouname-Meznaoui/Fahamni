@@ -90,10 +90,14 @@ class _ParentExplorePageState extends State<ParentExplorePage> {
   Future<void> _loadParentAndChildren() async {
     final String uid = FirebaseAuth.instance.currentUser!.uid;
 
-    final DocumentSnapshot<Map<String, dynamic>> parentDoc =
-        await _db.collection('parents').doc(uid).get();
-    final QuerySnapshot<Map<String, dynamic>> childrenQuery =
-        await _db.collection('children').where('parentUid', isEqualTo: uid).get();
+    final DocumentSnapshot<Map<String, dynamic>> parentDoc = await _db
+        .collection('parents')
+        .doc(uid)
+        .get();
+    final QuerySnapshot<Map<String, dynamic>> childrenQuery = await _db
+        .collection('children')
+        .where('parentUid', isEqualTo: uid)
+        .get();
 
     if (!parentDoc.exists || parentDoc.data() == null) {
       throw Exception('Parent profile not found.');
@@ -101,7 +105,7 @@ class _ParentExplorePageState extends State<ParentExplorePage> {
 
     final ParentModel parent = ParentModel.fromMap(parentDoc.data()!);
     final List<ChildModel> children = childrenQuery.docs
-        .map((doc) => ChildModel.fromMap(doc.data()))
+        .map((doc) => ChildModel.fromMap({...doc.data(), 'id': doc.id}))
         .toList();
 
     if (!mounted) {
@@ -116,13 +120,14 @@ class _ParentExplorePageState extends State<ParentExplorePage> {
           !_children.any((child) => child.id == _selectedChild!.id)) {
         _selectedChild = null;
       }
+      _selectedChild ??= _children.isNotEmpty ? _children.first : null;
     });
   }
 
   Future<void> _loadTutorsAndServices({ChildModel? child}) async {
     final List<TutorModel> teachers = await Explore_service().getAllTutors();
-    final List<ServiceModel> fetchedServices =
-        await Explore_service().getAllServices();
+    final List<ServiceModel> fetchedServices = await Explore_service()
+        .getAllServices();
 
     final Map<String, TutorModel> tutorById = {
       for (final t in teachers) t.uid: t,
@@ -132,24 +137,29 @@ class _ParentExplorePageState extends State<ParentExplorePage> {
         ? _buildChildRecommendationContext(child)
         : _buildNeutralRecommendationContext();
 
-    final List<_RecommendedTutorEntry> rankedTutors = teachers
-        .map((t) => _RecommendedTutorEntry(tutor: t, score: _scoreTutor(t, ctx)))
-        .toList()
-      ..sort(_compareTutorEntries);
+    final List<_RecommendedTutorEntry> rankedTutors =
+        teachers
+            .map(
+              (t) =>
+                  _RecommendedTutorEntry(tutor: t, score: _scoreTutor(t, ctx)),
+            )
+            .toList()
+          ..sort(_compareTutorEntries);
 
-    final List<_RecommendedServiceEntry> rankedServices = fetchedServices
-        .map((s) {
-          final TutorModel? tutor = tutorById[s.tutorId];
-          if (tutor == null) return null;
-          return _RecommendedServiceEntry(
-            service: s,
-            tutor: tutor,
-            score: _scoreService(s, tutor, ctx),
-          );
-        })
-        .whereType<_RecommendedServiceEntry>()
-        .toList()
-      ..sort(_compareServiceEntries);
+    final List<_RecommendedServiceEntry> rankedServices =
+        fetchedServices
+            .map((s) {
+              final TutorModel? tutor = tutorById[s.tutorId];
+              if (tutor == null) return null;
+              return _RecommendedServiceEntry(
+                service: s,
+                tutor: tutor,
+                score: _scoreService(s, tutor, ctx),
+              );
+            })
+            .whereType<_RecommendedServiceEntry>()
+            .toList()
+          ..sort(_compareServiceEntries);
 
     if (!mounted) {
       return;
@@ -171,8 +181,9 @@ class _ParentExplorePageState extends State<ParentExplorePage> {
         .map(_normalize)
         .where((value) => value.isNotEmpty)
         .toSet();
-    final Set<String> objectiveKeywords =
-        _extractKeywords('${child.speciality} ${child.grade}');
+    final Set<String> objectiveKeywords = _extractKeywords(
+      '${child.speciality} ${child.grade}',
+    );
 
     return _RecommendationContext(
       preferredSubjects: preferredSubjects,
@@ -212,9 +223,7 @@ class _ParentExplorePageState extends State<ParentExplorePage> {
     });
 
     _controller?.animateCamera(
-      CameraUpdate.newLatLng(
-        LatLng(position.latitude, position.longitude),
-      ),
+      CameraUpdate.newLatLng(LatLng(position.latitude, position.longitude)),
     );
   }
 
@@ -270,7 +279,8 @@ class _ParentExplorePageState extends State<ParentExplorePage> {
       if (tutor.location.isNotEmpty) {
         final Location? location = await _geocodeTutorLocation(tutor.location);
         if (location != null) {
-          final double distance = Geolocator.distanceBetween(
+          final double distance =
+              Geolocator.distanceBetween(
                 _currentPosition!.latitude,
                 _currentPosition!.longitude,
                 location.latitude,
@@ -501,7 +511,8 @@ class _ParentExplorePageState extends State<ParentExplorePage> {
                           ),
                           items: options[index]
                               .map(
-                                (e) => DropdownMenuItem(value: e, child: Text(e)),
+                                (e) =>
+                                    DropdownMenuItem(value: e, child: Text(e)),
                               )
                               .toList(),
                           onChanged: (value) {
@@ -645,7 +656,9 @@ class _ParentExplorePageState extends State<ParentExplorePage> {
                             vertical: 4,
                           ),
                           decoration: BoxDecoration(
-                            color: const Color(0xFF000080).withValues(alpha: 0.1),
+                            color: const Color(
+                              0xFF000080,
+                            ).withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(20),
                           ),
                           child: Text(
@@ -699,13 +712,18 @@ class _ParentExplorePageState extends State<ParentExplorePage> {
                     itemBuilder: (context, pageIndex) {
                       final int start = pageIndex * 3;
                       final int end = math.min(start + 3, tutors!.length);
-                      final List<_RecommendedTutorEntry> pageTutors =
-                          tutors!.sublist(start, end);
+                      final List<_RecommendedTutorEntry> pageTutors = tutors!
+                          .sublist(start, end);
 
                       return Container(
-                        width: math.min(MediaQuery.of(context).size.width - 32, 420),
+                        width: math.min(
+                          MediaQuery.of(context).size.width - 32,
+                          420,
+                        ),
                         margin: EdgeInsets.only(
-                          right: pageIndex == (tutors!.length / 3).ceil() - 1 ? 0 : 14,
+                          right: pageIndex == (tutors!.length / 3).ceil() - 1
+                              ? 0
+                              : 14,
                         ),
                         child: Column(
                           children: pageTutors
@@ -747,7 +765,9 @@ class _ParentExplorePageState extends State<ParentExplorePage> {
                             vertical: 4,
                           ),
                           decoration: BoxDecoration(
-                            color: const Color(0xFF000080).withValues(alpha: 0.1),
+                            color: const Color(
+                              0xFF000080,
+                            ).withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(20),
                           ),
                           child: Text(
@@ -796,9 +816,12 @@ class _ParentExplorePageState extends State<ParentExplorePage> {
                         scrollDirection: Axis.horizontal,
                         itemCount: services!.length,
                         itemBuilder: (context, index) {
-                          final _RecommendedServiceEntry entry = services![index];
-                          final double cardWidth =
-                              math.min(MediaQuery.of(context).size.width * 0.84, 350);
+                          final _RecommendedServiceEntry entry =
+                              services![index];
+                          final double cardWidth = math.min(
+                            MediaQuery.of(context).size.width * 0.84,
+                            350,
+                          );
                           return SizedBox(
                             height: 430,
                             width: cardWidth,
@@ -810,6 +833,7 @@ class _ParentExplorePageState extends State<ParentExplorePage> {
                                     builder: (context) => Servicedetails(
                                       tutor: entry.tutor,
                                       service: entry.service,
+                                      selectedChild: _selectedChild,
                                     ),
                                   ),
                                 );
@@ -899,7 +923,8 @@ class _ParentExplorePageState extends State<ParentExplorePage> {
         final bool matchSubject =
             selectedSubject == null ||
             s.subject.toLowerCase() == selectedSubject!.toLowerCase() ||
-            tutor.expertiseDomain.toLowerCase() == selectedSubject!.toLowerCase();
+            tutor.expertiseDomain.toLowerCase() ==
+                selectedSubject!.toLowerCase();
         final bool matchPrice =
             selectedPrice == null ||
             s.price <= double.parse(selectedPrice!.replaceAll('<', ''));
@@ -959,11 +984,18 @@ class _ParentExplorePageState extends State<ParentExplorePage> {
     if (context.previousTutorIds.contains(tutor.uid)) score += 24;
     if (context.preferredSubjects.contains(expertise)) score += 26;
     if (context.previousSubjects.contains(expertise)) score += 22;
-    if (context.schoolLevel.isNotEmpty && tutorLevels.contains(context.schoolLevel)) {
+    if (context.schoolLevel.isNotEmpty &&
+        tutorLevels.contains(context.schoolLevel)) {
       score += 16;
     }
-    if (context.previousModes.contains(_normalize(tutor.teachingMode))) score += 8;
-    score += _keywordOverlapScore(context.objectiveKeywords, tutorKeywords, maxBonus: 14);
+    if (context.previousModes.contains(_normalize(tutor.teachingMode))) {
+      score += 8;
+    }
+    score += _keywordOverlapScore(
+      context.objectiveKeywords,
+      tutorKeywords,
+      maxBonus: 14,
+    );
     if (tutor.isAvailable) score += 8;
     score += tutor.averageRating * 3.5;
     score += math.min(tutor.yearsOfExperience.toDouble(), 12);
@@ -994,7 +1026,11 @@ class _ParentExplorePageState extends State<ParentExplorePage> {
         context.previousModes.contains(_normalize(tutor.teachingMode))) {
       score += 8;
     }
-    score += _keywordOverlapScore(context.objectiveKeywords, serviceKeywords, maxBonus: 16);
+    score += _keywordOverlapScore(
+      context.objectiveKeywords,
+      serviceKeywords,
+      maxBonus: 16,
+    );
     if (service.isActive) score += 8;
     score += tutor.averageRating * 3;
     score += math.max(service.maxnum - service.enrollednum, 0) * 0.3;
@@ -1008,7 +1044,10 @@ class _ParentExplorePageState extends State<ParentExplorePage> {
     return b.tutor.averageRating.compareTo(a.tutor.averageRating);
   }
 
-  int _compareServiceEntries(_RecommendedServiceEntry a, _RecommendedServiceEntry b) {
+  int _compareServiceEntries(
+    _RecommendedServiceEntry a,
+    _RecommendedServiceEntry b,
+  ) {
     final int scoreCompare = b.score.compareTo(a.score);
     if (scoreCompare != 0) return scoreCompare;
     return b.tutor.averageRating.compareTo(a.tutor.averageRating);
@@ -1080,10 +1119,7 @@ class _RecommendationContext {
 }
 
 class _RecommendedTutorEntry {
-  const _RecommendedTutorEntry({
-    required this.tutor,
-    required this.score,
-  });
+  const _RecommendedTutorEntry({required this.tutor, required this.score});
 
   final TutorModel tutor;
   final double score;
@@ -1102,9 +1138,7 @@ class _RecommendedServiceEntry {
 }
 
 class _RecommendedTeacherTile extends StatelessWidget {
-  const _RecommendedTeacherTile({
-    required this.tutor,
-  });
+  const _RecommendedTeacherTile({required this.tutor});
 
   final TutorModel tutor;
 
@@ -1220,10 +1254,7 @@ class _RecommendedTeacherTile extends StatelessWidget {
               ),
             ),
             Container(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 8,
-                vertical: 4,
-              ),
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
               decoration: ShapeDecoration(
                 color: const Color(0xFF000080).withValues(alpha: 0.1),
                 shape: RoundedRectangleBorder(
@@ -1257,5 +1288,3 @@ class _RecommendedTeacherTile extends StatelessWidget {
     );
   }
 }
-
-

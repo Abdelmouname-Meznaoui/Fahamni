@@ -3,8 +3,15 @@ import '../models/student_model.dart';
 
 class MemberItem extends StatelessWidget {
   final StudentModel student;
+  final VoidCallback onChat;
+  final VoidCallback onReport;
 
-  const MemberItem({super.key, required this.student});
+  const MemberItem({
+    super.key,
+    required this.student,
+    required this.onChat,
+    required this.onReport,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -19,7 +26,7 @@ class MemberItem extends StatelessWidget {
             color: Colors.black.withValues(alpha: 0.04),
             blurRadius: 6,
             offset: const Offset(0, 2),
-          )
+          ),
         ],
       ),
       child: Row(
@@ -67,15 +74,57 @@ class MemberItem extends StatelessWidget {
             ),
           ),
           IconButton(
-            onPressed: () {},
-            icon: const Icon(Icons.chat_bubble_outline_rounded,
-                color: Color(0xFF000080), size: 20),
+            onPressed: onChat,
+            icon: const Icon(
+              Icons.chat_bubble_outline_rounded,
+              color: Color(0xFF000080),
+              size: 20,
+            ),
           ),
-          const Icon(Icons.more_vert, color: Color(0xFF94A3B8), size: 20),
+          PopupMenuButton<_MemberAction>(
+            icon: const Icon(
+              Icons.more_vert,
+              color: Color(0xFF94A3B8),
+              size: 20,
+            ),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(6),
+            ),
+            color: Colors.white,
+            onSelected: (action) {
+              switch (action) {
+                case _MemberAction.report:
+                  onReport();
+                  break;
+              }
+            },
+            itemBuilder: (context) => const [
+              PopupMenuItem<_MemberAction>(
+                value: _MemberAction.report,
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.outlined_flag_rounded,
+                      size: 18,
+                      color: Color(0xFF1F2937),
+                    ),
+                    SizedBox(width: 8),
+                    Text(
+                      'Report',
+                      style: TextStyle(
+                        fontFamily: 'Inter',
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ],
       ),
     );
   }
 }
 
-
+enum _MemberAction { report }

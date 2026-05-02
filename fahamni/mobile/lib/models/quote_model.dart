@@ -43,7 +43,6 @@ class QuoteModel {
     this.updatedAt,
   });
 
-
   Map<String, dynamic> toMap() {
     return {
       'quote_id': quoteId,
@@ -68,7 +67,6 @@ class QuoteModel {
     };
   }
 
-
   factory QuoteModel.fromMap(Map<String, dynamic> map) {
     DateTime? parseDate(dynamic value) {
       if (value == null) {
@@ -77,7 +75,19 @@ class QuoteModel {
       if (value is DateTime) {
         return value;
       }
-      return (value as dynamic).toDate();
+      try {
+        return (value as dynamic).toDate();
+      } catch (_) {
+        return null;
+      }
+    }
+
+    QuoteStatus parseStatus(dynamic value) {
+      final String status = (value ?? 'pending').toString();
+      return QuoteStatus.values.firstWhere(
+        (item) => item.name == status,
+        orElse: () => QuoteStatus.pending,
+      );
     }
 
     return QuoteModel(
@@ -97,11 +107,9 @@ class QuoteModel {
       sessionsCount: map['sessions_count'] ?? 0,
       responsePrice: map['response_price'] ?? '',
       responseSessionsCount: map['response_sessions_count'] ?? 0,
-      status: QuoteStatus.values.byName(map['status'] ?? 'pending'),
-      createdAt: parseDate(map['created_at']),
-      updatedAt: parseDate(map['updated_at']),
+      status: parseStatus(map['status']),
+      createdAt: parseDate(map['created_at'] ?? map['createdAt']),
+      updatedAt: parseDate(map['updated_at'] ?? map['updatedAt']),
     );
   }
 }
-
-

@@ -496,7 +496,7 @@ class _ExplorepageState extends State<Explorepage> {
                             const SizedBox(width: 5),
                             Expanded(
                               child: Text(
-                                nearbyTutorsCount == 0
+                                nearbyTutorsCount != 0
                                     ? '$nearbyTutorsCount Tutors found near you'
                                     : 'Discover Tutors found near you',
                                 overflow: TextOverflow.ellipsis,

@@ -11,6 +11,7 @@ import '../models/student_model.dart';
 import '../models/teacher_dashboard_model.dart';
 import '../models/teacher_schedule_model.dart';
 import '../models/tutor_model.dart';
+import '../models/user_model.dart';
 
 class CreateServicePayload {
   const CreateServicePayload({
@@ -23,7 +24,7 @@ class CreateServicePayload {
     required this.membersNumber,
     required this.mode,
     required this.sessionsNumber,
-    required this.sessionDuration,
+    required this.session_duration,
     required this.picture,
   });
 
@@ -36,16 +37,14 @@ class CreateServicePayload {
   final int membersNumber;
   final String mode;
   final int sessionsNumber;
-  final int sessionDuration;
+  final int session_duration;
   final String picture;
 }
 
 class TeacherDashboardService {
-  TeacherDashboardService({
-    FirebaseFirestore? firestore,
-    FirebaseAuth? auth,
-  })  : _firestore = firestore ?? FirebaseFirestore.instance,
-        _auth = auth ?? FirebaseAuth.instance;
+  TeacherDashboardService({FirebaseFirestore? firestore, FirebaseAuth? auth})
+    : _firestore = firestore ?? FirebaseFirestore.instance,
+      _auth = auth ?? FirebaseAuth.instance;
 
   final FirebaseFirestore _firestore;
   final FirebaseAuth _auth;
@@ -55,7 +54,7 @@ class TeacherDashboardService {
 
     final Future<List<ServiceModel>> servicesFuture = _loadServices(tutor.uid);
     final Future<List<SessionModel>> sessionsFuture = _loadSessions(tutor.uid);
-    final Future<List<QuoteModel>> quotesFuture = _loadQuotes(tutor.uid);
+    final Future<List<QuoteModel>> quotesFuture = _loadQuotes(tutor.uid, onlyPending: true);
 
     final List<dynamic> payload = await Future.wait<dynamic>([
       servicesFuture,
@@ -66,7 +65,9 @@ class TeacherDashboardService {
     final List<ServiceModel> services = payload[0] as List<ServiceModel>;
     final List<SessionModel> sessions = payload[1] as List<SessionModel>;
     final List<QuoteModel> quotes = payload[2] as List<QuoteModel>;
-    final Map<String, StudentModel> students = await _loadStudentsForQuotes(quotes);
+    final Map<String, StudentModel> students = await _loadStudentsForQuotes(
+      quotes,
+    );
 
     return TeacherDashboardModel(
       tutorProfile: tutor,
@@ -95,37 +96,38 @@ class TeacherDashboardService {
     final TutorModel tutor = await _loadCurrentTutor();
     final List<ServiceModel> services = await _loadServices(tutor.uid);
     final List<SessionModel> sessions = await _loadSessions(tutor.uid);
-    final Map<String, StudentModel> students = await _loadStudentsForSessions(sessions);
+    final Map<String, StudentModel> students = await _loadStudentsForSessions(
+      sessions,
+    );
     final Map<String, ServiceModel> servicesById = {
       for (final ServiceModel service in services) service.serviceId: service,
     };
 
     final DateTime now = DateTime.now();
     final DateTime startDay = DateTime(now.year, now.month, now.day);
-    final List<TeacherScheduleDay> scheduleDays = List<TeacherScheduleDay>.generate(
-      days,
-      (index) {
-        final DateTime day = startDay.add(Duration(days: index));
-        final List<TeacherScheduleSession> daySessions = sessions
-            .where((session) => _isSameDay(session.date, day))
-            .map(
-              (session) => _toScheduleSession(
-                session,
-                servicesById[session.serviceId],
-                students,
-              ),
-            )
-            .toList()
-          ..sort((a, b) => a.startTimeLabel.compareTo(b.startTimeLabel));
+    final List<TeacherScheduleDay> scheduleDays =
+        List<TeacherScheduleDay>.generate(days, (index) {
+          final DateTime day = startDay.add(Duration(days: index));
+          final List<TeacherScheduleSession> daySessions =
+              sessions
+                  .where((session) => _isSameDay(session.date, day))
+                  .map(
+                    (session) => _toScheduleSession(
+                      session,
+                      servicesById[session.serviceId],
+                      students,
+                    ),
+                  )
+                  .toList()
+                ..sort((a, b) => a.startTimeLabel.compareTo(b.startTimeLabel));
 
-        return TeacherScheduleDay(
-          date: day,
-          label: DateFormat('EEEE, dd MMM').format(day),
-          shortLabel: DateFormat('EEE').format(day),
-          sessions: daySessions,
-        );
-      },
-    );
+          return TeacherScheduleDay(
+            date: day,
+            label: DateFormat('EEEE, dd MMM').format(day),
+            shortLabel: DateFormat('EEE').format(day),
+            sessions: daySessions,
+          );
+        });
 
     return TeacherScheduleModel(
       title: 'My Schedule',
@@ -136,7 +138,9 @@ class TeacherDashboardService {
 
   Future<String> createService(CreateServicePayload payload) async {
     final TutorModel tutor = await _loadCurrentTutor();
-    final DocumentReference<Map<String, dynamic>> ref = _firestore.collection('services').doc();
+    final DocumentReference<Map<String, dynamic>> ref = _firestore
+        .collection('services')
+        .doc();
 
     final ServiceModel service = ServiceModel(
       serviceId: ref.id,
@@ -148,7 +152,7 @@ class TeacherDashboardService {
       mode: payload.mode,
       description: payload.description,
       price: payload.price,
-      duration: payload.sessionDuration,
+      duration: payload.session_duration,
       isActive: true,
       maxStudents: payload.membersNumber,
       enrollednum: 0,
@@ -164,10 +168,9 @@ class TeacherDashboardService {
     required String serviceId,
     required bool isActive,
   }) async {
-    await _firestore.collection('services').doc(serviceId).set(
-      {'is_active': isActive},
-      SetOptions(merge: true),
-    );
+    await _firestore.collection('services').doc(serviceId).set({
+      'is_active': isActive,
+    }, SetOptions(merge: true));
   }
 
   Future<void> respondToQuote({
@@ -178,28 +181,33 @@ class TeacherDashboardService {
     int? sessionDurationMinutes,
   }) async {
     final Map<String, dynamic> payload = <String, dynamic>{
-      'status': accepted ? QuoteStatus.accepted.name : QuoteStatus.rejected.name,
+      'status': accepted
+          ? QuoteStatus.accepted.name
+          : QuoteStatus.rejected.name,
       'responded_at': Timestamp.fromDate(DateTime.now()),
-      'teacher_price': ?price,
-      'teacher_sessions_num': ?sessionsNumber,
-      'teacher_session_duration': ?sessionDurationMinutes,
+      'updated_at': Timestamp.now(),
+      if (price != null) 'teacher_price': price,
+      if (sessionsNumber != null) 'teacher_sessions_num': sessionsNumber,
+      if (sessionDurationMinutes != null) 'teacher_session_duration': sessionDurationMinutes,
     };
 
-    final DocumentReference<Map<String, dynamic>> quoteRef =
-        _firestore.collection('quotes').doc(quoteId);
-    final DocumentSnapshot<Map<String, dynamic>> quoteSnapshot = await quoteRef.get();
-
-    if (quoteSnapshot.exists) {
-      await quoteRef.set(payload, SetOptions(merge: true));
-      return;
+    bool updated = false;
+    for (final String collectionName in <String>['quote_requests', 'quotes']) {
+      final DocumentReference<Map<String, dynamic>> quoteRef = _firestore
+          .collection(collectionName)
+          .doc(quoteId);
+      final DocumentSnapshot<Map<String, dynamic>> quoteSnapshot =
+          await quoteRef.get();
+      if (quoteSnapshot.exists) {
+        await quoteRef.set(payload, SetOptions(merge: true));
+        updated = true;
+      }
     }
 
-    await _firestore.collection('quote_requests').doc(quoteId).set(
-          payload,
-          SetOptions(merge: true),
-        );
+    if (!updated) {
+      throw Exception('Quote request not found.');
+    }
   }
-
 
   Future<String> createSession({
     required String serviceId,
@@ -221,22 +229,22 @@ class TeacherDashboardService {
     );
     final DateTime end = start.add(Duration(minutes: durationMinutes));
 
-    final DocumentReference<Map<String, dynamic>> ref = _firestore.collection('sessions').doc();
-    await ref.set(
-      {
-        'session_id': ref.id,
-        'service_id': serviceId,
-        'student_ids': studentIds,
-        'tutor_id': tutor.uid,
-        'status': SessionStatus.Planned.name,
-        'type': sessionType.toLowerCase(),
-        'modality': modality.toLowerCase(),
-        'date': Timestamp.fromDate(DateTime(date.year, date.month, date.day)),
-        'start_time': Timestamp.fromDate(start),
-        'end_time': Timestamp.fromDate(end),
-        if (onlineLink.isNotEmpty) 'online_link': onlineLink,
-      },
-    );
+    final DocumentReference<Map<String, dynamic>> ref = _firestore
+        .collection('sessions')
+        .doc();
+    await ref.set({
+      'session_id': ref.id,
+      'service_id': serviceId,
+      'student_ids': studentIds,
+      'tutor_id': tutor.uid,
+      'status': SessionStatus.Planned.name,
+      'type': sessionType.toLowerCase(),
+      'modality': modality.toLowerCase(),
+      'date': Timestamp.fromDate(DateTime(date.year, date.month, date.day)),
+      'start_time': Timestamp.fromDate(start),
+      'end_time': Timestamp.fromDate(end),
+      if (onlineLink.isNotEmpty) 'online_link': onlineLink,
+    });
 
     return ref.id;
   }
@@ -258,16 +266,13 @@ class TeacherDashboardService {
     );
     final DateTime end = start.add(Duration(minutes: durationMinutes));
 
-    await _firestore.collection('sessions').doc(sessionId).set(
-      {
-        'date': Timestamp.fromDate(DateTime(date.year, date.month, date.day)),
-        'start_time': Timestamp.fromDate(start),
-        'end_time': Timestamp.fromDate(end),
-        'modality': modality.toLowerCase(),
-        if (onlineLink.isNotEmpty) 'online_link': onlineLink,
-      },
-      SetOptions(merge: true),
-    );
+    await _firestore.collection('sessions').doc(sessionId).set({
+      'date': Timestamp.fromDate(DateTime(date.year, date.month, date.day)),
+      'start_time': Timestamp.fromDate(start),
+      'end_time': Timestamp.fromDate(end),
+      'modality': modality.toLowerCase(),
+      if (onlineLink.isNotEmpty) 'online_link': onlineLink,
+    }, SetOptions(merge: true));
   }
 
   Future<String> addResource({
@@ -280,7 +285,9 @@ class TeacherDashboardService {
     String serviceId = '',
   }) async {
     final TutorModel tutor = await _loadCurrentTutor();
-    final DocumentReference<Map<String, dynamic>> ref = _firestore.collection('resources').doc();
+    final DocumentReference<Map<String, dynamic>> ref = _firestore
+        .collection('resources')
+        .doc();
     final bool isLink = type.toLowerCase() == 'link';
 
     final ResourceModel resource = isLink
@@ -327,11 +334,15 @@ class TeacherDashboardService {
   Future<TutorModel> _loadCurrentTutor() async {
     final User? currentUser = await _auth.authStateChanges().first;
     if (currentUser == null) {
-      throw Exception('You need to be signed in to open the teacher dashboard.');
+      throw Exception(
+        'You need to be signed in to open the teacher dashboard.',
+      );
     }
 
-    final DocumentSnapshot<Map<String, dynamic>> userSnapshot =
-        await _firestore.collection('users').doc(currentUser.uid).get();
+    final DocumentSnapshot<Map<String, dynamic>> userSnapshot = await _firestore
+        .collection('users')
+        .doc(currentUser.uid)
+        .get();
 
     if (!userSnapshot.exists || userSnapshot.data() == null) {
       throw Exception('User profile not found in users collection.');
@@ -349,15 +360,14 @@ class TeacherDashboardService {
       if (tutorSnapshot.data() != null) ...tutorSnapshot.data()!,
     };
 
-    return TutorModel.fromMap({
-      ...mergedData,
-      'uid': userSnapshot.id,
-    });
+    return TutorModel.fromMap({...mergedData, 'uid': userSnapshot.id});
   }
 
   Future<List<ServiceModel>> _loadServices(String tutorId) async {
-    final QuerySnapshot<Map<String, dynamic>> snapshot =
-        await _firestore.collection('services').where('tutor_id', isEqualTo: tutorId).get();
+    final QuerySnapshot<Map<String, dynamic>> snapshot = await _firestore
+        .collection('services')
+        .where('tutor_id', isEqualTo: tutorId)
+        .get();
 
     final List<ServiceModel> services = snapshot.docs.map((doc) {
       final Map<String, dynamic> data = {
@@ -367,13 +377,17 @@ class TeacherDashboardService {
       return ServiceModel.fromMap(data);
     }).toList();
 
-    services.sort((a, b) => b.isActive.toString().compareTo(a.isActive.toString()));
+    services.sort(
+      (a, b) => b.isActive.toString().compareTo(a.isActive.toString()),
+    );
     return services;
   }
 
   Future<List<SessionModel>> _loadSessions(String tutorId) async {
-    final QuerySnapshot<Map<String, dynamic>> snapshot =
-        await _firestore.collection('sessions').where('tutor_id', isEqualTo: tutorId).get();
+    final QuerySnapshot<Map<String, dynamic>> snapshot = await _firestore
+        .collection('sessions')
+        .where('tutor_id', isEqualTo: tutorId)
+        .get();
 
     final List<SessionModel> sessions = snapshot.docs.map((doc) {
       final Map<String, dynamic> data = {
@@ -403,10 +417,12 @@ class TeacherDashboardService {
     return sessions;
   }
 
-  Future<List<QuoteModel>> _loadQuotes(String tutorId) async {
+  Future<List<QuoteModel>> _loadQuotes(String tutorId, {bool onlyPending = false}) async {
     Future<List<QuoteModel>> fetchFrom(String collectionName) async {
-      final QuerySnapshot<Map<String, dynamic>> snapshot =
-          await _firestore.collection(collectionName).where('tutor_id', isEqualTo: tutorId).get();
+      final QuerySnapshot<Map<String, dynamic>> snapshot = await _firestore
+          .collection(collectionName)
+          .where('tutor_id', isEqualTo: tutorId)
+          .get();
 
       return snapshot.docs.map((doc) {
         final Map<String, dynamic> data = {
@@ -417,53 +433,133 @@ class TeacherDashboardService {
       }).toList();
     }
 
-    final List<QuoteModel> quotes = await fetchFrom('quotes');
     final List<QuoteModel> requests = await fetchFrom('quote_requests');
+    final Map<String, QuoteModel> byRequestKey = <String, QuoteModel>{};
 
-    final List<QuoteModel> combined = <QuoteModel>[...quotes, ...requests];
+    for (final QuoteModel quote in requests) {
+      if (onlyPending && quote.status != QuoteStatus.pending) {
+        continue;
+      }
+      final String requestKey = _quoteRequestKey(quote);
+      final QuoteModel? existing = byRequestKey[requestKey];
+      if (existing == null || _isNewerQuote(quote, existing)) {
+        byRequestKey[requestKey] = quote;
+      }
+    }
+
+    final List<QuoteModel> combined = byRequestKey.values.toList();
     combined.sort((a, b) {
-      final DateTime aDate = a.createdAt ?? a.updatedAt ?? DateTime.fromMillisecondsSinceEpoch(0);
-      final DateTime bDate = b.createdAt ?? b.updatedAt ?? DateTime.fromMillisecondsSinceEpoch(0);
+      final DateTime aDate =
+          a.createdAt ?? a.updatedAt ?? DateTime.fromMillisecondsSinceEpoch(0);
+      final DateTime bDate =
+          b.createdAt ?? b.updatedAt ?? DateTime.fromMillisecondsSinceEpoch(0);
       return bDate.compareTo(aDate);
     });
 
     return combined;
   }
 
-  Future<Map<String, StudentModel>> _loadStudentsForQuotes(List<QuoteModel> quotes) async {
-    final Set<String> studentIds =
-        quotes.map((quote) => quote.studentId).where((id) => id.isNotEmpty).toSet();
+  String _quoteRequestKey(QuoteModel quote) {
+    if (quote.studentId.isNotEmpty && quote.tutorId.isNotEmpty) {
+      final String servicePart = quote.serviceId.isNotEmpty
+          ? quote.serviceId
+          : 'custom';
+      return '${quote.studentId}|${quote.tutorId}|$servicePart';
+    }
+    return quote.quoteId;
+  }
+
+  bool _isNewerQuote(QuoteModel candidate, QuoteModel existing) {
+    final DateTime candidateDate =
+        candidate.createdAt ??
+        candidate.updatedAt ??
+        DateTime.fromMillisecondsSinceEpoch(0);
+    final DateTime existingDate =
+        existing.createdAt ??
+        existing.updatedAt ??
+        DateTime.fromMillisecondsSinceEpoch(0);
+    return candidateDate.isAfter(existingDate);
+  }
+
+  Future<Map<String, StudentModel>> _loadStudentsForQuotes(
+    List<QuoteModel> quotes,
+  ) async {
+    final Set<String> studentIds = quotes
+        .map((quote) => quote.studentId)
+        .where((id) => id.isNotEmpty)
+        .toSet();
     final Map<String, StudentModel> students = <String, StudentModel>{};
 
     await Future.wait(
       studentIds.map((studentId) async {
-        final DocumentSnapshot<Map<String, dynamic>> snapshot =
-            await _firestore.collection('students').doc(studentId).get();
-        if (!snapshot.exists || snapshot.data() == null) {
+        final DocumentSnapshot<Map<String, dynamic>> snapshot = await _firestore
+            .collection('students')
+            .doc(studentId)
+            .get();
+        if (snapshot.exists && snapshot.data() != null) {
+          students[studentId] = StudentModel.fromMap({
+            ...snapshot.data()!,
+            'uid': snapshot.id,
+          });
           return;
         }
 
-        students[studentId] = StudentModel.fromMap({
-          ...snapshot.data()!,
-          'uid': snapshot.id,
-        });
+        final DocumentSnapshot<Map<String, dynamic>> childSnapshot =
+            await _firestore.collection('children').doc(studentId).get();
+        if (!childSnapshot.exists || childSnapshot.data() == null) {
+          return;
+        }
+
+        students[studentId] = _studentFromChildSnapshot(childSnapshot);
       }),
     );
 
     return students;
   }
 
+  StudentModel _studentFromChildSnapshot(
+    DocumentSnapshot<Map<String, dynamic>> snapshot,
+  ) {
+    final Map<String, dynamic> data = snapshot.data() ?? <String, dynamic>{};
+    final String name = (data['name'] ?? '').toString().trim();
+    final List<String> parts = name.split(RegExp(r'\s+'));
+
+    return StudentModel(
+      uid: snapshot.id,
+      firstName: parts.isNotEmpty ? parts.first : 'Child',
+      lastName: parts.length > 1 ? parts.sublist(1).join(' ') : '',
+      email: '',
+      phone: '',
+      location: '',
+      gender: data['gender'] == 'female' ? Gender.female : Gender.male,
+      birthday: DateTime(2000),
+      picture: (data['picture'] ?? '').toString(),
+      accountStatus: AccountStatus.validated,
+      schoolLevel: (data['level'] ?? '').toString(),
+      learningObjectives: '',
+      preferredSubjects: List<String>.from(data['subjects'] ?? []),
+      favoriteTeachers: const <String>[],
+      Courses: const <String>[],
+      grade: (data['grade'] ?? '').toString(),
+      speciality: (data['speciality'] ?? '').toString(),
+    );
+  }
+
   Future<Map<String, StudentModel>> _loadStudentsForSessions(
     List<SessionModel> sessions,
   ) async {
-    final Set<String> studentIds =
-        sessions.expand((session) => session.studentIds).where((studentId) => studentId.isNotEmpty).toSet();
+    final Set<String> studentIds = sessions
+        .expand((session) => session.studentIds)
+        .where((studentId) => studentId.isNotEmpty)
+        .toSet();
     final Map<String, StudentModel> students = <String, StudentModel>{};
 
     await Future.wait(
       studentIds.map((studentId) async {
-        final DocumentSnapshot<Map<String, dynamic>> snapshot =
-            await _firestore.collection('students').doc(studentId).get();
+        final DocumentSnapshot<Map<String, dynamic>> snapshot = await _firestore
+            .collection('students')
+            .doc(studentId)
+            .get();
         if (!snapshot.exists || snapshot.data() == null) {
           return;
         }
@@ -483,22 +579,23 @@ class TeacherDashboardService {
     List<ServiceModel> services,
     List<SessionModel> sessions,
   ) {
-    final Set<String> uniqueStudents =
-        sessions.expand((session) => session.studentIds).where((studentId) => studentId.isNotEmpty).toSet();
+    final Set<String> uniqueStudents = sessions
+        .expand((session) => session.studentIds)
+        .where((studentId) => studentId.isNotEmpty)
+        .toSet();
 
     return <TeacherDashboardStat>[
       TeacherDashboardStat(
         label: 'RATING',
-        value: tutor.averageRating > 0 ? '${tutor.averageRating.toStringAsFixed(1)} *' : 'New',
+        value: tutor.averageRating > 0
+            ? '${tutor.averageRating.toStringAsFixed(1)} '
+            : 'New',
       ),
       TeacherDashboardStat(
         label: 'STUDENTS',
         value: uniqueStudents.length.toString(),
       ),
-      TeacherDashboardStat(
-        label: 'COURSES',
-        value: services.length.toString(),
-      ),
+      TeacherDashboardStat(label: 'COURSES', value: services.length.toString()),
     ];
   }
 
@@ -524,13 +621,16 @@ class TeacherDashboardService {
       }
 
       final ServiceModel? service = servicesById[session.serviceId];
-      final String title =
-          service?.name.trim().isNotEmpty == true ? service!.name : '${_capitalize(session.type)} Session';
+      final String title = service?.name.trim().isNotEmpty == true
+          ? service!.name
+          : '${_capitalize(session.type)} Session';
 
       return TeacherDashboardSession(
         badgeLabel: 'NEXT COURSE',
         title: title,
-        subject: service?.subject.isNotEmpty == true ? service!.subject : _capitalize(session.type),
+        subject: service?.subject.isNotEmpty == true
+            ? service!.subject
+            : _capitalize(session.type),
         timeRange: _formatSessionTime(session),
         modalityLabel: _capitalize(session.modality),
       );
@@ -544,7 +644,8 @@ class TeacherDashboardService {
       category: service.subject.toUpperCase(),
       statusLabel: service.isActive ? 'ACTIVE' : 'INACTIVE',
       title: service.name,
-      sessionsLabel: '${service.sessionsnum} ${service.sessionsnum == 1 ? 'Session' : 'Sessions'}',
+      sessionsLabel:
+          '${service.sessionsnum} ${service.sessionsnum == 1 ? 'Session' : 'Sessions'}',
       priceLabel: '${service.price.toStringAsFixed(0)} DA',
       imagePath: service.picture,
     );
@@ -554,9 +655,12 @@ class TeacherDashboardService {
     QuoteModel quote,
     StudentModel? student,
   ) {
-    final String studentName =
-        student == null ? 'Student Request' : '${student.firstName} ${student.lastName}'.trim();
-    final String level = student?.schoolLevel.isNotEmpty == true ? student!.schoolLevel : quote.level;
+    final String studentName = student == null
+        ? 'Student Request'
+        : '${student.firstName} ${student.lastName}'.trim();
+    final String level = student?.schoolLevel.isNotEmpty == true
+        ? student!.schoolLevel
+        : quote.level;
 
     return TeacherDashboardQuoteRequest(
       quote: quote,
@@ -588,7 +692,9 @@ class TeacherDashboardService {
   String _formatSessionTime(SessionModel session) {
     final DateFormat dateFormat = DateFormat('dd MMM');
     final DateFormat timeFormat = DateFormat('HH:mm');
-    final int duration = session.endTime.difference(session.startTime).inMinutes;
+    final int duration = session.endTime
+        .difference(session.startTime)
+        .inMinutes;
 
     return '${dateFormat.format(session.date)} | '
         '${timeFormat.format(session.startTime)} - ${timeFormat.format(session.endTime)} '
@@ -601,7 +707,9 @@ class TeacherDashboardService {
     Map<String, StudentModel> studentsById,
   ) {
     final DateFormat timeFormat = DateFormat('HH:mm');
-    final int duration = session.endTime.difference(session.startTime).inMinutes;
+    final int duration = session.endTime
+        .difference(session.startTime)
+        .inMinutes;
     final List<String> studentNames = session.studentIds
         .map((studentId) => studentsById[studentId])
         .whereType<StudentModel>()
@@ -652,6 +760,9 @@ class TeacherDashboardService {
     }
     return value[0].toUpperCase() + value.substring(1).toLowerCase();
   }
+
+  Future<List<QuoteModel>> loadAllQuotes() async {
+    final TutorModel tutor = await _loadCurrentTutor();
+    return _loadQuotes(tutor.uid, onlyPending: false);
+  }
 }
-
-

@@ -1,6 +1,7 @@
 import 'package:fahamni/TeacherDashboard/models/teacher_portal_models.dart';
 import 'package:fahamni/TeacherDashboard/teacher_portal_service.dart';
-import 'package:fahamni/TeacherDashboard/widgets/teacher_portal_modals.dart' as portal_modals;
+import 'package:fahamni/TeacherDashboard/widgets/teacher_portal_modals.dart'
+    as portal_modals;
 import 'package:fahamni/models/quote_model.dart';
 import 'package:flutter/material.dart';
 import 'teacher_modals.dart';
@@ -14,10 +15,7 @@ const Color _cardBorder = Color(0xFFE4E8F2);
 const Color _iconChipBackground = Color(0xFFE7E9F8);
 
 class TeacherQuoteRequestDetailPage extends StatefulWidget {
-  const TeacherQuoteRequestDetailPage({
-    super.key,
-    required this.request,
-  });
+  const TeacherQuoteRequestDetailPage({super.key, required this.request});
 
   final TeacherJoinRequestDetail request;
 
@@ -56,14 +54,14 @@ class _TeacherQuoteRequestDetailPageState
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Quote sent to ${widget.request.studentName}.')),
       );
-      Navigator.of(context).pop();
+      Navigator.of(context).pop(true);
     } catch (error) {
       if (!mounted) {
         return;
       }
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(error.toString())),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(error.toString())));
     } finally {
       if (mounted) {
         setState(() {
@@ -90,14 +88,14 @@ class _TeacherQuoteRequestDetailPageState
           content: Text('Request from ${widget.request.studentName} rejected.'),
         ),
       );
-      Navigator.of(context).pop();
+      Navigator.of(context).pop(true);
     } catch (error) {
       if (!mounted) {
         return;
       }
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(error.toString())),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(error.toString())));
     } finally {
       if (mounted) {
         setState(() {
@@ -108,7 +106,9 @@ class _TeacherQuoteRequestDetailPageState
   }
 
   Future<void> _createSession() async {
-    final SessionModalResult? draftResult = await SessionModal.showCreate(context);
+    final SessionModalResult? draftResult = await SessionModal.showCreate(
+      context,
+    );
     if (draftResult == null) {
       return;
     }
@@ -142,9 +142,9 @@ class _TeacherQuoteRequestDetailPageState
       if (!mounted) {
         return;
       }
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(error.toString())),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(error.toString())));
     } finally {
       if (mounted) {
         setState(() {
@@ -155,13 +155,12 @@ class _TeacherQuoteRequestDetailPageState
   }
 
   Future<void> _rescheduleSession() async {
-    final SessionModalResult? draftResult =
-        await SessionModal.showReschedule(
-          context,
-          date: DateTime.now(),
-          startTime: TimeOfDay.now(),
-          duration: 60,
-        );
+    final SessionModalResult? draftResult = await SessionModal.showReschedule(
+      context,
+      date: DateTime.now(),
+      startTime: TimeOfDay.now(),
+      duration: 60,
+    );
     if (draftResult == null) {
       return;
     }
@@ -184,7 +183,9 @@ class _TeacherQuoteRequestDetailPageState
       _busy = true;
     });
     try {
-      final String? sessionId = await _service.findLatestSessionId(widget.request);
+      final String? sessionId = await _service.findLatestSessionId(
+        widget.request,
+      );
       if (sessionId == null) {
         await _service.createSession(request: widget.request, draft: draft);
         if (!mounted) {
@@ -208,9 +209,9 @@ class _TeacherQuoteRequestDetailPageState
       if (!mounted) {
         return;
       }
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(error.toString())),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(error.toString())));
     } finally {
       if (mounted) {
         setState(() {
@@ -221,7 +222,9 @@ class _TeacherQuoteRequestDetailPageState
   }
 
   Future<void> _addResource() async {
-    final AddResourceModalResult? draftResult = await AddResourceModal.show(context);
+    final AddResourceModalResult? draftResult = await AddResourceModal.show(
+      context,
+    );
     if (draftResult == null) {
       return;
     }
@@ -232,7 +235,9 @@ class _TeacherQuoteRequestDetailPageState
           ? TeacherResourceType.link
           : TeacherResourceType.document,
       link: draftResult.resourceValue,
-      filePath: draftResult.resourceType == 'Link' ? '' : draftResult.resourceValue,
+      filePath: draftResult.resourceType == 'Link'
+          ? ''
+          : draftResult.resourceValue,
     );
 
     setState(() {
@@ -250,9 +255,9 @@ class _TeacherQuoteRequestDetailPageState
       if (!mounted) {
         return;
       }
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(error.toString())),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(error.toString())));
     } finally {
       if (mounted) {
         setState(() {
@@ -400,7 +405,8 @@ class _TeacherQuoteRequestDetailPageState
                         _DetailRow(
                           icon: Icons.calendar_month_outlined,
                           label: 'Number of Sessions',
-                          value: '${request.sessionsCount} session${request.sessionsCount == 1 ? '' : 's'}',
+                          value:
+                              '${request.sessionsCount} session${request.sessionsCount == 1 ? '' : 's'}',
                         ),
                         _DetailRow(
                           icon: Icons.access_time_rounded,
@@ -445,11 +451,7 @@ class _TeacherQuoteRequestDetailPageState
   }
 }
 
-enum _RequestMenuAction {
-  createSession,
-  reschedule,
-  addResource,
-}
+enum _RequestMenuAction { createSession, reschedule, addResource }
 
 class _CardSection extends StatelessWidget {
   const _CardSection({
@@ -484,11 +486,7 @@ class _CardSection extends StatelessWidget {
         children: [
           Row(
             children: [
-              Icon(
-                titleIcon,
-                size: 28,
-                color: _primaryBlue,
-              ),
+              Icon(titleIcon, size: 28, color: _primaryBlue),
               const SizedBox(width: 10),
               Text(
                 title,
@@ -610,5 +608,3 @@ class _ActionButton extends StatelessWidget {
     );
   }
 }
-
-

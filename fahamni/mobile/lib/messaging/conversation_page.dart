@@ -1,5 +1,4 @@
 import 'dart:io';
-
 import 'package:fahamni/messaging/conversation_doc_page.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -97,13 +96,10 @@ class _ConversationPageState extends State<ConversationPage> {
     });
   }
 
-  Future<void> _handleSend(
-    String text,
-    List<AttachmentModel> attachments,
-    List<File> filesToUpload,
-  ) async {
+  Future<void> _handleSend(String text, List<AttachmentModel> attachments, List<File> filesToUpload) async {
     final String senderId = _auth.currentUser?.uid ?? widget.currentUserId;
     final String receiverId = _receiverIdFor(senderId);
+    
     if (senderId.isEmpty || receiverId.isEmpty) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -114,15 +110,17 @@ class _ConversationPageState extends State<ConversationPage> {
       return;
     }
 
+    if (text.trim().isEmpty && filesToUpload.isEmpty) return;
+
     try {
+      // For now, we only handle text messages as requested. 
+      // File upload logic would go here if backend is ready.
       await _chatService.sendMessage(
         conversationId: widget.conversation.conversationId,
         senderId: senderId,
         receiverId: receiverId,
         content: text,
         controller: _messageController,
-        attachments: attachments,
-        filesToUpload: filesToUpload,
       );
       _scheduleScrollToBottom();
     } catch (error) {
@@ -204,90 +202,82 @@ class _ConversationPageState extends State<ConversationPage> {
                   radius: 22,
                   backgroundImage: NetworkImage(widget.imageUrl),
                 ),
-                Positioned(
-                  bottom: 0,
-                  right: 0,
-                  child: Container(
-                    width: 12,
-                    height: 12,
-                    decoration: BoxDecoration(
-                      color: Colors.green,
-                      shape: BoxShape.circle,
-                      border: Border.all(color: Colors.white, width: 2),
+                if (widget.conversation.isOnline)
+                  Positioned(
+                    bottom: 0,
+                    right: 0,
+                    child: Container(
+                      width: 12,
+                      height: 12,
+                      decoration: BoxDecoration(
+                        color: Colors.green,
+                        shape: BoxShape.circle,
+                        border: Border.all(color: Colors.white, width: 2),
+                      ),
                     ),
                   ),
-                ),
               ],
             ),
             const SizedBox(width: 10),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  widget.conversation.conversationName,
-                  style: GoogleFonts.inter(
-                    color: const Color(0xFF1F2937),
-                    fontSize: 16,
-                    fontWeight: FontWeight.w700,
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    widget.conversation.participantDisplayName.isNotEmpty
+                        ? widget.conversation.participantDisplayName
+                        : widget.conversation.conversationName,
+                    overflow: TextOverflow.ellipsis,
+                    style: GoogleFonts.inter(
+                      color: const Color(0xFF1F2937),
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
-                ),
-                Text(
-                  'En ligne',
-                  style: GoogleFonts.inter(
-                    color: Colors.green,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ],
+                  if (widget.conversation.isOnline)
+                    Text(
+                      'En ligne',
+                      style: GoogleFonts.inter(
+                        color: Colors.green,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                ],
+              ),
             ),
           ],
         ),
         actions: [
-  IconButton(
-    onPressed: _openAiAssistant,
-    icon: const Icon(
-      Icons.auto_awesome_rounded,
-      color: Color(0xFF000080),
-    ),
-  ),
-  IconButton(
-    onPressed: () {
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => ConversationDocPage(
-            imageUrl: widget.imageUrl,
-            name: widget.conversation.conversationName,
-            conversation: widget.conversation,
-            chatService: _chatService,
+          IconButton(
+            onPressed: _openAiAssistant,
+            icon: const Icon(
+              Icons.auto_awesome_rounded,
+              color: Color(0xFF000080),
+            ),
           ),
-        ),
-      );
-    },
-    icon: const Icon(
-      Icons.info_outline,
-      color: Color(0xFF1F2937),
-    ),
-  ),
-],
+          IconButton(
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => ConversationDocPage(
+                    imageUrl: widget.imageUrl,
+                    name: widget.conversation.conversationName,
+                    conversation: widget.conversation,
+                  ),
+                ),
+              );
+            },
+            icon: const Icon(
+              Icons.info_outline,
+              color: Color(0xFF1F2937),
+            ),
+          ),
+        ],
       ),
       body: Column(
         children: [
-          // date header
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 8),
-            child: Text(
-              'TODAY, ${TimeOfDay.now().format(context)}',
-              style: GoogleFonts.inter(
-                fontSize: 12,
-                color: Colors.grey,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ),
-
-          // messages list
           Expanded(
             child: StreamBuilder<List<MessageModel>>(
               stream: _chatService.getMessages(
@@ -317,6 +307,15 @@ class _ConversationPageState extends State<ConversationPage> {
                   _scheduleScrollToBottom(animated: animated);
                 }
 
+                if (messages.isEmpty) {
+                  return Center(
+                    child: Text(
+                      'Start a conversation with ${widget.conversation.participantDisplayName}',
+                      style: const TextStyle(color: Colors.grey),
+                    ),
+                  );
+                }
+
                 return ListView.builder(
                   controller: _scrollController,
                   padding: const EdgeInsets.symmetric(vertical: 8),
@@ -336,18 +335,12 @@ class _ConversationPageState extends State<ConversationPage> {
               },
             ),
           ),
-
-         
-
-          // message input
           MessageInput(
-              controller: _messageController,
-              onSend: _handleSend,
-            ),
+            controller: _messageController,
+            onSend: _handleSend,
+          ),
         ],
       ),
     );
   }
 }
-
-

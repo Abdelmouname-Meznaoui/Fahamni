@@ -19,11 +19,12 @@ class StudentTutorActionService {
     FirebaseAuth? auth,
     ChatService? chatService,
     NotificationService? notificationService,
-  })  : _firestore = firestore ?? FirebaseFirestore.instance,
-        _auth = auth ?? FirebaseAuth.instance,
-        _chatService =
-            chatService ?? ChatService(FirestoreChatRepository(firestore: firestore)),
-        _notificationService = notificationService ?? NotificationService();
+  }) : _firestore = firestore ?? FirebaseFirestore.instance,
+       _auth = auth ?? FirebaseAuth.instance,
+       _chatService =
+           chatService ??
+           ChatService(FirestoreChatRepository(firestore: firestore)),
+       _notificationService = notificationService ?? NotificationService();
 
   final FirebaseFirestore _firestore;
   final FirebaseAuth _auth;
@@ -36,21 +37,28 @@ class StudentTutorActionService {
       throw Exception('You need to be signed in first.');
     }
 
-    final DocumentSnapshot<Map<String, dynamic>> snapshot =
-        await _firestore.collection('students').doc(currentUser.uid).get();
+    final DocumentSnapshot<Map<String, dynamic>> snapshot = await _firestore
+        .collection('students')
+        .doc(currentUser.uid)
+        .get();
     if (!snapshot.exists || snapshot.data() == null) {
       throw Exception('Student profile not found.');
     }
 
-    return StudentModel.fromMap({
-      ...snapshot.data()!,
-      'uid': snapshot.id,
-    });
+    return StudentModel.fromMap({...snapshot.data()!, 'uid': snapshot.id});
   }
 
   Future<bool> isFavoriteTutor(String tutorId) async {
     final StudentModel student = await getCurrentStudent();
     return student.favoriteTeachers.contains(tutorId);
+  }
+
+  Future<StudentModel?> _tryGetCurrentStudent() async {
+    try {
+      return await getCurrentStudent();
+    } catch (_) {
+      return null;
+    }
   }
 
   Future<bool> toggleFavoriteTutor(String tutorId) async {
@@ -72,66 +80,111 @@ class StudentTutorActionService {
   Future<void> createBookingRequest({
     required TutorModel tutor,
     ServiceModel? service,
+    String? studentId,
+    String? studentName,
+    String? studentLevel,
   }) async {
-    final StudentModel student = await getCurrentStudent();
+    final User? currentUser = _auth.currentUser;
+    if (currentUser == null) {
+      throw Exception('You need to be signed in first.');
+    }
+
+    String requestStudentId = studentId?.trim() ?? '';
+    String requestStudentName = studentName?.trim() ?? '';
+    String requestStudentLevel = studentLevel?.trim() ?? '';
+
+    if (requestStudentId.isEmpty) {
+      final StudentModel? currentStudent = await _tryGetCurrentStudent();
+      if (currentStudent != null) {
+        requestStudentId = currentStudent.uid;
+        requestStudentName =
+            '${currentStudent.firstName} ${currentStudent.lastName}'.trim();
+        requestStudentLevel = currentStudent.schoolLevel;
+      } else {
+        final QuerySnapshot<Map<String, dynamic>> childSnapshot =
+            await _firestore
+                .collection('children')
+                .where('parentUid', isEqualTo: currentUser.uid)
+                .limit(1)
+                .get();
+        if (childSnapshot.docs.isEmpty) {
+          throw Exception('Please select a child before booking this service.');
+        }
+        final childDoc = childSnapshot.docs.first;
+        final childData = childDoc.data();
+        requestStudentId = childDoc.id;
+        requestStudentName = (childData['name'] ?? '').toString().trim();
+        requestStudentLevel = (childData['level'] ?? '').toString().trim();
+      }
+    }
+
+    if (requestStudentName.isEmpty) {
+      requestStudentName = 'Student';
+    }
 
     if (service != null) {
-      final DocumentReference<Map<String, dynamic>> serviceRef =
-          _firestore.collection('services').doc(service.serviceId);
+      final DocumentReference<Map<String, dynamic>> serviceRef = _firestore
+          .collection('services')
+          .doc(service.serviceId);
 
       await _firestore.runTransaction((transaction) async {
         final DocumentSnapshot<Map<String, dynamic>> serviceSnap =
             await transaction.get(serviceRef);
         if (!serviceSnap.exists) return;
 
-        final List<String> pendingIds =
-            List<String>.from(serviceSnap.data()?['pending_ids'] ?? []);
-        final List<String> studentIds =
-            List<String>.from(serviceSnap.data()?['student_ids'] ?? []);
+        final List<String> pendingIds = List<String>.from(
+          serviceSnap.data()?['pending_ids'] ?? [],
+        );
+        final List<String> studentIds = List<String>.from(
+          serviceSnap.data()?['student_ids'] ?? [],
+        );
 
-        if (!pendingIds.contains(student.uid) && !studentIds.contains(student.uid)) {
-          pendingIds.add(student.uid);
-          final int enrolledNum = (serviceSnap.data()?['enrolled_num'] ?? 0) + 1;
+        if (!pendingIds.contains(requestStudentId) &&
+            !studentIds.contains(requestStudentId)) {
+          pendingIds.add(requestStudentId);
 
           transaction.update(serviceRef, {
             'pending_ids': pendingIds,
-            'enrolled_num': enrolledNum,
+            'updated_at': Timestamp.now(),
           });
         }
       });
     }
 
-    final DocumentReference<Map<String, dynamic>> quoteRef =
-        _firestore.collection('quotes').doc();
+    final DocumentReference<Map<String, dynamic>> quoteRef = _firestore
+        .collection('quotes')
+        .doc();
 
     await quoteRef.set({
       'quote_id': quoteRef.id,
-      'student_id': student.uid,
+      'student_id': requestStudentId,
       'tutor_id': tutor.uid,
       'service_id': service?.serviceId ?? '',
       'subject': service?.subject ?? tutor.expertiseDomain,
-      'level': service?.level ?? student.schoolLevel,
+      'level': service?.level ?? requestStudentLevel,
       'objective': service?.name.isNotEmpty == true
           ? 'Book session for ${service!.name}'
           : 'Book a session with ${tutor.firstName} ${tutor.lastName}',
       'frequency': 'To be discussed',
       'duration': service != null ? '${service.duration} min' : '60 min',
-      'budget': service != null ? '${service.price.toInt()} DA' : 'To be discussed',
+      'budget': service != null
+          ? '${service.price.toInt()} DA'
+          : 'To be discussed',
       'status': 'pending',
-      'createdAt': Timestamp.now(),
+      'created_at': Timestamp.now(),
     });
 
     await _notificationService.sendNotification(
       NotificationModel(
         title: 'New booking request',
         content:
-            '${student.firstName} sent a booking request${service != null ? ' for ${service.name}' : ''}.',
+            '$requestStudentName sent a booking request${service != null ? ' for ${service.name}' : ''}.',
         dateTime: DateTime.now(),
         isRead: false,
         notificationId: '',
         receiverId: tutor.uid,
         type: 'quote_request',
-        senderId: student.uid,
+        senderId: currentUser.uid,
         tutorId: tutor.uid,
         serviceId: service?.serviceId ?? '',
       ),
@@ -155,8 +208,9 @@ class StudentTutorActionService {
       throw Exception('Unable to load reporter profile.');
     }
 
-    final DocumentReference<Map<String, dynamic>> reportRef =
-        _firestore.collection('reports').doc();
+    final DocumentReference<Map<String, dynamic>> reportRef = _firestore
+        .collection('reports')
+        .doc();
 
     final ReportModel report = ReportModel(
       reportId: reportRef.id,
@@ -190,8 +244,9 @@ class StudentTutorActionService {
       throw Exception('Please select a student for the quote request.');
     }
 
-    final DocumentReference<Map<String, dynamic>> quoteRef =
-        _firestore.collection('quote_requests').doc();
+    final DocumentReference<Map<String, dynamic>> quoteRef = _firestore
+        .collection('quote_requests')
+        .doc();
 
     await quoteRef.set({
       'quote_id': quoteRef.id,
@@ -230,11 +285,15 @@ class StudentTutorActionService {
   Future<ConversationModel> createOrGetConversation({
     required TutorModel tutor,
   }) async {
-    final StudentModel student = await getCurrentStudent();
-    final ConversationModel conversation = await _chatService.ensureDirectConversation(
-      currentUserId: student.uid,
-      otherUserId: tutor.uid,
-    );
+    final User? currentUser = _auth.currentUser;
+    if (currentUser == null) {
+      throw Exception('You need to be signed in first.');
+    }
+    final ConversationModel conversation = await _chatService
+        .ensureDirectConversation(
+          currentUserId: currentUser.uid,
+          otherUserId: tutor.uid,
+        );
 
     return conversation.copyWith(
       conversationName: '${tutor.firstName} ${tutor.lastName}'.trim(),
@@ -246,5 +305,3 @@ class StudentTutorActionService {
     );
   }
 }
-
-

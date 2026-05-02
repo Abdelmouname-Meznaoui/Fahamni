@@ -40,9 +40,18 @@ abstract class UserModel {
   Map<String, dynamic> toMap();
   UserModel copyWithUid(String uid);
 
+  static UserRole parseRole(dynamic value) {
+    final String normalized = (value ?? 'student').toString().trim().toLowerCase();
+    for (final UserRole role in UserRole.values) {
+      if (role.name == normalized) {
+        return role;
+      }
+    }
+    return UserRole.student;
+  }
+
   factory UserModel.fromMap(Map<String, dynamic> map) {
-    final roleString = map['role'] ?? 'student';
-    final role = UserRole.values.byName(roleString);
+    final role = parseRole(map['role']);
 
     switch (role) {
       case UserRole.student:
@@ -54,4 +63,3 @@ abstract class UserModel {
     }
   }
 }
-
