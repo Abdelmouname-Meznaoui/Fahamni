@@ -42,6 +42,7 @@ function ConvAvatar({ src, name, size = 42, dark = false }) {
 export default function MessagesPage({ adminUser, onViewUser, pendingContact, onContactHandled }) {
   const [conversations, setConversations] = useState([]);
   const [selected, setSelected]           = useState(null);
+  const [mobileChatOpen, setMobileChatOpen] = useState(false);
   const [messages, setMessages]           = useState([]);
   const [input, setInput]                 = useState("");
   const [search, setSearch]               = useState("");
@@ -191,6 +192,7 @@ export default function MessagesPage({ adminUser, onViewUser, pendingContact, on
       setConversations(prev => prev.map(c => c.id === selected.id ? { ...c, is_closed: true } : c));
     }
     setSelected(null);
+    setMobileChatOpen(false);
   }
 
   async function handleViewProfile() {
@@ -212,10 +214,10 @@ export default function MessagesPage({ adminUser, onViewUser, pendingContact, on
     <div style={s.page}>
       <h1 style={s.title}>Messages</h1>
 
-      <div style={s.body}>
+      <div className="msg-body">
 
         {/* ── Left: Inbox ── */}
-        <div style={s.inbox}>
+        <div style={{ ...s.inbox }} className={`msg-inbox-panel${mobileChatOpen ? " msg-inbox-hidden" : ""}`}>
           <div style={s.searchWrap}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2"
               style={{ position: "absolute", left: 13, top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }}>
@@ -242,7 +244,7 @@ export default function MessagesPage({ adminUser, onViewUser, pendingContact, on
                 <div
                   key={conv.id}
                   style={{ ...s.convRow, ...(isSelected ? s.convRowSelected : {}) }}
-                  onClick={() => { setSelected(conv); setInput(""); }}
+                  onClick={() => { setSelected(conv); setInput(""); setMobileChatOpen(true); }}
                 >
                   <div style={{ position: "relative", flexShrink: 0 }}>
                     <ConvAvatar src={conv.user_picture} name={conv.user_name} size={44} />
@@ -264,7 +266,14 @@ export default function MessagesPage({ adminUser, onViewUser, pendingContact, on
 
         {/* ── Right: Chat panel ── */}
         {selected ? (
-          <div style={s.chat}>
+          <div style={s.chat} className={`msg-chat-panel${!mobileChatOpen ? " msg-chat-hidden" : ""}`}>
+            {/* Mobile back button */}
+            <button className="msg-back-btn" onClick={() => setMobileChatOpen(false)}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/>
+              </svg>
+              Back to inbox
+            </button>
             {/* Header */}
             <div style={s.chatHeader}>
               <div style={s.chatHeaderLeft}>

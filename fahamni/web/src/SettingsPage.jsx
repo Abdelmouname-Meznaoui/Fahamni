@@ -1,7 +1,9 @@
 import { useState, useRef } from "react";
 import { getAuth, reauthenticateWithCredential, EmailAuthProvider, updatePassword, updateEmail, sendEmailVerification } from "firebase/auth";
-import { doc, updateDoc, collection, query, where, getDocs } from "firebase/firestore";
-import { db } from "./firebase";
+import { doc, updateDoc, collection, query, where, getDocs, setDoc, getDoc, deleteDoc, Timestamp } from "firebase/firestore";
+import { ref as storageRef, uploadBytes, getDownloadURL } from "firebase/storage";
+import { httpsCallable } from "firebase/functions";
+import { db, storage, functions } from "./firebase";
 
 const TABS = ["Account", "Security", "Notifications", "Support"];
 
@@ -14,8 +16,8 @@ export default function SettingsPage({ user, adminData, onAdminDataChange }) {
         <div style={s.headerTitle}>System Settings</div>
         <div style={s.headerSub}>Configure your workspace preferences and security protocols.</div>
       </div>
-      <div style={s.body}>
-        <aside style={s.sidebar}>
+      <div className="settings-body">
+        <aside style={s.sidebar} className="settings-sidebar-nav">
           {TABS.map(t => (
             <button
               key={t}
@@ -24,14 +26,14 @@ export default function SettingsPage({ user, adminData, onAdminDataChange }) {
             >
               <TabIcon name={t} active={tab === t} />
               {t}
-              {t === "Security" && <span style={s.tabArrow}>›</span>}
+              {tab === t && <span style={s.tabArrow}>›</span>}
             </button>
           ))}
         </aside>
-        <div className="thin-scroll" style={s.panel}>
+        <div className="thin-scroll settings-panel" style={s.panel}>
           {tab === "Account"       && <AccountTab user={user} adminData={adminData} onAdminDataChange={onAdminDataChange} />}
           {tab === "Security"      && <SecurityTab user={user} />}
-          {tab === "Notifications" && <NotificationsTab />}
+          {tab === "Notifications" && <NotificationsTab user={user} adminData={adminData} />}
           {tab === "Support"       && <SupportTab />}
         </div>
       </div>
@@ -54,6 +56,26 @@ function AccountTab({ user, adminData, onAdminDataChange }) {
   const fileRef = useRef();
 
   function set(k, v) { setForm(f => ({ ...f, [k]: v })); }
+
+  async function handlePictureChange(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    if (file.size > 800 * 1024) { setMsg({ type: "err", text: "Image must be under 800 KB." }); return; }
+    setSaving(true); setMsg(null);
+    try {
+      const imgRef = storageRef(storage, `admin-pictures/${user.email}`);
+      await uploadBytes(imgRef, file);
+      const url  = await getDownloadURL(imgRef);
+      const snap = await getDocs(query(collection(db, "admins"), where("email", "==", user.email)));
+      if (!snap.empty) await updateDoc(doc(db, "admins", snap.docs[0].id), { picture: url });
+      onAdminDataChange?.({ ...adminData, picture: url });
+      setMsg({ type: "ok", text: "Profile picture updated." });
+    } catch (e) {
+      setMsg({ type: "err", text: "Failed to upload image." });
+      console.error(e);
+    }
+    setSaving(false);
+  }
 
   async function handleSave() {
     setSaving(true);
@@ -82,48 +104,52 @@ function AccountTab({ user, adminData, onAdminDataChange }) {
       <div style={s.panelTitle}>Profile Information</div>
       <div style={s.panelSub}>Update your photo and personal details.</div>
       <div style={s.profileCard}>
-        <div style={s.avatarWrap}>
-          <div style={s.avatarCircle} onClick={() => fileRef.current?.click()}>
-            {adminData?.picture
-              ? <img src={adminData.picture} alt="avatar" style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: "50%" }} />
-              : <span style={{ fontSize: 28, fontWeight: 700, color: "#fff" }}>
-                  {(form.firstName?.[0] ?? "") + (form.lastName?.[0] ?? "")}
-                </span>
-            }
-            <div style={s.avatarOverlay}>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2">
-                <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
-                <circle cx="12" cy="13" r="4"/>
-              </svg>
+        <div className="settings-profile-inner">
+          <div style={s.avatarWrap}>
+            <div style={s.avatarCircle} onClick={() => fileRef.current?.click()}>
+              {adminData?.picture
+                ? <img src={adminData.picture} alt="avatar" style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: "50%" }} />
+                : <span style={{ fontSize: 28, fontWeight: 700, color: "#fff" }}>
+                    {(form.firstName?.[0] ?? "") + (form.lastName?.[0] ?? "")}
+                  </span>
+              }
+              <div style={s.avatarOverlay}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2">
+                  <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+                  <circle cx="12" cy="13" r="4"/>
+                </svg>
+              </div>
+            </div>
+            <input ref={fileRef} type="file" accept="image/*" style={{ display: "none" }} onChange={handlePictureChange} />
+            <div style={s.avatarHint}>JPG, GIF or PNG.<br/>Max size of 800K</div>
+          </div>
+          <div style={{ flex: 1 }}>
+            <div className="settings-fields-grid">
+              <Field label="First Name"    value={form.firstName} onChange={v => set("firstName", v)} />
+              <Field label="Last Name"     value={form.lastName}  onChange={v => set("lastName",  v)} />
+              <Field label="Birthday"      value={form.birthday}  onChange={v => set("birthday",  v)} placeholder="MM/DD/YYYY" />
+              <Field label="Email Address" value={form.email}     onChange={() => {}} disabled />
+              <Field label="Phone Number"  value={form.phone}     onChange={() => {}} disabled />
+              <div>
+                <div style={s.fieldLabel}>Language</div>
+                <select
+                  value={form.language}
+                  onChange={e => set("language", e.target.value)}
+                  style={{ ...s.input, cursor: "pointer", appearance: "auto" }}
+                >
+                  <option value="Eng">English</option>
+                  <option value="Fr">French</option>
+                  <option value="Ar">Arabic</option>
+                </select>
+              </div>
+            </div>
+            {msg && <MsgBox msg={msg} />}
+            <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 16 }}>
+              <button style={s.saveBtn} onClick={handleSave} disabled={saving}>
+                {saving ? "Saving…" : "Save Changes"}
+              </button>
             </div>
           </div>
-          <input ref={fileRef} type="file" accept="image/*" style={{ display: "none" }} />
-          <div style={s.avatarHint}>JPG, GIF or PNG. Max size of 800K</div>
-        </div>
-        <div style={s.fieldsGrid}>
-          <Field label="First Name"    value={form.firstName} onChange={v => set("firstName", v)} />
-          <Field label="Last Name"     value={form.lastName}  onChange={v => set("lastName",  v)} />
-          <Field label="Birthday"      value={form.birthday}  onChange={v => set("birthday",  v)} placeholder="MM/DD/YYYY" />
-          <Field label="Email Address" value={form.email}     onChange={() => {}} disabled />
-          <Field label="Phone Number"  value={form.phone}     onChange={v => set("phone",     v)} placeholder="05XXXXXXXX" />
-          <div>
-            <div style={s.fieldLabel}>Language</div>
-            <select
-              value={form.language}
-              onChange={e => set("language", e.target.value)}
-              style={{ ...s.input, cursor: "pointer", appearance: "auto" }}
-            >
-              <option value="Eng">English</option>
-              <option value="Fr">French</option>
-              <option value="Ar">Arabic</option>
-            </select>
-          </div>
-        </div>
-        {msg && <MsgBox msg={msg} />}
-        <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 16 }}>
-          <button style={s.saveBtn} onClick={handleSave} disabled={saving}>
-            {saving ? "Saving…" : "Save Changes"}
-          </button>
         </div>
       </div>
     </div>
@@ -323,7 +349,7 @@ function UpdatePhone({ user, onBack }) {
   const [password,     setPassword]     = useState("");
   const [newPhone,     setNewPhone]     = useState("");
   const [confirmPhone, setConfirmPhone] = useState("");
-  const [code,         setCode]         = useState(["", "", "", "", "", ""]);
+  const [code,         setCode]         = useState(["","","","","",""]);
   const [msg,          setMsg]          = useState(null);
   const [loading,      setLoading]      = useState(false);
   const inputs = useRef([]);
@@ -341,28 +367,60 @@ function UpdatePhone({ user, onBack }) {
     setLoading(false);
   }
 
-  function stepTwoContinue() {
-    if (newPhone !== confirmPhone) return setMsg({ type: "err", text: "Phone numbers do not match." });
-    setMsg(null);
-    setStep(3);
+  async function sendEmailCode() {
+    if (!newPhone || !confirmPhone) return setMsg({ type: "err", text: "Fill in both fields." });
+    const phone        = newPhone.replace(/\s+/g, "");
+    const phoneConfirm = confirmPhone.replace(/\s+/g, "");
+    if (phone !== phoneConfirm) return setMsg({ type: "err", text: "Phone numbers do not match." });
+    if (!/^\+\d{7,15}$/.test(phone)) return setMsg({ type: "err", text: "Use international format: +213XXXXXXXXX" });
+    setLoading(true); setMsg(null);
+    try {
+      const auth  = getAuth();
+      const email = auth.currentUser.email;
+      const otp   = (100000 + Math.floor(Math.random() * 900000)).toString();
+      const expiry = Timestamp.fromDate(new Date(Date.now() + 10 * 60 * 1000));
+      await setDoc(doc(db, "email_otps", email), { code: otp, expiresAt: expiry, type: "phone_update", verified: false });
+      await httpsCallable(functions, "sendOtpEmail")({ email, firstName: "", code: otp, isReset: false });
+      setNewPhone(phone);
+      setCode(["","","","","",""]);
+      setStep(3);
+    } catch (e) {
+      setMsg({ type: "err", text: "Failed to send verification code. Please try again." });
+      console.error(e);
+    }
+    setLoading(false);
+  }
+
+  async function stepThreeConfirm() {
+    const otp = code.join("");
+    if (otp.length < 6) return setMsg({ type: "err", text: "Enter the complete 6-digit code." });
+    setLoading(true); setMsg(null);
+    try {
+      const auth  = getAuth();
+      const email = auth.currentUser.email;
+      const snap  = await getDoc(doc(db, "email_otps", email));
+      if (!snap.exists()) throw new Error("Code not found. Please request a new one.");
+      const { code: stored, expiresAt } = snap.data();
+      if (new Date() > expiresAt.toDate()) {
+        await deleteDoc(doc(db, "email_otps", email));
+        throw new Error("Code expired. Please request a new one.");
+      }
+      if (stored !== otp) throw new Error("Incorrect code. Please try again.");
+      await deleteDoc(doc(db, "email_otps", email));
+      const admSnap = await getDocs(query(collection(db, "admins"), where("email", "==", user.email)));
+      if (!admSnap.empty) await updateDoc(doc(db, "admins", admSnap.docs[0].id), { phone: newPhone });
+      setMsg({ type: "ok", text: "Phone number updated successfully." });
+    } catch (e) {
+      setMsg({ type: "err", text: e.message ?? "Verification failed." });
+    }
+    setLoading(false);
   }
 
   function handleCodeInput(i, val) {
     const v = val.replace(/\D/, "");
-    const next = [...code];
-    next[i] = v;
+    const next = [...code]; next[i] = v;
     setCode(next);
     if (v && i < 5) inputs.current[i + 1]?.focus();
-  }
-
-  async function stepThreeConfirm() {
-    try {
-      const snap = await getDocs(query(collection(db, "admins"), where("email", "==", user.email)));
-      if (!snap.empty) await updateDoc(doc(db, "admins", snap.docs[0].id), { phone: newPhone });
-      setMsg({ type: "ok", text: "Phone number updated successfully." });
-    } catch (e) {
-      setMsg({ type: "err", text: e.message });
-    }
   }
 
   return (
@@ -380,17 +438,24 @@ function UpdatePhone({ user, onBack }) {
             {loading ? "Verifying…" : "Confirm"}
           </button>
         </>}
+
         {step === 2 && <>
-          <Field label="New Phone"     value={newPhone}     onChange={setNewPhone}     placeholder="05XXXXXXXX" />
+          <Field label="New Phone"     value={newPhone}     onChange={setNewPhone}     placeholder="+213XXXXXXXXX" />
           <div style={{ marginTop: 12 }} />
-          <Field label="Confirm Phone" value={confirmPhone} onChange={setConfirmPhone} placeholder="05XXXXXXXX" />
+          <Field label="Confirm Phone" value={confirmPhone} onChange={setConfirmPhone} placeholder="+213XXXXXXXXX" />
+          <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 6 }}>Include country code, e.g. +213 for Algeria</div>
           {msg && <MsgBox msg={msg} />}
-          <button style={s.confirmBtn} onClick={stepTwoContinue}>Continue</button>
+          <button style={s.confirmBtn} onClick={sendEmailCode} disabled={loading}>
+            {loading ? "Sending…" : "Send Verification Code"}
+          </button>
         </>}
+
         {step === 3 && <>
-          <div style={{ textAlign: "center", marginBottom: 8 }}>
-            <div style={{ fontWeight: 600, fontSize: 16, color: "#1F2937" }}>Phone Verification</div>
-            <div style={{ fontSize: 13, color: "#64748b", marginTop: 4 }}>Enter the code that we have sent you</div>
+          <div style={{ textAlign: "center", marginBottom: 16 }}>
+            <div style={{ fontWeight: 600, fontSize: 16, color: "#1F2937" }}>Email Verification</div>
+            <div style={{ fontSize: 13, color: "#64748b", marginTop: 4 }}>
+              We sent a 6-digit code to <strong>{getAuth().currentUser?.email}</strong>
+            </div>
           </div>
           <div style={s.codeRow}>
             {code.map((c, i) => (
@@ -406,8 +471,10 @@ function UpdatePhone({ user, onBack }) {
             ))}
           </div>
           {msg && <MsgBox msg={msg} />}
-          <button style={s.confirmBtn} onClick={stepThreeConfirm} disabled={loading}>Confirm</button>
-          <button style={s.resendBtn} onClick={() => setStep(2)}>Resend Code</button>
+          <button style={s.confirmBtn} onClick={stepThreeConfirm} disabled={loading}>
+            {loading ? "Verifying…" : "Confirm"}
+          </button>
+          <button style={s.resendBtn} onClick={sendEmailCode} disabled={loading}>Resend Code</button>
         </>}
       </div>
     </div>
@@ -415,87 +482,68 @@ function UpdatePhone({ user, onBack }) {
 }
 
 // ── Notifications Tab ────────────────────────────────────────────────────────
-const NOTIFICATION_GROUPS = [
+const ALERT_ITEMS = [
   {
+    key:   "teacherValidation",
+    label: "Teacher Validation",
+    desc:  "New teacher validation requests",
+    icon:  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/><path d="M9 16l2 2 4-4"/></svg>,
+  },
+  {
+    key:   "newMessages",
+    label: "New messages",
+    desc:  "Direct messages from users",
+    icon:  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>,
+  },
+  {
+    key:   "newReports",
+    label: "New Reports",
+    desc:  "New user's reports",
+    icon:  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="15" y2="17"/></svg>,
+  },
+  {
+    key:   "emailNotifications",
     label: "Email Notifications",
-    items: [
-      { key: "newOrders",     label: "New orders",         desc: "Get notified when a new order is placed" },
-      { key: "orderUpdates",  label: "Order updates",      desc: "Receive status changes for existing orders" },
-      { key: "promotions",    label: "Promotions & offers", desc: "Weekly deals and discount announcements" },
-      { key: "securityAlerts",label: "Security alerts",    desc: "Login attempts and account changes" },
-    ],
-  },
-  {
-    label: "Push Notifications",
-    items: [
-      { key: "realTime", label: "Real-time alerts", desc: "Instant push for critical system events" },
-      { key: "digest",   label: "Weekly digest",    desc: "Summary of activity every Monday morning" },
-    ],
-  },
-  {
-    label: "SMS Notifications",
-    items: [
-      { key: "smsOrders", label: "Order confirmations", desc: "SMS when a new order is confirmed" },
-      { key: "smsAlerts", label: "Critical alerts",     desc: "Emergency system-level notifications" },
-    ],
+    desc:  "Receive notifications via email",
+    icon:  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>,
   },
 ];
 
-const DEFAULT_PREFS = {
-  newOrders: true, orderUpdates: true, promotions: false, securityAlerts: true,
-  realTime: true,  digest: false,
-  smsOrders: false, smsAlerts: true,
-};
 
-function NotificationsTab() {
-  const [prefs, setPrefs] = useState(DEFAULT_PREFS);
-  const [saved, setSaved] = useState(false);
+function NotificationsTab({ user, adminData }) {
+  const [prefs, setPrefs] = useState(() => ({
+    teacherValidation:   adminData?.notificationPrefs?.teacherValidation   ?? true,
+    newMessages:         adminData?.notificationPrefs?.newMessages          ?? true,
+    newReports:          adminData?.notificationPrefs?.newReports           ?? false,
+    emailNotifications:  adminData?.notificationPrefs?.emailNotifications   ?? true,
+  }));
 
-  function toggle(key) {
-    setPrefs(p => ({ ...p, [key]: !p[key] }));
-    setSaved(false);
-  }
-
-  function handleSave() {
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2500);
+  async function toggle(key) {
+    const next = { ...prefs, [key]: !prefs[key] };
+    setPrefs(next);
+    try {
+      const snap = await getDocs(query(collection(db, "admins"), where("email", "==", user.email)));
+      if (!snap.empty) await updateDoc(doc(db, "admins", snap.docs[0].id), { notificationPrefs: next });
+    } catch (e) { console.error("Failed to save prefs:", e); }
   }
 
   return (
     <div>
-      <div style={s.panelTitle}>Notifications</div>
-      <div style={s.panelSub}>Choose how and when you want to be notified.</div>
-
-      {NOTIFICATION_GROUPS.map(group => (
-        <div key={group.label} style={{ marginBottom: 28 }}>
-          <div style={s.notifGroupLabel}>{group.label}</div>
-          <div style={s.notifCard}>
-            {group.items.map((item, idx) => (
-              <div
-                key={item.key}
-                style={{
-                  ...s.toggleRow,
-                  borderBottom: idx < group.items.length - 1 ? "1px solid #f1f5f9" : "none",
-                }}
-              >
-                <div style={s.toggleInfo}>
-                  <div style={s.toggleLabel}>{item.label}</div>
-                  <div style={s.toggleDesc}>{item.desc}</div>
-                </div>
-                <Toggle checked={prefs[item.key]} onChange={() => toggle(item.key)} />
-              </div>
-            ))}
+      <div style={s.notifGroupLabel}>Alert Preferences</div>
+      <div style={s.notifCard}>
+        {ALERT_ITEMS.map((item, idx) => (
+          <div
+            key={item.key}
+            style={{ ...s.toggleRow, borderBottom: idx < ALERT_ITEMS.length - 1 ? "1px solid #f1f5f9" : "none" }}
+          >
+            <div style={s.notifIconWrap}>{item.icon}</div>
+            <div style={s.toggleInfo}>
+              <div style={s.toggleLabel}>{item.label}</div>
+              <div style={s.toggleDesc}>{item.desc}</div>
+            </div>
+            <Toggle checked={prefs[item.key]} onChange={() => toggle(item.key)} />
           </div>
-        </div>
-      ))}
-
-      {saved && (
-        <div style={{ ...s.msgBox, background: "#f0fdf4", color: "#166534", border: "1px solid #bbf7d0", marginBottom: 12 }}>
-          Notification preferences saved.
-        </div>
-      )}
-      <div style={{ display: "flex", justifyContent: "flex-end" }}>
-        <button style={s.saveBtn} onClick={handleSave}>Save Changes</button>
+        ))}
       </div>
     </div>
   );
@@ -507,7 +555,7 @@ function SupportTab() {
     <div>
       <div style={s.panelTitle}>Get Support</div>
       <div style={s.panelSub}>Contact Super-Admins to get help or report an error</div>
-      <div style={s.supportCard}>
+      <div className="settings-support-card">
         <a href="mailto:fahamni.app@gmail.com" style={s.supportItem}>
           <div style={s.supportIconWrap}>
             <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="1.8">
@@ -649,15 +697,15 @@ const s = {
   tabActive: { color: "#000080", background: "#f0f4ff", fontWeight: 600 },
   tabArrow:  { marginLeft: "auto", fontSize: 16, color: "#94a3b8" },
 
-  panel:      { flex: 1, padding: "28px 32px", overflowY: "auto", scrollbarWidth: "thin" },
+  panel:      { flex: 1, padding: "28px 32px", overflowY: "auto", scrollbarWidth: "thin", scrollbarColor: "rgba(0,0,0,0.1) transparent" },
   panelTitle: { fontSize: 17, fontWeight: 700, color: "#1F2937", marginBottom: 2 },
   panelSub:   { fontSize: 13, color: "#64748b", marginBottom: 20 },
 
-  profileCard:  { background: "#f8fafc", borderRadius: 10, padding: "20px 24px", border: "1px solid #e8edf5" },
-  avatarWrap:   { display: "flex", flexDirection: "column", alignItems: "center", marginBottom: 24 },
-  avatarCircle: { width: 72, height: 72, borderRadius: "50%", background: "#000080", display: "flex", alignItems: "center", justifyContent: "center", position: "relative", cursor: "pointer", overflow: "hidden" },
+  profileCard:  { background: "#fff", borderRadius: 10, padding: "24px 28px", border: "1px solid #e8edf5" },
+  avatarWrap:   { display: "flex", flexDirection: "column", alignItems: "center", minWidth: 100 },
+  avatarCircle: { width: 80, height: 80, borderRadius: "50%", background: "#000080", display: "flex", alignItems: "center", justifyContent: "center", position: "relative", cursor: "pointer", overflow: "hidden" },
   avatarOverlay:{ position: "absolute", bottom: 0, left: 0, right: 0, height: 26, background: "rgba(0,0,0,0.45)", display: "flex", alignItems: "center", justifyContent: "center" },
-  avatarHint:   { fontSize: 11, color: "#94a3b8", marginTop: 6, textAlign: "center" },
+  avatarHint:   { fontSize: 11, color: "#94a3b8", marginTop: 8, textAlign: "center", lineHeight: 1.5 },
   fieldsGrid:   { display: "grid", gridTemplateColumns: "1fr 1fr", gap: "14px 20px", marginBottom: 4 },
 
   fieldLabel:   { fontSize: 12, color: "#64748b", fontWeight: 500, marginBottom: 5 },
@@ -681,12 +729,13 @@ const s = {
   resendBtn: { background: "none", border: "none", color: "#000080", fontSize: 13, fontWeight: 600, cursor: "pointer", textDecoration: "underline", marginTop: 10, alignSelf: "center" },
 
   // Notifications-specific
-  notifGroupLabel: { fontSize: 11, fontWeight: 700, color: "#94a3b8", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 8 },
-  notifCard:       { background: "#f8fafc", borderRadius: 10, border: "1px solid #e8edf5", padding: "0 20px" },
+  notifGroupLabel: { fontSize: 11, fontWeight: 700, color: "#94a3b8", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 12 },
+  notifCard:       { background: "#fff", borderRadius: 10, border: "1px solid #e8edf5", padding: "0 20px" },
+  notifIconWrap:   { width: 40, height: 40, borderRadius: 10, background: "#f0f4ff", display: "flex", alignItems: "center", justifyContent: "center", color: "#000080", flexShrink: 0, marginRight: 14 },
   toggleRow:       { display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 0" },
   toggleInfo:      { flex: 1 },
   toggleLabel:     { fontSize: 14, fontWeight: 600, color: "#1F2937", marginBottom: 2 },
-  toggleDesc:      { fontSize: 12, color: "#64748b" },
+  toggleDesc:      { fontSize: 12, color: "#94a3b8" },
 
   // Support-specific
   supportCard:    { display: "flex", gap: 40, marginTop: 8 },

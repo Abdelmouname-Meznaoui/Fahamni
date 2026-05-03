@@ -121,7 +121,7 @@ export default function UsersPage({ onSelect, initialTab }) {
     <div style={s.page}>
 
       {/* ── Toolbar ── */}
-      <div style={s.toolbar}>
+      <div className="page-toolbar">
         <div style={s.searchWrap}>
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2"
             style={{ position:"absolute", left:14, top:"50%", transform:"translateY(-50%)" }}>
@@ -129,12 +129,12 @@ export default function UsersPage({ onSelect, initialTab }) {
           </svg>
           <input
             style={s.search}
-            placeholder="Search users by name or email..."
+            placeholder="Search users..."
             value={search}
             onChange={e => { setSearch(e.target.value); setPage(1); }}
           />
         </div>
-        <div style={s.tabs}>
+        <div className="page-tabs">
           {["all","active","suspended"].map(t => (
             <button
               key={t}
@@ -148,7 +148,7 @@ export default function UsersPage({ onSelect, initialTab }) {
       </div>
 
       {/* ── Stat cards ── */}
-      <div style={s.statsRow}>
+      <div className="users-stats-grid">
         <StatCard label="TOTAL USERS"  value={stats.total}     accent="#6366f1" bold />
         <StatCard label="TEACHERS"     value={stats.teachers}  accent="#6366f1" sub="Active educators" />
         <StatCard label="STUDENTS"     value={stats.students}  accent="#6366f1" sub="Enrolled learners" />
@@ -156,7 +156,9 @@ export default function UsersPage({ onSelect, initialTab }) {
       </div>
 
       {/* ── Table ── */}
-      <div style={s.tableWrap}>
+      <div className="table-scroll">
+        <div className="table-scroll-inner thin-scroll">
+        <div className="table-min">
         <div style={s.tableHead}>
           <span style={{ ...s.col, flex: 2.5 }}>USER PROFILE</span>
           <span style={{ ...s.col, flex: 1.1 }}>ROLE</span>
@@ -165,7 +167,7 @@ export default function UsersPage({ onSelect, initialTab }) {
           <span style={{ ...s.col, flex: 1, textAlign:"center" }}>ACTIONS</span>
         </div>
 
-        <div className="thin-scroll" style={s.tableBody}>
+        <div style={s.tableBody}>
           {users === null ? (
             <div style={s.empty}>Loading...</div>
           ) : paginated.length === 0 ? (
@@ -255,6 +257,8 @@ export default function UsersPage({ onSelect, initialTab }) {
             </div>
           </div>
         )}
+        </div>{/* table-min */}
+        </div>{/* table-scroll-inner */}
       </div>
     </div>
   );

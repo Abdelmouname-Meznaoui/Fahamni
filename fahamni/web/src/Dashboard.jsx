@@ -1,5 +1,5 @@
 import { useState, useEffect, Component } from "react";
-import { collection, query, where, getDocs, getDoc, doc, setDoc, getCountFromServer } from "firebase/firestore";
+import { collection, query, where, getDocs, getDoc, doc, setDoc, getCountFromServer, onSnapshot } from "firebase/firestore";
 import { db } from "./firebase";
 import TeachersPage from "./TeachersPage";
 import TeacherProfilePage from "./TeacherProfilePage";
@@ -10,15 +10,14 @@ import MessagesPage from "./MessagesPage";
 import SettingsPage from "./SettingsPage";
 
 
-const MOCK_NOTIFICATIONS = [
-  { id: 1, title: "New Report", desc: "A new report has been submitted", time: "09:15AM", read: false },
-  { id: 2, title: "New Message", desc: "There is a new message from Djellal Toufik", time: "09:15AM", read: false },
-  { id: 3, title: "New Message", desc: "There is a new message from Djellal Toufik", time: "09:15AM", read: false },
-  { id: 4, title: "Teacher Validated", desc: "Meriem Chabane has been validated as a teacher", time: "08:40AM", read: true },
-  { id: 5, title: "New Message", desc: "There is a new message from Djellal Toufik", time: "08:10AM", read: false },
-  { id: 6, title: "User Suspended", desc: "Karim Bouazza has been suspended", time: "Yesterday", read: true },
-  { id: 7, title: "New Report", desc: "A session report has been flagged as urgent", time: "Yesterday", read: true },
-];
+function fmtNotifTime(ts) {
+  if (!ts) return "";
+  const d = new Date(ts.seconds * 1000), now = new Date(), diff = now - d;
+  if (diff < 60000)    return "Just now";
+  if (diff < 3600000)  return `${Math.floor(diff / 60000)}m ago`;
+  if (diff < 86400000) return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  return "Yesterday";
+}
 
 const NAV = [
   { id: "dashboard", label: "Dashboard", icon: <GridIcon /> },
@@ -84,9 +83,15 @@ class PageErrorBoundary extends Component {
 
 export default function Dashboard({ user, onLogout }) {
   const [active, setActive] = useState("dashboard");
-  const [showNotif, setShowNotif] = useState(false);
-  const [notifTab, setNotifTab] = useState("unread");
-  const [notifications, setNotifications] = useState(MOCK_NOTIFICATIONS);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [showNotif,   setShowNotif]   = useState(false);
+  const [notifTab,    setNotifTab]    = useState("unread");
+  const [tutorNotifs, setTutorNotifs] = useState([]);
+  const [reportNotifs,setReportNotifs]= useState([]);
+  const [readIds,     setReadIds]     = useState(() => {
+    try { return new Set(JSON.parse(localStorage.getItem("admin_notif_read") || "[]")); }
+    catch { return new Set(); }
+  });
   const [adminData, setAdminData] = useState(null);
   const [statValues, setStatValues] = useState([null, null, null, null]);
   const [selectedTeacher, setSelectedTeacher] = useState(null);
@@ -195,6 +200,51 @@ export default function Dashboard({ user, onLogout }) {
       .catch(err => console.error("Firestore error:", err));
   }, [user?.uid, user?.email]);
 
+  // ── Real-time notification listeners ──
+  useEffect(() => {
+    const q1 = query(collection(db, "tutors"),  where("account_status", "==", "pending"));
+    const q2 = query(collection(db, "reports"), where("status",         "==", "pending"));
+
+    const unsub1 = onSnapshot(q1, snap => {
+      setTutorNotifs(snap.docs.map(d => {
+        const data = d.data();
+        return {
+          id:    `tutor_${d.id}`,
+          title: "Teacher Validation Request",
+          desc:  `${data.first_name ?? ""} ${data.last_name ?? ""}`.trim() + " submitted a registration request",
+          time:  fmtNotifTime(data.created_at),
+          ts:    data.created_at?.seconds ?? 0,
+        };
+      }));
+    }, err => console.error("Notif tutor listener:", err));
+
+    const unsub2 = onSnapshot(q2, snap => {
+      setReportNotifs(snap.docs.map(d => {
+        const data = d.data();
+        return {
+          id:    `report_${d.id}`,
+          title: "New Report",
+          desc:  data.reason ?? `A ${data.type ?? "new"} report has been submitted`,
+          time:  fmtNotifTime(data.created_at),
+          ts:    data.created_at?.seconds ?? 0,
+        };
+      }));
+    }, err => console.error("Notif report listener:", err));
+
+    return () => { unsub1(); unsub2(); };
+  }, []);
+
+  const notifications = [
+    ...tutorNotifs.map(n  => ({ ...n, read: readIds.has(n.id) })),
+    ...reportNotifs.map(n => ({ ...n, read: readIds.has(n.id) })),
+  ].sort((a, b) => (b.ts ?? 0) - (a.ts ?? 0));
+
+  function markAllRead() {
+    const all = new Set([...readIds, ...notifications.map(n => n.id)]);
+    setReadIds(all);
+    try { localStorage.setItem("admin_notif_read", JSON.stringify([...all])); } catch {}
+  }
+
   // ── Shared nav handler ──
   function navigateTo(pageId) {
     if (pageId !== "messages") setPendingContact(null);
@@ -203,12 +253,18 @@ export default function Dashboard({ user, onLogout }) {
     setSelectedTeacher(null);
     setSelectedUser(null);
     setUsersInitialTab("all");
+    setSidebarOpen(false);
   }
+
+  function closeSidebar() { setSidebarOpen(false); }
 
   return (
     <div style={s.shell}>
+      {/* Mobile sidebar overlay */}
+      <div className={`sidebar-overlay${sidebarOpen ? " sidebar-open" : ""}`} onClick={closeSidebar} />
+
       {/* ── Sidebar ── */}
-      <aside style={s.sidebar}>
+      <aside style={s.sidebar} className={`dash-sidebar${sidebarOpen ? " sidebar-open" : ""}`}>
         {/* Logo */}
         <div style={s.logoRow}>
           <svg width="44" height="34" viewBox="0 0 114 87" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -261,7 +317,7 @@ export default function Dashboard({ user, onLogout }) {
         <div style={{ flex: 1 }} />
 
         {/* Logout */}
-        <button style={s.logoutBtn} onClick={onLogout}>
+        <button style={s.logoutBtn} onClick={() => { onLogout(); closeSidebar(); }}>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#dc2626" strokeWidth="2">
             <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
             <polyline points="16 17 21 12 16 7" />
@@ -274,7 +330,12 @@ export default function Dashboard({ user, onLogout }) {
       {/* ── Main ── */}
       <main style={s.main}>
         {/* Topbar */}
-        <header style={s.topbar}>
+        <header style={s.topbar} className="dash-topbar">
+          <button className="hamburger-btn" onClick={() => setSidebarOpen(v => !v)} aria-label="Menu">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1F2937" strokeWidth="2">
+              <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
+            </svg>
+          </button>
           <div style={{ flex: 1, minWidth: 0 }}>
             {active === "dashboard" && !showNotif && (
               <div style={s.searchWrap}>
@@ -347,7 +408,7 @@ export default function Dashboard({ user, onLogout }) {
         </header>
 
         {/* Content */}
-        <div style={s.content}>
+        <div style={s.content} className="dash-content">
         <PageErrorBoundary pageKey={active}>
 
           {/* ── Notifications page ── */}
@@ -395,7 +456,7 @@ export default function Dashboard({ user, onLogout }) {
                   <div style={{ paddingTop: 16, flexShrink: 0 }}>
                     <button
                       style={s.markReadBtn}
-                      onClick={() => setNotifications(prev => prev.map(n => ({ ...n, read: true })))}
+                      onClick={markAllRead}
                     >
                       Mark as read
                     </button>
@@ -423,7 +484,7 @@ export default function Dashboard({ user, onLogout }) {
           <h1 style={s.pageTitle}>Admin Dashboard</h1>
 
           {/* Stat Cards */}
-          <div style={s.statsRow}>
+          <div className="stats-grid">
             {STATS_CONFIG.map((stat, i) => (
               <div key={i} style={{
                 ...s.statCard,
@@ -443,9 +504,9 @@ export default function Dashboard({ user, onLogout }) {
           </div>
 
           {/* Bottom row */}
-          <div style={s.bottomRow}>
+          <div className="dash-bottom-row">
             {/* Tasks */}
-            <div style={s.tasksCol}>
+            <div className="dash-tasks-col">
               <h2 style={s.sectionTitle}>Pending Critical Tasks</h2>
               <div style={s.tasksList}>
 
@@ -504,7 +565,7 @@ export default function Dashboard({ user, onLogout }) {
             </div>
 
             {/* Suspended Users */}
-            <div style={s.suspendedCol}>
+            <div className="dash-suspended-col">
               <h2 style={s.sectionTitle}>Suspended Users</h2>
               <div style={s.suspendedCard}>
                 {suspendedUsers === null ? (

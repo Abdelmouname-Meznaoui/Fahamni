@@ -224,7 +224,7 @@ export default function ReportsPage() {
     <div style={s.page}>
 
       {/* Toolbar */}
-      <div style={s.toolbar}>
+      <div className="page-toolbar">
         <div style={s.searchWrap}>
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2"
             style={{ position:"absolute", left:14, top:"50%", transform:"translateY(-50%)" }}>
@@ -232,12 +232,12 @@ export default function ReportsPage() {
           </svg>
           <input
             style={s.search}
-            placeholder="Search reports by user name..."
+            placeholder="Search reports..."
             value={search}
             onChange={e => setSearch(e.target.value)}
           />
         </div>
-        <div style={s.tabs}>
+        <div className="page-tabs">
           {[["pending","Pending"],["reviewed","Reviewed"],["all","All"]].map(([val, label]) => (
             <button
               key={val}
@@ -262,7 +262,9 @@ export default function ReportsPage() {
       )}
 
       {/* Table */}
-      <div style={s.tableWrap}>
+      <div className="table-scroll">
+        <div className="table-scroll-inner thin-scroll">
+        <div className="table-min">
         <div style={s.tableHead}>
           <span style={{ ...s.col, flex: 2.2 }}>REPORTER</span>
           <span style={{ ...s.col, flex: 1   }}>TYPE</span>
@@ -272,7 +274,7 @@ export default function ReportsPage() {
           <span style={{ ...s.col, flex: 0.6, textAlign:"center" }}>ACTIONS</span>
         </div>
 
-        <div className="thin-scroll" style={s.tableBody}>
+        <div style={s.tableBody}>
           {reports === null ? (
             <div style={s.empty}>Loading...</div>
           ) : filtered.length === 0 ? (
@@ -331,6 +333,8 @@ export default function ReportsPage() {
             );
           })}
         </div>
+        </div>{/* table-min */}
+        </div>{/* table-scroll-inner */}
       </div>
 
       {/* ── Detail Modal ─────────────────────────────────────────────────────── */}
