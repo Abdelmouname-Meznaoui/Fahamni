@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:fahamni/l10n/app_localizations.dart';
 
 import 'package:fahamni/Account_Settings_Parent/linked_childs_screen.dart';
 import 'package:fahamni/Account_Settings_Student/helpsupport_screen.dart';
@@ -180,6 +181,7 @@ class _ParentAccountScreenState extends State<ParentAccountScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final AppLocalizations localizations = AppLocalizations.of(context)!;
     return Scaffold(
       backgroundColor: const Color(0xFFFAFAFA),
       bottomNavigationBar: CustomBottomNavbar(
@@ -230,9 +232,9 @@ class _ParentAccountScreenState extends State<ParentAccountScreen> {
                   child: Column(
                     children: [
                       const SizedBox(height: 16),
-                      const Text(
-                        'Account',
-                        style: TextStyle(
+                      Text(
+                        localizations.account,
+                        style: const TextStyle(
                           fontFamily: 'Inter',
                           fontSize: 32,
                           fontWeight: FontWeight.w700,
@@ -258,9 +260,9 @@ class _ParentAccountScreenState extends State<ParentAccountScreen> {
                         ),
                       ),
                       const SizedBox(height: 4),
-                      const Text(
-                        'Parent',
-                        style: TextStyle(
+                      Text(
+                        localizations.parent,
+                        style: const TextStyle(
                           fontFamily: 'Inter',
                           fontSize: 15,
                           fontWeight: FontWeight.w500,
@@ -286,31 +288,31 @@ class _ParentAccountScreenState extends State<ParentAccountScreen> {
                             _buildMenuItem(
                               context,
                               Icons.person_outline,
-                              'Personal Information',
+                              localizations.personalInformation,
                               const PersonalInfoScreen(),
                             ),
                             _buildMenuItem(
                               context,
                               Icons.school_outlined,
-                              'Linked Childs',
+                              localizations.linkedChildren,
                               const LinkedChildsScreen(),
                             ),
                             _buildMenuItem(
                               context,
                               Icons.settings_outlined,
-                              'Profile Settings',
+                              localizations.profileSettings,
                               const ProfileSettingsScreen(),
                             ),
                             _buildMenuItem(
                               context,
                               Icons.notifications_none,
-                              'Notifications',
+                              localizations.notifications,
                               const NotificationScreen(),
                             ),
                             _buildMenuItem(
                               context,
                               Icons.help_outline,
-                              'Help & Support',
+                              localizations.helpSupport,
                               const HelpSupportScreen(),
                             ),
                           ],
@@ -326,14 +328,14 @@ class _ParentAccountScreenState extends State<ParentAccountScreen> {
                         ),
                         child: TextButton(
                           onPressed: _logout,
-                          child: const Row(
+                          child: Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Icon(Icons.logout, color: Color(0xFFEF4444)),
-                              SizedBox(width: 8),
+                              const Icon(Icons.logout, color: Color(0xFFEF4444)),
+                              const SizedBox(width: 8),
                               Text(
-                                'Logout from Fahamni',
-                                style: TextStyle(
+                                localizations.logoutFromFahamni,
+                                style: const TextStyle(
                                   fontFamily: 'Inter',
                                   fontSize: 16,
                                   fontWeight: FontWeight.w600,

@@ -12,6 +12,7 @@ import 'package:fahamni/widgets/customnavbar.dart';
 import 'package:flutter/material.dart';
 import '../models/notification_model.dart';
 import '../widgets/notification_item.dart';
+import '../l10n/app_localizations.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class NotificationPage extends StatefulWidget {
@@ -95,6 +96,7 @@ class _NotificationPageState extends State<NotificationPage> {
   @override
   Widget build(BuildContext context) {
     const Color accentBlue = Color(0xFF000080);
+    final AppLocalizations localizations = AppLocalizations.of(context)!;
 
     return Scaffold(
       backgroundColor: Color(0xFFFFFFFF),
@@ -107,7 +109,7 @@ class _NotificationPageState extends State<NotificationPage> {
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
-          'Notification',
+          localizations.notification,
           style: GoogleFonts.inter(
             color: const Color(0xFF1F2937),
             fontWeight: FontWeight.w800,
@@ -124,7 +126,7 @@ class _NotificationPageState extends State<NotificationPage> {
           Expanded(
             // Retrieve the notification from database in real time
             child: _currentUserId == null
-                ? const Center(child: Text('Sign in to view notifications'))
+                ? Center(child: Text(localizations.signInToViewNotifications))
                 : StreamBuilder<List<NotificationModel>>(
               stream: _notificationService.streamNotifications(_currentUserId!),
               builder: (context, snapshot) {
@@ -139,7 +141,7 @@ class _NotificationPageState extends State<NotificationPage> {
                 final allNotifications = snapshot.data ?? [];
 
                 if (allNotifications.isEmpty) {
-                  return const Center(child: Text('No notifications'));
+                  return Center(child: Text(localizations.noNotifications));
                 }
 
                 // Display depends on which tab is selected
@@ -148,7 +150,7 @@ class _NotificationPageState extends State<NotificationPage> {
                     : allNotifications;
 
                 if (visibleNotifications.isEmpty) {
-                  return const Center(child: Text('No new notifications'));
+                  return Center(child: Text(localizations.noNewNotifications));
                 }
 
                 return ListView.builder(
@@ -185,8 +187,8 @@ class _NotificationPageState extends State<NotificationPage> {
                       padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
                     ),
-                    child: const Text('Mark as read', 
-                      style: TextStyle(fontWeight: FontWeight.w600, fontSize: 20)),
+                    child: Text(localizations.markAsRead, 
+                      style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 20)),
                   ),
                 );
               }
@@ -206,6 +208,7 @@ class _NotificationPageState extends State<NotificationPage> {
 
 
   Widget _buildToggle(Color accentBlue) {
+    final AppLocalizations localizations = AppLocalizations.of(context)!;
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 80),
       height: 50,
@@ -219,8 +222,8 @@ class _NotificationPageState extends State<NotificationPage> {
         child: Row(
           spacing: 7,
           children: [
-            _buildToggleTab(label: 'Unread', index: 0, accentBlue: accentBlue),
-            _buildToggleTab(label: 'All',    index: 1, accentBlue: accentBlue),
+            _buildToggleTab(label: localizations.unread, index: 0, accentBlue: accentBlue),
+            _buildToggleTab(label: localizations.all,    index: 1, accentBlue: accentBlue),
           ],
         ),
       ),
@@ -291,7 +294,7 @@ class _NotificationPageState extends State<NotificationPage> {
         break;
       default:
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('This section is coming soon.')),
+          SnackBar(content: Text(AppLocalizations.of(context)!.comingSoon)),
         );
     }
   }

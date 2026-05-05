@@ -9,6 +9,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import '../models/service_model.dart';
 import '../models/student_model.dart';
+import '../l10n/app_localizations.dart';
 import 'member_item.dart';
 import 'service_details_service.dart';
 
@@ -165,17 +166,18 @@ class _MembersTabState extends State<MembersTab> {
   }
 
   Future<void> _openChat(StudentModel student) async {
+    final localizations = AppLocalizations.of(context)!;
     final currentUser = _auth.currentUser;
     if (currentUser == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('You need to be signed in to chat.')),
+        SnackBar(content: Text(localizations.translate('sign_in_to_chat'))),
       );
       return;
     }
 
     if (student.uid.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Unable to open chat for this student.')),
+        SnackBar(content: Text(localizations.translate('unable_to_open_student_chat'))),
       );
       return;
     }
@@ -188,8 +190,8 @@ class _MembersTabState extends State<MembersTab> {
       final recipient = await _resolveChatRecipient(student);
       if (recipient.userId != student.uid && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('This child is contacted through their parent.'),
+          SnackBar(
+            content: Text(localizations.childContactedParent),
           ),
         );
       }
@@ -232,6 +234,7 @@ class _MembersTabState extends State<MembersTab> {
   }
 
   Future<void> _showReportDialog(StudentModel student) async {
+    final localizations = AppLocalizations.of(context)!;
     final reportController = TextEditingController();
     final pageContext = context;
     bool isSubmitting = false;
@@ -256,11 +259,11 @@ class _MembersTabState extends State<MembersTab> {
                   children: [
                     Row(
                       children: [
-                        const Expanded(
+                        Expanded(
                           child: Text(
-                            'Report',
+                            localizations.translate('report'),
                             textAlign: TextAlign.center,
-                            style: TextStyle(
+                            style: const TextStyle(
                               fontFamily: 'Inter',
                               fontSize: 18,
                               fontWeight: FontWeight.w800,
@@ -280,9 +283,9 @@ class _MembersTabState extends State<MembersTab> {
                       ],
                     ),
                     const SizedBox(height: 6),
-                    const Text(
-                      'Your Report',
-                      style: TextStyle(
+                    Text(
+                      localizations.translate('your_report'),
+                      style: const TextStyle(
                         fontFamily: 'Inter',
                         fontSize: 12,
                         fontWeight: FontWeight.w700,
@@ -296,7 +299,7 @@ class _MembersTabState extends State<MembersTab> {
                       maxLines: 5,
                       minLines: 5,
                       decoration: InputDecoration(
-                        hintText: 'Write something ...',
+                        hintText: localizations.translate('write_something'),
                         hintStyle: const TextStyle(
                           color: Color(0xFF94A3B8),
                           fontFamily: 'Nunito',
@@ -345,9 +348,9 @@ class _MembersTabState extends State<MembersTab> {
                                     ScaffoldMessenger.of(
                                       pageContext,
                                     ).showSnackBar(
-                                      const SnackBar(
+                                      SnackBar(
                                         content: Text(
-                                          'Please write your report before sending.',
+                                          localizations.reportRequired,
                                         ),
                                       ),
                                     );
@@ -370,9 +373,9 @@ class _MembersTabState extends State<MembersTab> {
                                     ScaffoldMessenger.of(
                                       pageContext,
                                     ).showSnackBar(
-                                      const SnackBar(
+                                      SnackBar(
                                         content: Text(
-                                          'Report submitted successfully.',
+                                          localizations.translate('report_submitted_successfully'),
                                         ),
                                       ),
                                     );
@@ -407,9 +410,9 @@ class _MembersTabState extends State<MembersTab> {
                                     color: Colors.white,
                                   ),
                                 )
-                              : const Text(
-                                  'Send',
-                                  style: TextStyle(
+                              : Text(
+                                  localizations.send,
+                                  style: const TextStyle(
                                     fontFamily: 'Inter',
                                     fontSize: 12,
                                     fontWeight: FontWeight.w700,
@@ -428,13 +431,9 @@ class _MembersTabState extends State<MembersTab> {
     );
   }
 
-  String _studentName(StudentModel student) {
-    final name = '${student.firstName} ${student.lastName}'.trim();
-    return name.isEmpty ? 'Student' : name;
-  }
-
   @override
   Widget build(BuildContext context) {
+    final localizations = AppLocalizations.of(context)!;
     if (_loading) return const Center(child: CircularProgressIndicator());
 
     final total = _members.length;
@@ -450,10 +449,10 @@ class _MembersTabState extends State<MembersTab> {
                 margin: const EdgeInsets.fromLTRB(38, 0, 38, 0),
                 child: Row(
                   children: [
-                    _StatBox(label: 'TOTAL', value: total.toString()),
+                    _StatBox(label: localizations.translate('total').toUpperCase(), value: total.toString()),
                     const SizedBox(width: 12),
                     _StatBox(
-                      label: 'REMAINING',
+                      label: localizations.translate('remaining').toUpperCase(),
                       value: remaining < 0 ? '0' : remaining.toString(),
                     ),
                   ],
@@ -465,11 +464,11 @@ class _MembersTabState extends State<MembersTab> {
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 children: [
                   if (_pendingRequests.isNotEmpty) ...[
-                    const Padding(
-                      padding: EdgeInsets.symmetric(vertical: 8),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 8),
                       child: Text(
-                        'Join Requests',
-                        style: TextStyle(
+                        localizations.translate('join_requests'),
+                        style: const TextStyle(
                           fontFamily: 'Inter',
                           fontWeight: FontWeight.w700,
                           fontSize: 16,
@@ -488,11 +487,11 @@ class _MembersTabState extends State<MembersTab> {
                     const SizedBox(height: 16),
                   ],
                   if (_members.isNotEmpty) ...[
-                    const Padding(
-                      padding: EdgeInsets.symmetric(vertical: 8),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 8),
                       child: Text(
-                        'Members',
-                        style: TextStyle(
+                        localizations.translate('members'),
+                        style: const TextStyle(
                           fontFamily: 'Inter',
                           fontWeight: FontWeight.w700,
                           fontSize: 16,
@@ -509,12 +508,12 @@ class _MembersTabState extends State<MembersTab> {
                     ),
                   ],
                   if (_members.isEmpty && _pendingRequests.isEmpty)
-                    const Center(
+                    Center(
                       child: Padding(
-                        padding: EdgeInsets.only(top: 40),
+                        padding: const EdgeInsets.only(top: 40),
                         child: Text(
-                          'No members or requests yet',
-                          style: TextStyle(
+                          localizations.translate('no_members_or_requests_yet'),
+                          style: const TextStyle(
                             fontFamily: 'Nunito',
                             color: Color(0xFF94A3B8),
                           ),
@@ -553,6 +552,7 @@ class _PendingRequestItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final localizations = AppLocalizations.of(context)!;
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
@@ -599,9 +599,9 @@ class _PendingRequestItem extends StatelessWidget {
                   ],
                 ),
               ),
-              const Text(
-                'Now',
-                style: TextStyle(fontSize: 11, color: Color(0xFF94A3B8)),
+              Text(
+                localizations.translate('now'),
+                style: const TextStyle(fontSize: 11, color: Color(0xFF94A3B8)),
               ),
             ],
           ),
@@ -620,9 +620,9 @@ class _PendingRequestItem extends StatelessWidget {
                     elevation: 0,
                     padding: const EdgeInsets.symmetric(vertical: 10),
                   ),
-                  child: const Text(
-                    'Accept',
-                    style: TextStyle(fontWeight: FontWeight.w700),
+                  child: Text(
+                    localizations.translate('accept'),
+                    style: const TextStyle(fontWeight: FontWeight.w700),
                   ),
                 ),
               ),
@@ -637,9 +637,9 @@ class _PendingRequestItem extends StatelessWidget {
                     side: const BorderSide(color: Color(0xFFD1D5DB)),
                     padding: const EdgeInsets.symmetric(vertical: 10),
                   ),
-                  child: const Text(
-                    'Reject',
-                    style: TextStyle(
+                  child: Text(
+                    localizations.translate('reject'),
+                    style: const TextStyle(
                       color: Color(0xFF4B5563),
                       fontWeight: FontWeight.w700,
                     ),

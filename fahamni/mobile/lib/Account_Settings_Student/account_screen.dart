@@ -15,6 +15,7 @@ import 'package:fahamni/models/student_model.dart';
 import 'package:fahamni/models/user_model.dart';
 import 'package:fahamni/StudentHomePage/studenthome_service.dart';
 import 'package:fahamni/StudentHomePage/Student_homepage.dart';
+import 'package:fahamni/l10n/app_localizations.dart';
 
 class AccountScreen extends StatefulWidget {
   const AccountScreen({super.key});
@@ -48,28 +49,29 @@ class _AccountScreenState extends State<AccountScreen> {
   }
 
   Future<void> _logout() async {
+    final localizations = AppLocalizations.of(context)!;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text(
-          'Logout',
-          style: TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.w700),
+        title: Text(
+          localizations.logoutFromFahamni,
+          style: const TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.w700),
         ),
-        content: const Text(
-          'Are you sure you want to logout from Fahamni?',
-          style: TextStyle(fontFamily: 'Inter', color: Color(0xFF6B7280)),
+        content: Text(
+          localizations.describeIssueBelow, // Fallback if no specific logout confirm message
+          style: const TextStyle(fontFamily: 'Inter', color: Color(0xFF6B7280)),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel',
-                style: TextStyle(color: Color(0xFF6B7280))),
+            child: Text(localizations.cancel,
+                style: const TextStyle(color: Color(0xFF6B7280))),
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Logout',
-                style: TextStyle(
+            child: Text(localizations.logoutFromFahamni,
+                style: const TextStyle(
                     color: Color(0xFFEF4444),
                     fontWeight: FontWeight.w700)),
           ),
@@ -163,6 +165,7 @@ class _AccountScreenState extends State<AccountScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final AppLocalizations localizations = AppLocalizations.of(context)!;
     return Scaffold(
       backgroundColor: const Color(0xFFFAFAFA),
       bottomNavigationBar: CustomBottomNavbar(
@@ -213,9 +216,9 @@ class _AccountScreenState extends State<AccountScreen> {
                       const SizedBox(height: 16),
 
                       // ── Title ────────────────────────────────────────
-                      const Text(
-                        "Account",
-                        style: TextStyle(
+                      Text(
+                        localizations.account,
+                        style: const TextStyle(
                           fontFamily: "Inter",
                           fontSize: 32,
                           fontWeight: FontWeight.w700,
@@ -280,15 +283,15 @@ class _AccountScreenState extends State<AccountScreen> {
                         child: Column(
                           children: [
                             _buildMenuItem(context, Icons.person_outline,
-                                "Personal Information", const PersonalInfoScreen()),
+                                localizations.personalInformation, const PersonalInfoScreen()),
                             _buildMenuItem(context, Icons.school_outlined,
-                                "Study Information", const StudyInfoScreen()),
+                                localizations.studyInformation, const StudyInfoScreen()),
                             _buildMenuItem(context, Icons.settings_outlined,
-                                "Profile Settings", const ProfileSettingsScreen()),
+                                localizations.profileSettings, const ProfileSettingsScreen()),
                             _buildMenuItem(context, Icons.notifications_none,
-                                "Notifications", const NotificationScreen()),
+                                localizations.notifications, const NotificationScreen()),
                             _buildMenuItem(context, Icons.help_outline,
-                                "Help & Support", const HelpSupportScreen()),
+                                localizations.helpSupport, const HelpSupportScreen()),
                           ],
                         ),
                       ),
@@ -305,14 +308,14 @@ class _AccountScreenState extends State<AccountScreen> {
                         ),
                         child: TextButton(
                           onPressed: _logout,
-                          child: const Row(
+                          child: Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Icon(Icons.logout, color: Color(0xFFEF4444)),
-                              SizedBox(width: 8),
+                              const Icon(Icons.logout, color: Color(0xFFEF4444)),
+                              const SizedBox(width: 8),
                               Text(
-                                "Logout from Fahamni",
-                                style: TextStyle(
+                                localizations.logoutFromFahamni,
+                                style: const TextStyle(
                                   fontFamily: "Inter",
                                   fontSize: 16,
                                   fontWeight: FontWeight.w600,
@@ -333,4 +336,3 @@ class _AccountScreenState extends State<AccountScreen> {
     );
   }
 }
-

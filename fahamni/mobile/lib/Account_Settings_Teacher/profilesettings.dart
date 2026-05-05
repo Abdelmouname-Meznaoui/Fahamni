@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../l10n/app_localizations.dart';
 import 'language_screen.dart';
 import 'deleteacc_screen.dart';
 import 'changepas_screen.dart'; 
@@ -49,6 +50,7 @@ class ProfileSettingsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final AppLocalizations localizations = AppLocalizations.of(context)!;
     return Scaffold(
       backgroundColor: const Color(0xFFFAFAFA),
 
@@ -64,9 +66,9 @@ class ProfileSettingsScreen extends StatelessWidget {
           ),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text(
-          "Profile Settings",
-          style: TextStyle(
+        title: Text(
+          localizations.profileSettings,
+          style: const TextStyle(
             fontFamily: "Inter",
             fontSize: 32,
             fontWeight: FontWeight.w700,
@@ -96,7 +98,7 @@ class ProfileSettingsScreen extends StatelessWidget {
             children: [
 
               //  CHANGE PASSWORD
-              item(context, "Change Password", () {
+              item(context, localizations.changePassword, () {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
@@ -107,7 +109,7 @@ class ProfileSettingsScreen extends StatelessWidget {
 
               divider(),
 
-              item(context, "Update Email", () {
+              item(context, localizations.updateEmail, () {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
@@ -118,7 +120,7 @@ class ProfileSettingsScreen extends StatelessWidget {
 
               divider(),
 
-              item(context, "Update Phone Number", () {
+              item(context, localizations.updatePhoneNumber, () {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
@@ -130,7 +132,7 @@ class ProfileSettingsScreen extends StatelessWidget {
               divider(),
 
               //  LANGUAGE
-              item(context, "Language", () {
+              item(context, localizations.language, () {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
@@ -142,7 +144,7 @@ class ProfileSettingsScreen extends StatelessWidget {
               divider(),
 
               //  DELETE ACCOUNT
-              item(context, "Delete Account", () {
+              item(context, localizations.deleteAccount, () {
                 Navigator.push(
                   context,
                   MaterialPageRoute(

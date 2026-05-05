@@ -2,6 +2,7 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import '../l10n/app_localizations.dart';
 
 class TeacherNavbar extends StatelessWidget {
   const TeacherNavbar({
@@ -92,28 +93,28 @@ class TeacherNavbar extends StatelessWidget {
                     _navItem(
                       context,
                       iconPath: 'assets/images/fi-rr-home.svg',
-                      label: 'Home',
+                      label: AppLocalizations.of(context)!.home,
                       index: 0,
                       compact: compact,
                     ),
                     _navItem(
                       context,
                       iconPath: 'assets/images/course.svg',
-                      label: 'Services',
+                      label: AppLocalizations.of(context)!.services,
                       index: 1,
                       compact: compact,
                     ),
                     _navItem(
                       context,
                       iconPath: 'assets/images/chat.svg',
-                      label: 'Chat',
+                      label: AppLocalizations.of(context)!.chat,
                       index: 2,
                       compact: compact,
                     ),
                     _navItem(
                       context,
                       iconPath: 'assets/images/profile.svg',
-                      label: 'Profile',
+                      label: AppLocalizations.of(context)!.profile,
                       index: 3,
                       compact: compact,
                     ),

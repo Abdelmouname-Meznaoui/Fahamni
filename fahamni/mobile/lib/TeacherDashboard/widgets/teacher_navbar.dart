@@ -1,5 +1,6 @@
 import 'dart:ui';
 
+import 'package:fahamni/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
@@ -40,28 +41,28 @@ class TeacherNavbar extends StatelessWidget {
                   children: [
                     _TeacherNavItem(
                       iconPath: 'assets/images/fi-rr-home.svg',
-                      label: 'Home',
+                      label: AppLocalizations.of(context)!.home,
                       selected: selectedIndex == 0,
                       compact: compact,
                       onTap: () => onTap(0),
                     ),
                     _TeacherNavItem(
                       iconPath: 'assets/images/course.svg',
-                      label: 'Services',
+                      label: AppLocalizations.of(context)!.services,
                       selected: selectedIndex == 1,
                       compact: compact,
                       onTap: () => onTap(1),
                     ),
                     _TeacherNavItem(
                       iconPath: 'assets/images/chat.svg',
-                      label: 'Chat',
+                      label: AppLocalizations.of(context)!.chat,
                       selected: selectedIndex == 2,
                       compact: compact,
                       onTap: () => onTap(2),
                     ),
                     _TeacherNavItem(
                       iconPath: 'assets/images/profile.svg',
-                      label: 'Profile',
+                      label: AppLocalizations.of(context)!.profile,
                       selected: selectedIndex == 3,
                       compact: compact,
                       onTap: () => onTap(3),

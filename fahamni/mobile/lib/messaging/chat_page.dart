@@ -11,7 +11,6 @@ import 'package:fahamni/StudentHomePage/studenthome_service.dart';
 import 'package:fahamni/Account_Settings_Parent/account_screen.dart';
 import 'package:fahamni/ParentDashboread/ParentHomePage/home_page.dart';
 import 'package:fahamni/ParentDashboread/ParentExplorePage/parent_explore_page.dart';
-import 'package:fahamni/ParentDashboread/ParentSchedulePage/parent_schedule_page.dart';
 import 'package:fahamni/widgets/customnavbar.dart';
 
 import '../Services/chat_service.dart';
@@ -22,6 +21,7 @@ import 'ConversationBox.dart';
 import '../models/chat_model.dart';
 import '../repositories/firestore_chat_repository.dart';
 import 'ai_study_chat_page.dart';
+import '../l10n/app_localizations.dart';
 
 class ChatPage extends StatefulWidget {
   const ChatPage({super.key});
@@ -70,7 +70,7 @@ class _ChatPageState extends State<ChatPage> {
       case 0:
         return UserRole.tutor;
       case 1:
-        return UserRole.student;
+        return const <UserRole>{UserRole.student, UserRole.parent};
       case 2:
         return ChatConversationFilter.group;
       default:
@@ -242,6 +242,7 @@ class _ChatPageState extends State<ChatPage> {
   @override
   Widget build(BuildContext context) {
     final String? currentUserId = _currentUserId;
+    final AppLocalizations localizations = AppLocalizations.of(context)!;
 
     return Scaffold(
       backgroundColor: const Color(0xFFFAFAFA),
@@ -253,7 +254,7 @@ class _ChatPageState extends State<ChatPage> {
         title: Padding(
           padding: const EdgeInsets.fromLTRB(0, 8, 0, 0),
           child: Text(
-            'Messages',
+            localizations.messages,
             style: GoogleFonts.inter(
               color: const Color(0xFF1F2937),
               fontSize: 32.0,
@@ -292,13 +293,13 @@ class _ChatPageState extends State<ChatPage> {
                   Expanded(
                     child: TextField(
                       style: GoogleFonts.inter(fontSize: 16.0),
-                      decoration: const InputDecoration(
-                        hintText: 'Search Conversations...',
-                        hintStyle: TextStyle(
+                      decoration: InputDecoration(
+                        hintText: localizations.searchConversations,
+                        hintStyle: const TextStyle(
                           color: Color.fromARGB(179, 31, 41, 55),
                         ),
                         border: InputBorder.none,
-                        contentPadding: EdgeInsets.symmetric(vertical: 14),
+                        contentPadding: const EdgeInsets.symmetric(vertical: 14),
                       ),
                     ),
                   ),
@@ -320,8 +321,8 @@ class _ChatPageState extends State<ChatPage> {
           // Conversation list
           Expanded(
             child: currentUserId == null
-                ? const Center(
-                    child: Text('Sign in to view your conversations.'),
+                ? Center(
+                    child: Text(localizations.translate('sign_in_to_view_conversations')),
                   )
                 : StreamBuilder<List<ConversationModel>>(
                     stream: _chatService.getConversations(
@@ -330,8 +331,8 @@ class _ChatPageState extends State<ChatPage> {
                     ),
                     builder: (context, snapshot) {
                       if (snapshot.hasError) {
-                        return const Center(
-                          child: Text('Failed to load conversations.'),
+                        return Center(
+                          child: Text(localizations.failedLoadConversations),
                         );
                       }
 
@@ -344,8 +345,8 @@ class _ChatPageState extends State<ChatPage> {
                           snapshot.data ?? const <ConversationModel>[];
 
                       if (conversations.isEmpty) {
-                        return const Center(
-                          child: Text('No conversations yet.'),
+                        return Center(
+                          child: Text(localizations.noConversationsYet),
                         );
                       }
 
@@ -387,7 +388,7 @@ class _ChatPageState extends State<ChatPage> {
               ),
               icon: const Icon(Icons.auto_awesome_rounded, size: 20),
               label: Text(
-                'AI Study Help',
+                AppLocalizations.of(context)!.aiStudyHelp,
                 style: GoogleFonts.nunito(
                   fontSize: 14,
                   fontWeight: FontWeight.w800,

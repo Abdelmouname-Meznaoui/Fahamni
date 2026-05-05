@@ -9,6 +9,7 @@ import 'package:fahamni/messaging/chat_page.dart';
 import 'package:fahamni/models/quote_model.dart';
 import 'package:fahamni/models/service_model.dart';
 import 'package:fahamni/models/tutor_model.dart';
+import 'package:fahamni/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 
 import 'teacher_dashboard.dart';
@@ -90,7 +91,7 @@ class _TeacherServicesDashboardScreenState
       return;
     }
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Request from ${request.studentName} accepted.')),
+      SnackBar(content: Text('${AppLocalizations.of(context)!.translate('request_from')} ${request.studentName} ${AppLocalizations.of(context)!.translate('accepted').toLowerCase()}')),
     );
     await _refresh();
   }
@@ -104,13 +105,14 @@ class _TeacherServicesDashboardScreenState
       return;
     }
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Request from ${request.studentName} rejected.')),
+      SnackBar(content: Text('${AppLocalizations.of(context)!.translate('request_from')} ${request.studentName} ${AppLocalizations.of(context)!.translate('rejected').toLowerCase()}')),
     );
     await _refresh();
   }
 
   @override
   Widget build(BuildContext context) {
+    final localizations = AppLocalizations.of(context)!;
     return Scaffold(
       backgroundColor: const Color(0xFFF7F8FC),
       bottomNavigationBar: TeacherNavbar(
@@ -147,10 +149,10 @@ class _TeacherServicesDashboardScreenState
                       delegate: SliverChildListDelegate(
                         [
                           const SizedBox(height: 8),
-                          const Center(
+                          Center(
                             child: Text(
-                              'Services',
-                              style: TextStyle(
+                              localizations.services,
+                              style: const TextStyle(
                                 fontSize: 34,
                                 fontWeight: FontWeight.w800,
                                 color: Color(0xFF1F2937),
@@ -160,7 +162,10 @@ class _TeacherServicesDashboardScreenState
                           const SizedBox(height: 22),
                           _TopTabSwitcher(
                             selectedIndex: _selectedTab,
-                            labels: const ['Services', 'Join Requests'],
+                            labels: [
+                              localizations.services,
+                              localizations.translate('join_requests'),
+                            ],
                             onChanged: (index) {
                               setState(() {
                                 _selectedTab = index;
@@ -179,10 +184,10 @@ class _TeacherServicesDashboardScreenState
                             ),
                             const SizedBox(height: 18),
                             if (visibleServices.isEmpty)
-                              const _EmptyTeacherState(
-                                title: 'No services yet',
+                              _EmptyTeacherState(
+                                title: localizations.translate('no_services_yet'),
                                 subtitle:
-                                    'Create your first service to start receiving join requests.',
+                                    localizations.translate('create_first_service'),
                               )
                             else
                               ...visibleServices.map(
@@ -221,18 +226,18 @@ class _TeacherServicesDashboardScreenState
                                   ),
                                 ),
                                 icon: const Icon(Icons.add, size: 18),
-                                label: const Text(
-                                  'Create Service',
-                                  style: TextStyle(fontWeight: FontWeight.w700),
+                                label: Text(
+                                  localizations.translate('create_service'),
+                                  style: const TextStyle(fontWeight: FontWeight.w700),
                                 ),
                               ),
                             ),
                           ] else ...[
                             if (data.joinRequests.isEmpty)
-                              const _EmptyTeacherState(
-                                title: 'No join requests',
+                              _EmptyTeacherState(
+                                title: localizations.translate('no_join_requests'),
                                 subtitle:
-                                    'Incoming requests from students will appear here.',
+                                    localizations.translate('incoming_requests_appear'),
                               )
                             else
                               ...data.joinRequests.map(
@@ -287,6 +292,7 @@ class _TeacherServiceCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final localizations = AppLocalizations.of(context)!;
     return GestureDetector(
       onTap: (){
         Navigator.push(
@@ -335,7 +341,7 @@ class _TeacherServiceCard extends StatelessWidget {
                           ),
                           child: Text(
                             service.subject.isEmpty
-                                ? 'SERVICE'
+                                ? localizations.services.toUpperCase()
                                 : service.subject.toUpperCase(),
                             style: const TextStyle(
                               color: Color(0xFF0D138B),
@@ -358,7 +364,9 @@ class _TeacherServiceCard extends StatelessWidget {
                             borderRadius: BorderRadius.circular(999),
                           ),
                           child: Text(
-                            service.isActive ? 'ACTIVE' : 'INACTIVE',
+                            service.isActive
+                                ? localizations.translate('active').toUpperCase()
+                                : localizations.translate('inactive').toUpperCase(),
                             style: TextStyle(
                               color: service.isActive
                                   ? const Color(0xFF22C55E)
@@ -393,7 +401,7 @@ class _TeacherServiceCard extends StatelessWidget {
                         ),
                         const SizedBox(width: 10),
                         Text(
-                          '${service.sessionsnum} Session${service.sessionsnum == 1 ? '' : 's'}',
+                          '${service.sessionsnum} ${service.sessionsnum == 1 ? localizations.session : localizations.sessions}',
                           style: const TextStyle(
                             color: Color(0xFF6A7A99),
                             fontSize: 16,
@@ -431,9 +439,9 @@ class _TeacherServiceCard extends StatelessWidget {
                             ),
                             onTap: () {
                               ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
+                                SnackBar(
                                   content: Text(
-                                    'Edit flow can be added on top of the create form.',
+                                    localizations.translate('edit_flow_coming'),
                                   ),
                                 ),
                               );
@@ -584,6 +592,7 @@ class _JoinRequestCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final localizations = AppLocalizations.of(context)!;
     return InkWell(
       onTap: onOpen,
       borderRadius: BorderRadius.circular(18),
@@ -653,7 +662,7 @@ class _JoinRequestCard extends StatelessWidget {
               children: [
                 Expanded(
                   child: _InlineActionButton(
-                    label: 'Accept',
+                    label: localizations.translate('accept'),
                     filled: true,
                     onTap: onAccept,
                   ),
@@ -661,7 +670,7 @@ class _JoinRequestCard extends StatelessWidget {
                 const SizedBox(width: 10),
                 Expanded(
                   child: _InlineActionButton(
-                    label: 'Reject',
+                    label: localizations.translate('reject'),
                     filled: false,
                     onTap: onReject,
                   ),
@@ -736,6 +745,7 @@ class _StatusFilterBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final localizations = AppLocalizations.of(context)!;
     Widget chip(String label, TeacherServicesFilter filter) {
       final bool selected = value == filter;
       return Expanded(
@@ -766,9 +776,9 @@ class _StatusFilterBar extends StatelessWidget {
 
     return Row(
       children: [
-        chip('All', TeacherServicesFilter.all),
-        chip('Active', TeacherServicesFilter.active),
-        chip('Inactive', TeacherServicesFilter.inactive),
+        chip(localizations.all, TeacherServicesFilter.all),
+        chip(localizations.translate('active'), TeacherServicesFilter.active),
+        chip(localizations.translate('inactive'), TeacherServicesFilter.inactive),
       ],
     );
   }
@@ -807,33 +817,6 @@ class _InlineActionButton extends StatelessWidget {
           label,
           style: const TextStyle(fontWeight: FontWeight.w700),
         ),
-      ),
-    );
-  }
-}
-
-class _RoundIconButton extends StatelessWidget {
-  const _RoundIconButton({
-    required this.icon,
-    required this.onTap,
-  });
-
-  final IconData icon;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(999),
-      child: Ink(
-        width: 28,
-        height: 28,
-        decoration: const BoxDecoration(
-          color: Color(0xFFF1F5F9),
-          shape: BoxShape.circle,
-        ),
-        child: Icon(icon, size: 16, color: const Color(0xFF475569)),
       ),
     );
   }
@@ -900,16 +883,17 @@ class _TeacherPortalError extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final localizations = AppLocalizations.of(context)!;
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text(
-              'Failed to load teacher services.',
+            Text(
+              localizations.translate('failed_load_teacher_services'),
               textAlign: TextAlign.center,
-              style: TextStyle(
+              style: const TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.w800,
                 color: Color(0xFF1F2937),
@@ -928,7 +912,7 @@ class _TeacherPortalError extends StatelessWidget {
                 backgroundColor: const Color(0xFF0D138B),
                 foregroundColor: Colors.white,
               ),
-              child: const Text('Retry'),
+              child: Text(localizations.retry),
             ),
           ],
         ),

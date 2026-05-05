@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/student_model.dart';
+import '../l10n/app_localizations.dart';
 
 class MemberItem extends StatelessWidget {
   final StudentModel student;
@@ -15,6 +16,7 @@ class MemberItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final localizations = AppLocalizations.of(context)!;
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
@@ -63,7 +65,7 @@ class MemberItem extends StatelessWidget {
                   ),
                 ),
                 Text(
-                  'Student',
+                  localizations.student,
                   style: TextStyle(
                     fontFamily: 'Nunito',
                     fontSize: 12,
@@ -98,20 +100,20 @@ class MemberItem extends StatelessWidget {
                   break;
               }
             },
-            itemBuilder: (context) => const [
+            itemBuilder: (context) => [
               PopupMenuItem<_MemberAction>(
                 value: _MemberAction.report,
                 child: Row(
                   children: [
-                    Icon(
+                    const Icon(
                       Icons.outlined_flag_rounded,
                       size: 18,
                       color: Color(0xFF1F2937),
                     ),
-                    SizedBox(width: 8),
+                    const SizedBox(width: 8),
                     Text(
-                      'Report',
-                      style: TextStyle(
+                      localizations.translate('report'),
+                      style: const TextStyle(
                         fontFamily: 'Inter',
                         fontWeight: FontWeight.w600,
                       ),

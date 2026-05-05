@@ -12,6 +12,7 @@ import 'package:fahamni/Account_Settings_Student/account_screen.dart';
 import '../models/child_model.dart';
 import '../models/service_model.dart';
 import '../models/tutor_model.dart';
+import '../l10n/app_localizations.dart';
 
 class Servicedetails extends StatefulWidget {
   final TutorModel tutor;
@@ -112,7 +113,9 @@ class _ServicedetailsState extends State<Servicedetails> {
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Join request sent for ${widget.service.name}.'),
+          content: Text(
+            '${AppLocalizations.of(context)!.translate('join_request_sent_for')} ${widget.service.name}.',
+          ),
         ),
       );
     } catch (error) {
@@ -133,17 +136,18 @@ class _ServicedetailsState extends State<Servicedetails> {
 
   @override
   Widget build(BuildContext context) {
-    String buttonText = 'Join Request';
+    final localizations = AppLocalizations.of(context)!;
+    String buttonText = localizations.translate('join_request');
     bool isActionDisabled = _isActionLoading;
 
     if (_currentUserId != null) {
       final String requestStudentId =
           widget.selectedChild?.id ?? _currentUserId!;
       if (widget.service.studentIds.contains(requestStudentId)) {
-        buttonText = 'Joined';
+        buttonText = localizations.translate('joined');
         isActionDisabled = true;
       } else if (widget.service.pendingIds.contains(requestStudentId)) {
-        buttonText = 'Pending';
+        buttonText = localizations.translate('pending');
         isActionDisabled = true;
       }
     }
@@ -156,9 +160,9 @@ class _ServicedetailsState extends State<Servicedetails> {
           iconSize: 24,
           icon: const Icon(Icons.arrow_back_ios_new_outlined),
         ),
-        title: const Text(
-          "Service",
-          style: TextStyle(
+        title: Text(
+          localizations.translate('service'),
+          style: const TextStyle(
             fontFamily: "Inter",
             fontSize: 20,
             fontWeight: FontWeight.w700,
@@ -218,17 +222,17 @@ class _ServicedetailsState extends State<Servicedetails> {
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             _buildStatCard(
-                              'STUDENTS',
+                              AppLocalizations.of(context)!.students,
                               widget.service.enrollednum.toString(),
                               cardWidth,
                             ),
                             _buildStatCard(
-                              'SESSIONS',
+                              AppLocalizations.of(context)!.sessions,
                               widget.service.sessionsnum.toString(),
                               cardWidth,
                             ),
                             _buildStatCard(
-                              'PRICE',
+                              AppLocalizations.of(context)!.price,
                               "${widget.service.price.toInt()}DA",
                               cardWidth,
                             ),
@@ -252,7 +256,7 @@ class _ServicedetailsState extends State<Servicedetails> {
                           ),
                           SizedBox(width: 5),
                           Text(
-                            "${widget.service.maxnum - widget.service.enrollednum} places left",
+                            "${widget.service.maxnum - widget.service.enrollednum} ${localizations.translate('places_left')}",
                             style: TextStyle(
                               color: const Color(0xFFDD0D0D),
                               fontSize: 14,
@@ -290,7 +294,7 @@ class _ServicedetailsState extends State<Servicedetails> {
                               ),
                               SizedBox(width: 5),
                               Text(
-                                'Service Details',
+                                AppLocalizations.of(context)!.serviceDetails,
                                 style: TextStyle(
                                   color: Color(0xFF1F2937),
                                   fontFamily: "Inter",
@@ -325,7 +329,7 @@ class _ServicedetailsState extends State<Servicedetails> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    'DOMAIN',
+                                    AppLocalizations.of(context)!.domain,
                                     style: TextStyle(
                                       fontFamily: "Nunito",
                                       fontWeight: FontWeight.w700,
@@ -371,7 +375,7 @@ class _ServicedetailsState extends State<Servicedetails> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    'GRADE',
+                                    AppLocalizations.of(context)!.grade,
                                     style: TextStyle(
                                       fontFamily: "Nuntio",
                                       fontWeight: FontWeight.w700,
@@ -417,7 +421,7 @@ class _ServicedetailsState extends State<Servicedetails> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    'Duration',
+                                    AppLocalizations.of(context)!.duration,
                                     style: TextStyle(
                                       fontFamily: "Nunito",
                                       fontWeight: FontWeight.w700,
@@ -427,7 +431,7 @@ class _ServicedetailsState extends State<Servicedetails> {
                                   ),
                                   SizedBox(height: 5),
                                   Text(
-                                    "${widget.service.duration}min/session",
+                                    "${widget.service.duration} ${localizations.minSession}",
                                     style: TextStyle(
                                       fontFamily: "Nunito",
                                       fontWeight: FontWeight.w600,
@@ -463,7 +467,7 @@ class _ServicedetailsState extends State<Servicedetails> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    'COURSE TYPE',
+                                    AppLocalizations.of(context)!.courseType,
                                     style: TextStyle(
                                       fontFamily: "Nunito",
                                       fontWeight: FontWeight.w700,
@@ -473,7 +477,7 @@ class _ServicedetailsState extends State<Servicedetails> {
                                   ),
                                   SizedBox(height: 5),
                                   Text(
-                                    widget.tutor.teachingMode,
+                                    _localizedMode(context, widget.tutor.teachingMode),
                                     style: TextStyle(
                                       fontFamily: "Nunito",
                                       fontWeight: FontWeight.w600,
@@ -509,7 +513,7 @@ class _ServicedetailsState extends State<Servicedetails> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    'LOCATION',
+                                    AppLocalizations.of(context)!.location,
                                     style: TextStyle(
                                       fontFamily: "Nunito",
                                       fontWeight: FontWeight.w700,
@@ -541,7 +545,7 @@ class _ServicedetailsState extends State<Servicedetails> {
                                 ),
                                 child: Center(
                                   child: Text(
-                                    'See on map',
+                                    AppLocalizations.of(context)!.seeOnMap,
                                     style: TextStyle(
                                       fontFamily: "Nunito",
                                       fontWeight: FontWeight.w600,
@@ -576,7 +580,7 @@ class _ServicedetailsState extends State<Servicedetails> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'About this Service',
+                              AppLocalizations.of(context)!.aboutService,
                             style: TextStyle(
                               color: Color(0xFF1F2937),
                               fontFamily: "Inter",
@@ -616,7 +620,7 @@ class _ServicedetailsState extends State<Servicedetails> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Instructor',
+                            AppLocalizations.of(context)!.instructor,
                             style: TextStyle(
                               color: Color(0xFF1F2937),
                               fontFamily: "Inter",
@@ -735,7 +739,7 @@ class _ServicedetailsState extends State<Servicedetails> {
                                           ),
                                           child: Center(
                                             child: Text(
-                                              'View profile',
+                                              localizations.translate('view_profile'),
                                               style: TextStyle(
                                                 fontFamily: "Nunito",
                                                 fontWeight: FontWeight.w700,
@@ -776,7 +780,7 @@ class _ServicedetailsState extends State<Servicedetails> {
                           ),
                           label: Center(
                             child: Text(
-                              'Message',
+                              localizations.translate('message'),
                               style: TextStyle(
                                 fontFamily: "Nunito",
                                 fontWeight: FontWeight.w600,
@@ -853,6 +857,16 @@ class _ServicedetailsState extends State<Servicedetails> {
       ),
     );
   }
+}
+
+String _localizedMode(BuildContext context, String value) {
+  final localizations = AppLocalizations.of(context)!;
+  final normalized = value.toLowerCase();
+  if (normalized.contains('online')) return localizations.online;
+  if (normalized.contains('onsite') || normalized.contains('in-person')) {
+    return localizations.onsite;
+  }
+  return value;
 }
 
 Widget _buildStatCard(String title, String value, double width) {

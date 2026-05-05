@@ -7,6 +7,7 @@ import 'package:fahamni/models/session_model.dart';
 import 'package:fahamni/models/student_model.dart';
 import 'package:fahamni/models/tutor_model.dart';
 import 'package:fahamni/Account_Settings_Student/account_screen.dart';
+import 'package:fahamni/l10n/app_localizations.dart';
 import 'package:fahamni/widgets/customnavbar.dart';
 import 'package:flutter/material.dart';
 
@@ -143,6 +144,7 @@ class _CoursesPageState extends State<CoursesPage> {
 
   @override
   Widget build(BuildContext context) {
+    final AppLocalizations localizations = AppLocalizations.of(context)!;
     return Scaffold(
       backgroundColor: Colors.white,
       body: FutureBuilder<_CoursesViewData>(
@@ -159,8 +161,8 @@ class _CoursesPageState extends State<CoursesPage> {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Text(
-                      'Failed to load courses.',
+                    Text(
+                      localizations.failedLoadCourses,
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.w700,
@@ -176,7 +178,7 @@ class _CoursesPageState extends State<CoursesPage> {
                     const SizedBox(height: 16),
                     ElevatedButton(
                       onPressed: _refresh,
-                      child: const Text('Retry'),
+                      child: Text(localizations.retry),
                     ),
                   ],
                 ),
@@ -202,15 +204,15 @@ class _CoursesPageState extends State<CoursesPage> {
               onRefresh: _refresh,
               child: ListView(
                 padding: const EdgeInsets.fromLTRB(24, 48, 24, 120),
-                children: const [
-                  Icon(
+                children: [
+                  const Icon(
                     Icons.menu_book_rounded,
                     size: 64,
                     color: Color(0xFF000080),
                   ),
-                  SizedBox(height: 16),
+                  const SizedBox(height: 16),
                   Text(
-                    'No courses yet.',
+                    localizations.noCoursesYet,
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       fontSize: 22,
@@ -218,9 +220,9 @@ class _CoursesPageState extends State<CoursesPage> {
                       color: Color(0xFF1F2937),
                     ),
                   ),
-                  SizedBox(height: 8),
+                  const SizedBox(height: 8),
                   Text(
-                    'Your enrolled sessions will appear here.',
+                    localizations.enrolledSessionsAppear,
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       fontSize: 15,
@@ -237,10 +239,10 @@ class _CoursesPageState extends State<CoursesPage> {
             child: ListView(
               padding: const EdgeInsets.fromLTRB(16, 56, 16, 120),
               children: [
-                const Center(
+                Center(
                   child: Text(
-                    'Courses',
-                    style: TextStyle(
+                    localizations.courses,
+                    style: const TextStyle(
                       color: Color(0xFF1F2937),
                       fontSize: 28,
                       fontWeight: FontWeight.w800,
@@ -252,7 +254,7 @@ class _CoursesPageState extends State<CoursesPage> {
                   children: [
                     Expanded(
                       child: _FilterPill(
-                        label: 'All',
+                        label: localizations.all,
                         selected: _filter == _CourseFilter.all,
                         onTap: () => setState(() => _filter = _CourseFilter.all),
                       ),
@@ -260,7 +262,7 @@ class _CoursesPageState extends State<CoursesPage> {
                     const SizedBox(width: 12),
                     Expanded(
                       child: _FilterPill(
-                        label: 'In Progress',
+                        label: localizations.inProgress,
                         selected: _filter == _CourseFilter.inProgress,
                         onTap: () => setState(() => _filter = _CourseFilter.inProgress),
                       ),
@@ -268,7 +270,7 @@ class _CoursesPageState extends State<CoursesPage> {
                     const SizedBox(width: 12),
                     Expanded(
                       child: _FilterPill(
-                        label: 'Done',
+                        label: localizations.done,
                         selected: _filter == _CourseFilter.done,
                         onTap: () => setState(() => _filter = _CourseFilter.done),
                       ),
@@ -277,10 +279,10 @@ class _CoursesPageState extends State<CoursesPage> {
                 ),
                 const SizedBox(height: 18),
                 if (visibleCourses.isEmpty)
-                  const Padding(
-                    padding: EdgeInsets.only(top: 48),
+                  Padding(
+                    padding: const EdgeInsets.only(top: 48),
                     child: Text(
-                      'No courses match this filter.',
+                      localizations.noCoursesMatchFilter,
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         color: Color(0xFF64748B),
@@ -346,6 +348,7 @@ class _CourseCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final AppLocalizations localizations = AppLocalizations.of(context)!;
     final SessionModel session = course.session;
     final ServiceModel? service = course.service;
     final TutorModel tutor = course.tutor;
@@ -353,19 +356,19 @@ class _CourseCard extends StatelessWidget {
         ? service!.name
         : service?.subject.isNotEmpty == true
             ? service!.subject
-            : 'Session';
+            : localizations.session;
     final String subtitle = [
       if (service?.subject.isNotEmpty == true) service!.subject,
       if (service?.level.isNotEmpty == true) service!.level,
     ].join(' • ');
     final String subjectLabel =
-        service?.subject.isNotEmpty == true ? service!.subject.toUpperCase() : 'COURSE';
+        service?.subject.isNotEmpty == true ? service!.subject.toUpperCase() : localizations.course.toUpperCase();
     final String tutorLabel =
         'Prof. ${tutor.firstName} ${tutor.lastName}'.trim();
     final String sessionsLabel =
-        '${service?.sessionsnum ?? 1} ${service?.sessionsnum == 1 ? 'Session' : 'Sessions'}';
+        '${service?.sessionsnum ?? 1} ${service?.sessionsnum == 1 ? localizations.session : localizations.sessions}';
     final String durationLabel =
-        '${service?.duration ?? session.endTime.difference(session.startTime).inMinutes} min session';
+        '${service?.duration ?? session.endTime.difference(session.startTime).inMinutes} ${localizations.minSession}';
 
     return GestureDetector(
       onTap: onOpenService,

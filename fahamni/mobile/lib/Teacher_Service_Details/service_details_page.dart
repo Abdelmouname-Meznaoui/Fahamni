@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/service_model.dart';
 import '../models/tutor_model.dart';
+import '../l10n/app_localizations.dart';
 import 'members_tab.dart';
 import 'ressources_tab.dart';
 import 'sessions_tab.dart';
@@ -38,6 +39,7 @@ class _CourseDetailsPageState extends State<CourseDetailsPage>
 
   @override
   Widget build(BuildContext context) {
+    final localizations = AppLocalizations.of(context)!;
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
       appBar: AppBar(
@@ -118,10 +120,10 @@ class _CourseDetailsPageState extends State<CourseDetailsPage>
               unselectedLabelColor: const Color(0xFF94A3B8),
               indicatorColor: const Color(0xFF000080),
               indicatorWeight: 2.5,
-              tabs: const [
-                Tab(text: 'Sessions'),
-                Tab(text: 'Resources'),
-                Tab(text: 'Members'),
+              tabs: [
+                Tab(text: localizations.sessions),
+                Tab(text: localizations.translate('resources')),
+                Tab(text: localizations.translate('members')),
               ],
             ),
           ),

@@ -13,6 +13,7 @@ import 'package:fahamni/models/notification_model.dart';
 import 'package:fahamni/models/teacher_dashboard_model.dart';
 import 'package:fahamni/navigation/app_navigation.dart';
 import 'package:fahamni/otp_verification_Screen/primarybutton.dart';
+import 'package:fahamni/l10n/app_localizations.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -108,7 +109,7 @@ class _TeacherDashboardScreenState extends State<TeacherDashboardScreen> {
         break;
       default:
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('This section is coming soon.')),
+          SnackBar(content: Text(AppLocalizations.of(context)!.comingSoon)),
         );
     }
   }
@@ -121,6 +122,7 @@ class _TeacherDashboardScreenState extends State<TeacherDashboardScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final localizations = AppLocalizations.of(context)!;
     return Scaffold(
       backgroundColor: _pageBackground,
       bottomNavigationBar: TeacherNavbar(
@@ -155,19 +157,19 @@ class _TeacherDashboardScreenState extends State<TeacherDashboardScreen> {
                       delegate: SliverChildListDelegate([
                         _DashboardHeader(
                           teacherName: dashboard.teacherName,
-                          teacherRoleLabel: dashboard.teacherRoleLabel,
+                          teacherRoleLabel: localizations.teacher,
                           profileImage: dashboard.profileImage,
                           hasUnreadNotifications: _hasUnreadNotifications,
                         ),
                         const SizedBox(height: 22),
                         _PerformanceCard(
                           stats: dashboard.stats,
-                          title: dashboard.performanceTitle,
+                          title: localizations.performanceOverview,
                         ),
                         const SizedBox(height: 22),
                         _SectionHeader(
-                          title: dashboard.todaySessionsTitle,
-                          actionLabel: dashboard.seeAllLabel,
+                          title: localizations.todaySessions,
+                          actionLabel: localizations.seeAll,
                           onActionTap: () {
                             Navigator.of(context).push(
                               MaterialPageRoute(
@@ -180,11 +182,11 @@ class _TeacherDashboardScreenState extends State<TeacherDashboardScreen> {
                         if (dashboard.nextSession != null)
                           _SessionCard(session: dashboard.nextSession!)
                         else
-                          _EmptyCard(label: dashboard.emptySessionsLabel),
+                          _EmptyCard(label: localizations.emptySessions),
                         const SizedBox(height: 22),
                         _SectionHeader(
-                          title: dashboard.myServicesTitle,
-                          actionLabel: dashboard.seeAllLabel,
+                          title: localizations.myServices,
+                          actionLabel: localizations.seeAll,
                           onActionTap: () {
                             Navigator.of(context).push(
                               MaterialPageRoute(
@@ -198,7 +200,7 @@ class _TeacherDashboardScreenState extends State<TeacherDashboardScreen> {
                         SizedBox(
                           height: 300,
                           child: dashboard.services.isEmpty
-                              ? _EmptyCard(label: dashboard.emptyServicesLabel)
+                              ? _EmptyCard(label: localizations.emptyServices)
                               : ListView.builder(
                                   scrollDirection: Axis.horizontal,
                                   itemCount: dashboard.services.length,
@@ -220,8 +222,8 @@ class _TeacherDashboardScreenState extends State<TeacherDashboardScreen> {
                         ),
                         const SizedBox(height: 22),
                         _SectionHeader(
-                          title: dashboard.quoteRequestsTitle,
-                          actionLabel: dashboard.seeAllLabel,
+                          title: localizations.quoteRequests,
+                          actionLabel: localizations.seeAll,
                           onActionTap: () {
                             Navigator.of(context).push(
                               MaterialPageRoute(
@@ -233,7 +235,7 @@ class _TeacherDashboardScreenState extends State<TeacherDashboardScreen> {
                         ),
                         const SizedBox(height: 14),
                         if (dashboard.quoteRequests.isEmpty)
-                          _EmptyCard(label: dashboard.emptyQuotesLabel)
+                          _EmptyCard(label: localizations.emptyQuotes)
                         else
                           ...dashboard.quoteRequests.map((request) {
                             final joinRequest = TeacherJoinRequestDetail(
@@ -372,6 +374,7 @@ class _PerformanceCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final localizations = AppLocalizations.of(context)!;
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -393,60 +396,67 @@ class _PerformanceCard extends StatelessWidget {
           Row(
             children: stats
                 .map(
-                  (stat) => Expanded(
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 4),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        child: Column(
-                          children: [
-                            Text(
-                              stat.label,
-                              style: const TextStyle(
-                                fontSize: 10,
-                                fontWeight: FontWeight.w700,
-                                color: Color(0xFF94A3B8),
+                  (stat) {
+                    String label = stat.label;
+                    if (label == 'RATING') label = localizations.ratingLabel;
+                    if (label == 'STUDENTS') label = localizations.studentsLabel;
+                    if (label == 'COURSES') label = localizations.coursesLabel;
+
+                    return Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 4),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          child: Column(
+                            children: [
+                              Text(
+                                label,
+                                style: const TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w700,
+                                  color: Color(0xFF94A3B8),
+                                ),
                               ),
-                            ),
-                            const SizedBox(height: 8),
-                            if (stat.label == 'RATING')
-                              Row(
-                                crossAxisAlignment: CrossAxisAlignment.center,
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Text(
-                                    stat.value,
-                                    style: const TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.w800,
-                                      color: Color(0xFF1A237E),
+                              const SizedBox(height: 8),
+                              if (stat.label == 'RATING')
+                                Row(
+                                  crossAxisAlignment: CrossAxisAlignment.center,
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Text(
+                                      stat.value,
+                                      style: const TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w800,
+                                        color: Color(0xFF1A237E),
+                                      ),
                                     ),
-                                  ),
-                                  SvgPicture.asset(
-                                   "assets/images/star.svg",
-                                   height: 12,
-                                   width: 12,
-                                   ),
-                                ],
-                              )
-                            else
-                            Text(
-                              stat.value,
-                              style: const TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w800,
-                                color: Color(0xFF1A237E),
+                                    SvgPicture.asset(
+                                     "assets/images/star.svg",
+                                     height: 12,
+                                     width: 12,
+                                     ),
+                                  ],
+                                )
+                              else
+                              Text(
+                                stat.value,
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w800,
+                                  color: Color(0xFF1A237E),
+                                ),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
                       ),
-                    ),
-                  ),
+                    );
+                  }
                 )
                 .toList(),
           ),
@@ -504,6 +514,10 @@ class _SessionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final localizations = AppLocalizations.of(context)!;
+    String badge = session.badgeLabel;
+    if (badge == 'NEXT COURSE') badge = localizations.nextCourseLabel;
+
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -538,7 +552,7 @@ class _SessionCard extends StatelessWidget {
                   Row(
                     children: [
                       _TagChip(
-                        label: session.badgeLabel,
+                        label: badge,
                         backgroundColor: const Color(0xFFE8EAF6),
                         textColor: const Color(0xFF1A237E),
                       ),
@@ -618,6 +632,11 @@ class _ServiceCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final localizations = AppLocalizations.of(context)!;
+    String statusLabel = service.statusLabel;
+    if (statusLabel == 'ACTIVE') statusLabel = localizations.active;
+    if (statusLabel == 'INACTIVE') statusLabel = localizations.inactive;
+
     return Container(
       width: 220,
       decoration: BoxDecoration(
@@ -658,7 +677,7 @@ class _ServiceCard extends StatelessWidget {
                     ),
                     const SizedBox(width: 10),
                     _TagChip(
-                      label: service.statusLabel,
+                      label: statusLabel,
                       backgroundColor: const Color(0xFFE8F7EC),
                       textColor: const Color(0xFF16A34A),
                     ),
@@ -725,6 +744,7 @@ class _QuoteRequestTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final localizations = AppLocalizations.of(context)!;
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
@@ -776,7 +796,7 @@ class _QuoteRequestTile extends StatelessWidget {
           ),
           const SizedBox(width: 12),
           PrimaryButton(
-            text: "see details",
+            text: localizations.seeDetails,
             onPressed: () async {
               final bool? changed = await NavigationService.instance.push<bool>(
                 TeacherQuoteRequestDetailPage(request: request),
@@ -804,6 +824,7 @@ class _DashboardErrorState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final localizations = AppLocalizations.of(context)!;
     return Center(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -827,7 +848,7 @@ class _DashboardErrorState extends StatelessWidget {
             ),
             const SizedBox(height: 18),
             PrimaryButton(
-              text: 'Retry',
+              text: localizations.retry,
               onPressed: () {
                 onRetry();
               },
@@ -950,12 +971,13 @@ class _QuoteRequestDetailsPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final localizations = AppLocalizations.of(context)!;
     return Scaffold(
       backgroundColor: const Color(0xFFF5F5F5),
       appBar: AppBar(
-        title: const Text(
-          'Quote Request',
-          style: TextStyle(
+        title: Text(
+          localizations.quoteRequest,
+          style: const TextStyle(
             color: Color(0xFF1F2937),
             fontWeight: FontWeight.w700,
           ),
@@ -1004,9 +1026,9 @@ class _QuoteRequestDetailsPage extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 12),
-              const Text(
-                'This placeholder page is ready for your full quote-request details flow.',
-                style: TextStyle(
+              Text(
+                localizations.comingSoon,
+                style: const TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w500,
                   color: Color(0xFF475569),

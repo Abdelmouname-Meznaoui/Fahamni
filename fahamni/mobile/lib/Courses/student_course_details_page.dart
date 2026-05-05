@@ -10,6 +10,7 @@ import '../models/tutor_model.dart';
 import '../Courses/members_tab.dart';
 import '../Courses/Ressources_tab.dart';
 import '../Courses/Session_tab.dart';
+import '../l10n/app_localizations.dart';
 
 class StudentCourseDetailsPage extends StatefulWidget {
   final ServiceModel service;
@@ -44,6 +45,7 @@ class _StudentCourseDetailsPageState extends State<StudentCourseDetailsPage>
 
   @override
   Widget build(BuildContext context) {
+    final AppLocalizations localizations = AppLocalizations.of(context)!;
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
       appBar: AppBar(
@@ -155,7 +157,7 @@ class _StudentCourseDetailsPageState extends State<StudentCourseDetailsPage>
                             ],
                           ),
                           Text(
-                            widget.tutor.isAvailable ? 'Available' : 'Busy',
+                            widget.tutor.isAvailable ? localizations.available : localizations.busy,
                             style: TextStyle(
                               fontFamily: "Lexend",
                               fontWeight: FontWeight.w600,
@@ -232,10 +234,10 @@ class _StudentCourseDetailsPageState extends State<StudentCourseDetailsPage>
                 indicatorWeight: 3,
                 indicatorSize: TabBarIndicatorSize.tab,
                 dividerColor: Colors.transparent,
-                tabs: const [
-                  Tab(text: 'Sessions'),
-                  Tab(text: 'Resources'),
-                  Tab(text: 'Members'),
+                tabs: [
+                  Tab(text: localizations.sessions),
+                  Tab(text: localizations.translate('resources')),
+                  Tab(text: localizations.translate('members')),
                 ],
               ),
             ),

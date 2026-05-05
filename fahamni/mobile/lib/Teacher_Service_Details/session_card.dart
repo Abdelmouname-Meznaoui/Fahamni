@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../models/session_model.dart';
+import '../l10n/app_localizations.dart';
 
 class SessionCard extends StatelessWidget {
   final SessionModel session;
@@ -10,6 +11,7 @@ class SessionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final localizations = AppLocalizations.of(context)!;
     final bool isOnline = session.mode.toLowerCase() == 'online';
 
     return Container(
@@ -74,7 +76,7 @@ class SessionCard extends StatelessWidget {
                     ),
                     const SizedBox(width: 4),
                     Text(
-                      isOnline ? 'Online' : 'Onsite',
+                      isOnline ? localizations.online : localizations.onsite,
                       style: TextStyle(
                         fontFamily: 'Nunito',
                         fontWeight: FontWeight.w700,
@@ -96,7 +98,10 @@ class SessionCard extends StatelessWidget {
               if (v == 'delete') onDelete();
             },
             itemBuilder: (_) => [
-              const PopupMenuItem(value: 'delete', child: Text('Delete')),
+              PopupMenuItem(
+                value: 'delete',
+                child: Text(localizations.translate('delete')),
+              ),
             ],
             icon: const Icon(Icons.more_vert, color: Color(0xFF94A3B8)),
           ),

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import '../l10n/app_localizations.dart';
 import '../Login_Screen/LoginScreen.dart';
 import '../TeacherDashboard/teacher_dashboard_service.dart';
 import '../models/teacher_dashboard_model.dart';
@@ -109,6 +110,7 @@ class _TeacherSettingsPageState extends State<TeacherSettingsPage> {
 
   @override
   Widget build(BuildContext context) {
+    final AppLocalizations localizations = AppLocalizations.of(context)!;
     return Scaffold(
       backgroundColor: const Color(0xFFFAFAFA),
       appBar: AppBar(
@@ -189,15 +191,15 @@ class _TeacherSettingsPageState extends State<TeacherSettingsPage> {
                   child: Column(
                     children: [
                       _buildMenuItem(context, Icons.person_outline,
-                          "Personal Information", const PersonalInfoScreen()),
+                          localizations.personalInformation, const PersonalInfoScreen()),
                       _buildMenuItem(context, Icons.school_outlined,
-                          "Academic Information", const AcademicInfoScreen()),
+                          localizations.academicInformation, const AcademicInfoScreen()),
                       _buildMenuItem(context, Icons.settings_outlined,
-                          "Profile Settings", const ProfileSettingsScreen()),
+                          localizations.profileSettings, const ProfileSettingsScreen()),
                       _buildMenuItem(context, Icons.notifications_none,
-                          "Notifications", const NotificationScreen()),
+                          localizations.notifications, const NotificationScreen()),
                       _buildMenuItem(context, Icons.help_outline,
-                          "Help & Support", const HelpSupportScreen()),
+                          localizations.helpSupport, const HelpSupportScreen()),
                     ],
                   ),
                 ),
@@ -217,7 +219,7 @@ class _TeacherSettingsPageState extends State<TeacherSettingsPage> {
                         const Icon(Icons.logout, color: Color(0xFFEF4444)),
                         const SizedBox(width: 8),
                         Text(
-                          "Logout from Fahamni",
+                          localizations.logoutFromFahamni,
                           style: GoogleFonts.inter(
                             fontSize: 16,
                             fontWeight: FontWeight.w600,

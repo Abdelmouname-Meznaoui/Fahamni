@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:fahamni/TeacherDashboard/teacher_dashboard_service.dart';
+import 'package:fahamni/l10n/app_localizations.dart';
 import 'package:fahamni/TeacherDashboard/teacher_services_dashboard.dart';
 import 'package:fahamni/TeacherDashboard/widgets/teacher_navbar.dart';
 import 'package:fahamni/messaging/chat_page.dart';
@@ -51,6 +52,7 @@ class _AccountScreenState extends State<AccountScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final localizations = AppLocalizations.of(context)!;
     return Scaffold(
       backgroundColor: const Color(0xFFFAFAFA),
       bottomNavigationBar: TeacherNavbar(
@@ -79,7 +81,7 @@ class _AccountScreenState extends State<AccountScreen> {
                         onPressed: () => setState(() {
                           _dashboardFuture = _service.loadDashboard();
                         }),
-                        child: const Text("Retry"),
+                        child: Text(localizations.retry),
                       )
                     ],
                   ),
@@ -96,7 +98,7 @@ class _AccountScreenState extends State<AccountScreen> {
                 children: [
                   const SizedBox(height: 20),
                   Text(
-                    "Account",
+                    localizations.account,
                     style: GoogleFonts.inter(
                       fontSize: 32,
                       fontWeight: FontWeight.w800,
@@ -125,7 +127,7 @@ class _AccountScreenState extends State<AccountScreen> {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    '${tutor.expertiseDomain} Specialist',
+                    '${tutor.expertiseDomain} ${localizations.expertiseSpecialist}',
                     style: GoogleFonts.inter(
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
@@ -142,7 +144,7 @@ class _AccountScreenState extends State<AccountScreen> {
                   // Menu Items
                   _AccountMenuItem(
                     icon: Icons.star_border,
-                    title: "FeedBacks",
+                    title: localizations.feedbacks,
                     onTap: () {
                       Navigator.push(
                         context,
@@ -157,7 +159,7 @@ class _AccountScreenState extends State<AccountScreen> {
                   ),
                   _AccountMenuItem(
                     icon: Icons.description_outlined,
-                    title: "Quote Requests",
+                    title: localizations.quoteRequests,
                     onTap: () {
                       Navigator.push(
                         context,
@@ -167,7 +169,7 @@ class _AccountScreenState extends State<AccountScreen> {
                   ),
                   _AccountMenuItem(
                     icon: Icons.settings_outlined,
-                    title: "Settings",
+                    title: localizations.settings,
                     onTap: () {
                       Navigator.push(
                         context,
@@ -193,6 +195,7 @@ class _PerformanceOverviewCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final localizations = AppLocalizations.of(context)!;
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -203,7 +206,7 @@ class _PerformanceOverviewCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            "Performance Overview",
+            localizations.performanceOverview,
             style: GoogleFonts.inter(
               fontSize: 16,
               fontWeight: FontWeight.w700,
@@ -214,6 +217,11 @@ class _PerformanceOverviewCard extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: stats.map((stat) {
+              String label = stat.label;
+              if (label == 'RATING') label = localizations.ratingLabel;
+              if (label == 'STUDENTS') label = localizations.studentsLabel;
+              if (label == 'COURSES') label = localizations.coursesLabel;
+
               return Expanded(
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 4.0),
@@ -226,7 +234,7 @@ class _PerformanceOverviewCard extends StatelessWidget {
                     child: Column(
                       children: [
                         Text(
-                          stat.label,
+                          label,
                           style: const TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.w700,

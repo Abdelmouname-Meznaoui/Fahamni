@@ -2,6 +2,7 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:fahamni/l10n/app_localizations.dart';
 
 class CustomBottomNavbar extends StatefulWidget {
   final int selectedIndex;
@@ -47,7 +48,10 @@ class _CustomBottomNavbarState extends State<CustomBottomNavbar> {
               iconpath,
               height: compact ? 22 : 24,
               width: compact ? 22 : 24,
-              color: selected ? Colors.white : const Color(0xFF000080),
+              colorFilter: ColorFilter.mode(
+                selected ? Colors.white : const Color(0xFF000080),
+                BlendMode.srcIn,
+              ),
             ),
             AnimatedSize(
               duration: const Duration(milliseconds: 300),
@@ -79,6 +83,7 @@ class _CustomBottomNavbarState extends State<CustomBottomNavbar> {
 
   @override
   Widget build(BuildContext context) {
+    final AppLocalizations localizations = AppLocalizations.of(context)!;
     return LayoutBuilder(
       builder: (context, constraints) {
         final bool compact = constraints.maxWidth < 390;
@@ -109,31 +114,31 @@ class _CustomBottomNavbarState extends State<CustomBottomNavbar> {
                   children: <Widget>[
                     navItem(
                       "assets/images/fi-rr-home.svg",
-                      "Home",
+                      localizations.home,
                       0,
                       compact: compact,
                     ),
                     navItem(
                       "assets/images/explore.svg",
-                      "Explore",
+                      localizations.explore,
                       1,
                       compact: compact,
                     ),
                     navItem(
                       "assets/images/course.svg",
-                      "Courses",
+                      localizations.courses,
                       2,
                       compact: compact,
                     ),
                     navItem(
                       "assets/images/chat.svg",
-                      "Chat",
+                      localizations.chat,
                       3,
                       compact: compact,
                     ),
                     navItem(
                       "assets/images/profile.svg",
-                      "Profile",
+                      localizations.profile,
                       4,
                       compact: compact,
                     ),

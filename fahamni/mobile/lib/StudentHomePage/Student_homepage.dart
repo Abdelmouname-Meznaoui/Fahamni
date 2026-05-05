@@ -11,6 +11,7 @@ import 'package:fahamni/models/student_model.dart';
 import 'package:fahamni/models/tutor_model.dart';
 import 'package:fahamni/models/user_model.dart';
 import 'package:fahamni/Account_Settings_Student/account_screen.dart';
+import 'package:fahamni/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:fahamni/widgets/customnavbar.dart';
@@ -35,32 +36,7 @@ class _StudenthomepageState extends State<Studenthomepage> {
     'assets/images/slide0.png',
     'assets/images/slide1.png',
   ];
-  final List<Map<String, dynamic>> teachers = [
-    {
-      'name': 'Sami',
-      'image': 'https://randomuser.me/api/portraits/women/44.jpg',
-    },
-    {
-      'name': 'Sami',
-      'image': 'https://randomuser.me/api/portraits/men/32.jpg',
-    },
-    {
-      'name': 'Sami',
-      'image': 'https://randomuser.me/api/portraits/women/68.jpg',
-    },
-    {
-      'name': 'Sami',
-      'image': 'https://randomuser.me/api/portraits/men/75.jpg',
-    },
-    {
-      'name': 'Sami',
-      'image': 'https://randomuser.me/api/portraits/women/17.jpg',
-    },
-    {
-      'name': 'Sami',
-      'image': 'https://randomuser.me/api/portraits/men/52.jpg',
-    },
-  ];
+
   int currentindex=0;
   int counter = 0;
   int minutes = 0;
@@ -73,7 +49,6 @@ class _StudenthomepageState extends State<Studenthomepage> {
   SessionModel? _nextCourse;
   @override
   void initState() {
-    // TODO: implement initState
     super.initState();
     loadStudent();
   }
@@ -140,6 +115,7 @@ class _StudenthomepageState extends State<Studenthomepage> {
   }
   @override
   Widget build(BuildContext context) {
+    final AppLocalizations localizations = AppLocalizations.of(context)!;
     if (student == null) {
       return const Scaffold(
         body: Center(child: CircularProgressIndicator()),
@@ -150,7 +126,7 @@ class _StudenthomepageState extends State<Studenthomepage> {
       body: SafeArea(
         child: SingleChildScrollView(
           child: Container(
-          margin: EdgeInsets.fromLTRB(16, 5, 16, 16),
+          margin: const EdgeInsets.fromLTRB(16, 5, 16, 16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -162,18 +138,18 @@ class _StudenthomepageState extends State<Studenthomepage> {
                     radius: 25,
                     backgroundImage: _resolveStudentAvatar(student!),
                   ),
-                  SizedBox(width: 5),
+                  const SizedBox(width: 5),
                   Expanded( // Wrap with Expanded to take available space
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         ConstrainedBox(
-                          constraints: BoxConstraints(maxWidth: 300),
+                          constraints: const BoxConstraints(maxWidth: 300),
                           child: Text(
                             '${student?.firstName} ${student?.lastName} ',
                             overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              color: const Color(0xFF1F2937),
+                            style: const TextStyle(
+                              color: Color(0xFF1F2937),
                               fontFamily: 'Inter',
                               fontWeight: FontWeight.w500,
                               fontSize: 16,
@@ -181,9 +157,9 @@ class _StudenthomepageState extends State<Studenthomepage> {
                           ),
                         ),
                         Text(
-                          '${student?.role.name}',
-                          style: TextStyle(
-                            color: const Color(0xFF000080),
+                          student?.role.name == 'student' ? localizations.student : localizations.parent,
+                          style: const TextStyle(
+                            color: Color(0xFF000080),
                             fontFamily: 'Inter',
                             fontWeight: FontWeight.w500,
                             fontSize: 16,
@@ -201,7 +177,7 @@ class _StudenthomepageState extends State<Studenthomepage> {
                         ),
                       );
                     },
-                    icon: ImageIcon(
+                    icon: const ImageIcon(
                       AssetImage('assets/images/bell.png'),
                       color: Colors.black,
         ),
@@ -209,7 +185,7 @@ class _StudenthomepageState extends State<Studenthomepage> {
                   ),
                 ],
               ),
-              SizedBox(height: 5),
+              const SizedBox(height: 5),
 
               // Search row
               Row(
@@ -221,7 +197,7 @@ class _StudenthomepageState extends State<Studenthomepage> {
                       decoration: BoxDecoration(
                           borderRadius: BorderRadius.circular(80),
                         boxShadow: [ BoxShadow(
-                          color: Color(0xFF000080).withValues(alpha: 0.61),
+                          color: const Color(0xFF000080).withValues(alpha: 0.61),
                           spreadRadius: 0,
                           blurRadius: 5,
                           offset: const Offset(0,0),
@@ -233,8 +209,8 @@ class _StudenthomepageState extends State<Studenthomepage> {
                       child: TextField(
                         textAlignVertical: TextAlignVertical.center,
                         decoration: InputDecoration(
-                          hintText: 'Search for Teacher/module...',
-                          hintStyle: TextStyle(
+                          hintText: localizations.searchTeachersModules,
+                          hintStyle: const TextStyle(
                             fontFamily: "Nunito",
                             fontWeight: FontWeight.w600,
                             fontSize: 14 ,
@@ -243,7 +219,7 @@ class _StudenthomepageState extends State<Studenthomepage> {
                             borderRadius: BorderRadius.circular(80),
                             borderSide: BorderSide.none,
                           ),
-                          contentPadding: EdgeInsets.symmetric(
+                          contentPadding: const EdgeInsets.symmetric(
                             horizontal: 20,
                             vertical: 0,
                           ),
@@ -278,7 +254,7 @@ class _StudenthomepageState extends State<Studenthomepage> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Transform.translate(
-                    offset: Offset(-0, 0),
+                    offset: const Offset(-0, 0),
                     child: SizedBox(
                       width: MediaQuery.of(context).size.width,
                     
@@ -294,10 +270,10 @@ class _StudenthomepageState extends State<Studenthomepage> {
                           image: DecorationImage(image: AssetImage(item),fit: BoxFit.cover),
                             boxShadow: [
                               BoxShadow(
-                                color: Color(0xFF000080).withValues(alpha: 0.3),
+                                color: const Color(0xFF000080).withValues(alpha: 0.3),
                                 spreadRadius: 1,
                                 blurRadius: 10,
-                                offset: Offset(0, 0),
+                                offset: const Offset(0, 0),
                               )
                             ]
                         ),
@@ -314,8 +290,8 @@ class _StudenthomepageState extends State<Studenthomepage> {
                              ),
                               child: Center(
                                 child: Text(
-                                    'En Profiter',
-                                   style: TextStyle(
+                                    localizations.takeOffer,
+                                   style: const TextStyle(
                                      color: Color(0xFF000080),
                                      fontFamily: "Nunito",
                                      fontWeight: FontWeight.w700,
@@ -329,8 +305,8 @@ class _StudenthomepageState extends State<Studenthomepage> {
                       options: CarouselOptions(
                         height: 200,
                         autoPlay: true,
-                        autoPlayInterval: Duration(seconds: 3),
-                        autoPlayAnimationDuration: Duration(milliseconds: 800),
+                        autoPlayInterval: const Duration(seconds: 3),
+                        autoPlayAnimationDuration: const Duration(milliseconds: 800),
                         enlargeCenterPage: true,
                         aspectRatio: 16/9,
                         viewportFraction: 0.95,
@@ -345,7 +321,7 @@ class _StudenthomepageState extends State<Studenthomepage> {
                         }
                       )
                   ),),),
-                  SizedBox(
+                  const SizedBox(
                     height: 5,
                   ),
                   //dots slider
@@ -354,10 +330,10 @@ class _StudenthomepageState extends State<Studenthomepage> {
                     children: images.asMap().entries.map((item) => Container(
                       height: 12,
                       width: 12,
-                      margin: EdgeInsets.all(4),
+                      margin: const EdgeInsets.all(4),
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        color: currentindex == item.key ? Color(0xFF000080) : Colors.grey,
+                        color: currentindex == item.key ? const Color(0xFF000080) : Colors.grey,
                       ),
                     )).toList(),
                   )
@@ -370,8 +346,8 @@ class _StudenthomepageState extends State<Studenthomepage> {
                 children: [
                   Expanded(
                     child: Text(
-                        'Favorite Teachers',
-                         style: TextStyle(
+                        localizations.favoriteTeachers,
+                         style: const TextStyle(
                            color: Colors.black,
                            fontFamily: "Inter",
                            fontSize: 20,
@@ -388,8 +364,8 @@ class _StudenthomepageState extends State<Studenthomepage> {
                       );
                     },
                     child: Text(
-                      'See All',
-                       style: TextStyle(
+                      localizations.seeAll,
+                       style: const TextStyle(
                          fontFamily: "Nunito",
                          fontSize: 17,
                          fontWeight: FontWeight.w600,
@@ -403,12 +379,12 @@ class _StudenthomepageState extends State<Studenthomepage> {
              SizedBox(
                height: 100,
                child:
-               favoriteTutors?.length == 0 ?
-                     const Center(
+               (favoriteTutors?.isEmpty ?? true) ?
+                     Center(
                        child: Text(
-                         'NO Favorite Teachers :(',
+                         localizations.noFavoriteTeachers,
                          textAlign: TextAlign.center,
-                         style: TextStyle(
+                         style: const TextStyle(
                            fontFamily: 'Nunito',
                            fontWeight: FontWeight.w700,
                            fontSize: 20,
@@ -457,7 +433,7 @@ class _StudenthomepageState extends State<Studenthomepage> {
                                    child: Container(
                                      height:14,
                                      width:14,
-                                     decoration: BoxDecoration(
+                                     decoration: const BoxDecoration(
                                        shape: BoxShape.circle,
                                        color: Colors.white,
                                      ),
@@ -477,7 +453,7 @@ class _StudenthomepageState extends State<Studenthomepage> {
                          ),
                          Text(
                            (favoriteTutors?[index].firstName).toString(),
-                             style: TextStyle(
+                             style: const TextStyle(
                               color: Colors.black,
                              fontFamily: "Nunito",
                              fontWeight: FontWeight.w500,
@@ -489,14 +465,14 @@ class _StudenthomepageState extends State<Studenthomepage> {
                  },
                ),
              ),
-              SizedBox(height: 10,),
+              const SizedBox(height: 10,),
               Row(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   Expanded(
                     child: Text(
-                      'Course Schedule',
-                      style: TextStyle(
+                      localizations.courseSchedule,
+                      style: const TextStyle(
                         color: Colors.black,
                         fontFamily: "Inter",
                         fontSize: 20,
@@ -513,8 +489,8 @@ class _StudenthomepageState extends State<Studenthomepage> {
                       );
                     },
                     child: Text(
-                      'See All',
-                      style: TextStyle(
+                      localizations.seeAll,
+                      style: const TextStyle(
                         fontFamily: "Nunito",
                         fontWeight: FontWeight.w600,
                         fontSize: 17,
@@ -530,20 +506,20 @@ class _StudenthomepageState extends State<Studenthomepage> {
                   child: Center(
                     child: Column(
                       children: [
-                        Icon(Icons.menu_book_rounded, size: 52, color: Color(0xFF000080).withValues(alpha: 0.25)),
-                        SizedBox(height: 12),
+                        Icon(Icons.menu_book_rounded, size: 52, color: const Color(0xFF000080).withValues(alpha: 0.25)),
+                        const SizedBox(height: 12),
                         Text(
-                          "Start your Journey",
-                          style: TextStyle(
+                          localizations.startJourney,
+                          style: const TextStyle(
                             fontFamily: 'Nunito',
                             fontWeight: FontWeight.w700,
                             fontSize: 18,
                             color: Colors.grey,
                           ),
                         ),
-                        SizedBox(height: 4),
+                        const SizedBox(height: 4),
                         Text(
-                          "Book a session to see it here",
+                          localizations.bookSessionToSeeItHere,
                           style: TextStyle(
                             fontFamily: 'Nunito',
                             fontWeight: FontWeight.w500,
@@ -551,7 +527,7 @@ class _StudenthomepageState extends State<Studenthomepage> {
                             color: Colors.grey.withValues(alpha: 0.8),
                           ),
                         ),
-                        SizedBox(height: 16),
+                        const SizedBox(height: 16),
                         ElevatedButton(
                           onPressed: () {
                             Navigator.push(
@@ -562,16 +538,16 @@ class _StudenthomepageState extends State<Studenthomepage> {
                             );
                           },
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: Color(0xFF000080),
+                            backgroundColor: const Color(0xFF000080),
                             foregroundColor: Colors.white,
-                            minimumSize: Size(160, 46),
+                            minimumSize: const Size(160, 46),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(24),
                             ),
                           ),
                           child: Text(
-                            'Explore Tutors',
-                            style: TextStyle(
+                            localizations.exploreTutors,
+                            style: const TextStyle(
                               fontFamily: 'Lexend',
                               fontWeight: FontWeight.w700,
                               fontSize: 15,
@@ -595,8 +571,8 @@ class _StudenthomepageState extends State<Studenthomepage> {
                   },
                 )
               else if(courses?.isNotEmpty == true)
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 20),
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 20),
                   child: Center(
                     child: CircularProgressIndicator(
                       color: Color(0xFF000080),
@@ -665,6 +641,7 @@ class _NextCourseCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final AppLocalizations localizations = AppLocalizations.of(context)!;
     final bool isOnline = session.type == 'online';
     final Color typeColor = isOnline ? const Color(0xFF16A34A) : const Color(0xFF475569);
     final Color typeBg = isOnline ? const Color(0xFFDCFCE7) : const Color(0xFFF1F5F9);
@@ -700,10 +677,10 @@ class _NextCourseCard extends StatelessWidget {
                     color: const Color(0xFF6324EB).withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(6),
                   ),
-                  child: const Text(
-                    'NEXT COURSE',
-                    style: TextStyle(
-                      fontFamily: 'Nunito',
+                  child: Text(
+                    localizations.nextCourse,
+                    style: const TextStyle(
+                      fontFamily: 'Inter',
                       fontWeight: FontWeight.w800,
                       fontSize: 11,
                       color: Color(0xFF000080),
@@ -719,7 +696,7 @@ class _NextCourseCard extends StatelessWidget {
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(
-                    session.type,
+                    session.type == 'online' ? localizations.online : localizations.onsite,
                     style: TextStyle(
                       fontFamily: 'Nunito',
                       fontSize: 12,
@@ -786,7 +763,7 @@ class _NextCourseCard extends StatelessWidget {
                 const SizedBox(width: 8),
                 Text(
                   '${DateFormat('HH:mm').format(session.startTime)} – '
-                  '${DateFormat('HH:mm').format(session.endTime)}  ($minutes min)',
+                  '${DateFormat('HH:mm').format(session.endTime)}  ($minutes ${localizations.minutesShort})',
                   style: const TextStyle(
                     color: Color(0xFF1F2937),
                     fontFamily: 'Lexend',
@@ -838,9 +815,9 @@ class _NextCourseCard extends StatelessWidget {
                   ),
                   elevation: 0,
                 ),
-                child: const Text(
-                  'View My Sessions',
-                  style: TextStyle(
+                child: Text(
+                  localizations.viewMySessions,
+                  style: const TextStyle(
                     fontFamily: 'Lexend',
                     fontSize: 15,
                     fontWeight: FontWeight.w700,
@@ -854,5 +831,3 @@ class _NextCourseCard extends StatelessWidget {
     );
   }
 }
-
-

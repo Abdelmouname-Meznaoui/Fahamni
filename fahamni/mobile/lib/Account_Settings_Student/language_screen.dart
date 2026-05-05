@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 
+import '../l10n/app_localizations.dart';
+import '../services/locale_service.dart';
+
 class LanguageScreen extends StatefulWidget {
   const LanguageScreen({super.key});
 
@@ -8,14 +11,19 @@ class LanguageScreen extends StatefulWidget {
 }
 
 class _LanguageScreenState extends State<LanguageScreen> {
-  String selectedLanguage = "English";
-  bool isPressed = false; // 
+  String selectedLanguageCode = LocaleService.currentLocale.languageCode;
+
+  static const Map<String, Locale> languageOptions = {
+    'en': Locale('en'),
+    'fr': Locale('fr'),
+    'ar': Locale('ar'),
+  };
 
   @override
   Widget build(BuildContext context) {
+    final AppLocalizations localizations = AppLocalizations.of(context)!;
     return Scaffold(
       backgroundColor: const Color(0xFFF9FAFB),
-
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -27,11 +35,10 @@ class _LanguageScreenState extends State<LanguageScreen> {
           ),
           onPressed: () => Navigator.pop(context),
         ),
-
         centerTitle: true,
-        title: const Text(
-          "Language",
-          style: TextStyle(
+        title: Text(
+          localizations.language,
+          style: const TextStyle(
             fontFamily: 'Inter',
             fontSize: 32,
             fontWeight: FontWeight.w700,
@@ -39,28 +46,22 @@ class _LanguageScreenState extends State<LanguageScreen> {
           ),
         ),
       ),
-
       body: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 24),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const SizedBox(height: 24),
-
-            // Label
-            const Text(
-              "Select Language",
-              style: TextStyle(
+            Text(
+              localizations.selectLanguageLabel,
+              style: const TextStyle(
                 fontFamily: 'Nunito',
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
                 color: Color(0xFF1F2937),
               ),
             ),
-
             const SizedBox(height: 8),
-
-            // Dropdown
             Container(
               height: 48,
               padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -71,7 +72,7 @@ class _LanguageScreenState extends State<LanguageScreen> {
               ),
               child: DropdownButtonHideUnderline(
                 child: DropdownButton<String>(
-                  value: selectedLanguage,
+                  value: selectedLanguageCode,
                   isExpanded: true,
                   icon: const Icon(Icons.keyboard_arrow_down),
                   style: const TextStyle(
@@ -80,62 +81,55 @@ class _LanguageScreenState extends State<LanguageScreen> {
                     fontWeight: FontWeight.w500,
                     color: Color(0xFF1F2937),
                   ),
-                  items: ["English", "French", "Arabic"]
-                      .map(
-                        (lang) => DropdownMenuItem(
-                          value: lang,
-                          child: Text(lang),
-                        ),
-                      )
-                      .toList(),
+                  items: languageOptions.keys.map(
+                    (code) {
+                      final String label = localizations.translate(LocaleService.languageNameKeys[code]!);
+                      return DropdownMenuItem(
+                        value: code,
+                        child: Text(label),
+                      );
+                    },
+                  ).toList(),
                   onChanged: (value) {
+                    if (value == null) return;
                     setState(() {
-                      selectedLanguage = value!;
+                      selectedLanguageCode = value;
                     });
                   },
                 ),
               ),
             ),
-
             const SizedBox(height: 24),
-
-            //Animated Confirm Button
-            GestureDetector(
-              onTapDown: (_) => setState(() => isPressed = true),
-              onTapUp: (_) => setState(() => isPressed = false),
-              onTapCancel: () => setState(() => isPressed = false),
-
-              onTap: () {
-                // ACTION HERE
-                debugPrint("Selected: $selectedLanguage");
-              },
-
-              child: AnimatedScale(
-                scale: isPressed ? 0.96 : 1.0,
-                duration: const Duration(milliseconds: 120),
-
-                child: SizedBox(
-                  width: double.infinity,
-                  height: 56,
-                  child: ElevatedButton(
-                    onPressed: () {}, // handled by GestureDetector
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF000080),
-                      elevation: 4,
-                      shadowColor: Colors.black.withValues(alpha: 0.25),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(28),
-                      ),
-                    ),
-                    child: const Text(
-                      "Confirm",
-                      style: TextStyle(
-                        fontFamily: 'Inter',
-                        fontSize: 16,
-                        fontWeight: FontWeight.w700,
-                        color: Colors.white,
-                      ),
-                    ),
+            SizedBox(
+              width: double.infinity,
+              height: 56,
+              child: ElevatedButton(
+                onPressed: () async {
+                  final Locale? locale = languageOptions[selectedLanguageCode];
+                  if (locale == null) {
+                    return;
+                  }
+                  await LocaleService.setLocale(locale);
+                  if (!mounted) return;
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text(localizations.languageSaved)),
+                  );
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF000080),
+                  elevation: 4,
+                  shadowColor: Colors.black.withOpacity(0.25),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(28),
+                  ),
+                ),
+                child: Text(
+                  localizations.confirm,
+                  style: const TextStyle(
+                    fontFamily: 'Inter',
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.white,
                   ),
                 ),
               ),

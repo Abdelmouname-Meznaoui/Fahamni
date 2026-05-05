@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:fahamni/l10n/app_localizations.dart';
 
 class ChatButtons extends StatefulWidget {
   const ChatButtons({
@@ -51,6 +52,7 @@ class _MyMessagesWidgetState extends State<ChatButtons>
 
   @override
   Widget build(BuildContext context) {
+    final AppLocalizations localizations = AppLocalizations.of(context)!;
     return Container(
       color: Color(0xFFFAFAFA),
       width: double.infinity,
@@ -79,7 +81,7 @@ class _MyMessagesWidgetState extends State<ChatButtons>
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Text("Teachers"),
+                    Text(localizations.teachers),
                     const SizedBox(width: 4),
                     // The dot
                     /*Container(
@@ -93,8 +95,8 @@ class _MyMessagesWidgetState extends State<ChatButtons>
                   ],
                 ),
               ),
-              const Tab(text: "Students"),
-              const Tab(text: "Groups"),
+              Tab(text: localizations.students),
+              Tab(text: localizations.groups),
             ],
           ),
           const Divider(height: 1, thickness: 1, color: Color(0xFFECEFF1)),

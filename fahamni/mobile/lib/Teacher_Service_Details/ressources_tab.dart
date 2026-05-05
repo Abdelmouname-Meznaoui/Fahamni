@@ -6,6 +6,7 @@ import '../Services/ressource_service.dart';
 import 'package:file_picker/file_picker.dart';
 import 'dart:io';
 import '../models/session_model.dart';
+import '../l10n/app_localizations.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -41,6 +42,7 @@ class _ResourcesTabState extends State<ResourcesTab> {
   Future<void> _load() async {
     final resources = await _service.getResources(widget.serviceId);
     final sessions = await _service.getSessions(widget.serviceId);
+    if (!mounted) return;
     setState(() {
       _resources = resources;
       _sessions = sessions;
@@ -49,6 +51,9 @@ class _ResourcesTabState extends State<ResourcesTab> {
   }
 
   void _addDocument() async {
+    final localizations = AppLocalizations.of(context)!;
+    final documentUploaded = localizations.translate('document_uploaded_successfully');
+    final uploadFailed = localizations.translate('upload_failed');
     final tutorId = await _getTutorId();
     if (tutorId.isEmpty) return;
 
@@ -86,19 +91,25 @@ class _ResourcesTabState extends State<ResourcesTab> {
           resource: resource,
           serviceId: widget.serviceId,
         );
-        _load();
+        if (!mounted) return;
+        await _load();
+        if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Document uploaded successfully')),
+          SnackBar(content: Text(documentUploaded)),
         );
       } catch (e) {
+        if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Upload failed: $e')),
+          SnackBar(content: Text('$uploadFailed: $e')),
         );
       }
     }
   }
 
   void _addMedia() async {
+    final localizations = AppLocalizations.of(context)!;
+    final mediaUploaded = localizations.translate('media_uploaded_successfully');
+    final uploadFailed = localizations.translate('upload_failed');
     final tutorId = await _getTutorId();
     if (tutorId.isEmpty) return;
 
@@ -156,13 +167,16 @@ class _ResourcesTabState extends State<ResourcesTab> {
           updatedResource,
           serviceId: widget.serviceId,
         );
-        _load();
+        if (!mounted) return;
+        await _load();
+        if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Media uploaded successfully')),
+          SnackBar(content: Text(mediaUploaded)),
         );
       } catch (e) {
+        if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Upload failed: $e')),
+          SnackBar(content: Text('$uploadFailed: $e')),
         );
       }
     }
@@ -171,6 +185,7 @@ class _ResourcesTabState extends State<ResourcesTab> {
   void _addLink() async {
     final tutorId = await _getTutorId();
     if (tutorId.isEmpty) return;
+    if (!mounted) return;
 
     final result = await showDialog<Map<String, String>>(
       context: context,
@@ -203,6 +218,7 @@ class _ResourcesTabState extends State<ResourcesTab> {
   }
 
   void _showAddResourceSheet() {
+    final localizations = AppLocalizations.of(context)!;
 
     showModalBottomSheet(
       context: context,
@@ -211,14 +227,14 @@ class _ResourcesTabState extends State<ResourcesTab> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text(
-              'Add Resource',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            Text(
+              localizations.translate('add_resource'),
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 16),
             ListTile(
               leading: const Icon(Icons.description),
-              title: const Text('Add Document'),
+              title: Text(localizations.translate('add_document')),
               onTap: () {
                 Navigator.pop(context);
                 _addDocument();
@@ -226,7 +242,7 @@ class _ResourcesTabState extends State<ResourcesTab> {
             ),
             ListTile(
               leading: const Icon(Icons.image),
-              title: const Text('Add Media'),
+              title: Text(localizations.translate('add_media')),
               onTap: () {
                 Navigator.pop(context);
                 _addMedia();
@@ -234,7 +250,7 @@ class _ResourcesTabState extends State<ResourcesTab> {
             ),
             ListTile(
               leading: const Icon(Icons.link),
-              title: const Text('Add Link'),
+              title: Text(localizations.translate('add_link')),
               onTap: () {
                 Navigator.pop(context);
                 _addLink();
@@ -248,15 +264,16 @@ class _ResourcesTabState extends State<ResourcesTab> {
 
   @override
   Widget build(BuildContext context) {
+    final localizations = AppLocalizations.of(context)!;
     if (_loading) return const Center(child: CircularProgressIndicator());
 
     return Column(
       children: [
         Expanded(
           child: _resources.isEmpty
-              ? const Center(
-                  child: Text('No resources yet',
-                      style: TextStyle(
+              ? Center(
+                  child: Text(localizations.noResourcesYet,
+                      style: const TextStyle(
                           fontFamily: 'Nunito', color: Color(0xFF94A3B8))))
               : ListView.builder(
                   padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
@@ -278,8 +295,8 @@ class _ResourcesTabState extends State<ResourcesTab> {
             child: ElevatedButton.icon(
               onPressed: _showAddResourceSheet,
               icon: const Icon(Icons.add),
-              label: const Text('Add Resource',
-                  style: TextStyle(
+              label: Text(localizations.translate('add_resource'),
+                  style: const TextStyle(
                       fontFamily: 'Nunito', fontWeight: FontWeight.w700)),
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF000080),
@@ -306,25 +323,26 @@ class _AddLinkDialogState extends State<_AddLinkDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final localizations = AppLocalizations.of(context)!;
     return AlertDialog(
-      title: const Text('Add Link Resource'),
+      title: Text(localizations.translate('add_link_resource')),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           TextField(
             controller: _titleController,
-            decoration: const InputDecoration(labelText: 'Title'),
+            decoration: InputDecoration(labelText: localizations.translate('title')),
           ),
           TextField(
             controller: _urlController,
-            decoration: const InputDecoration(labelText: 'URL'),
+            decoration: InputDecoration(labelText: localizations.translate('url')),
           ),
         ],
       ),
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context),
-          child: const Text('Cancel'),
+          child: Text(localizations.cancel),
         ),
         TextButton(
           onPressed: () {
@@ -335,7 +353,7 @@ class _AddLinkDialogState extends State<_AddLinkDialog> {
               });
             }
           },
-          child: const Text('Add'),
+          child: Text(localizations.translate('add')),
         ),
       ],
     );

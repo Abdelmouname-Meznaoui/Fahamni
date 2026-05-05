@@ -2,15 +2,22 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_app_check/firebase_app_check.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_app_check/firebase_app_check.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:fahamni/Login_Screen/LoginScreen.dart';
 import 'package:fahamni/StudentHomePage/Student_homepage.dart';
 import 'package:fahamni/TeacherDashboard/teacher_dashboard.dart';
 import 'package:fahamni/ParentDashboread/ParentHomePage/home_page.dart';
 
 import 'firebase_options.dart';
+import 'l10n/app_localizations.dart';
 import 'navigation/app_navigation.dart';
+import 'services/locale_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -31,6 +38,8 @@ void main() async {
     // AI features stay inactive until a local .env file is provided.
   }
 
+  await LocaleService.init();
+
   runApp(const MyApp());
 }
 
@@ -39,14 +48,36 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      navigatorKey: NavigationService.instance.navigatorKey,
-      theme: ThemeData(
-        fontFamily: 'Inter',
-        scaffoldBackgroundColor: const Color(0xFFF5F5F5),
-      ),
-      home: const AuthGate(),
+    return ValueListenableBuilder<Locale>(
+      valueListenable: LocaleService.localeNotifier,
+      builder: (context, locale, child) {
+        return MaterialApp(
+          debugShowCheckedModeBanner: false,
+          navigatorKey: NavigationService.instance.navigatorKey,
+          locale: locale,
+          supportedLocales: AppLocalizations.supportedLocales,
+          localizationsDelegates: const [
+            AppLocalizations.delegate,
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+          ],
+          localeResolutionCallback: (locale, supportedLocales) {
+            if (locale == null) return supportedLocales.first;
+            for (final supportedLocale in supportedLocales) {
+              if (supportedLocale.languageCode == locale.languageCode) {
+                return supportedLocale;
+              }
+            }
+            return supportedLocales.first;
+          },
+          theme: ThemeData(
+            fontFamily: 'Inter',
+            scaffoldBackgroundColor: const Color(0xFFF5F5F5),
+          ),
+          home: const AuthGate(),
+        );
+      },
     );
   }
 }

@@ -7,6 +7,7 @@ import '../TeacherDashboard/teacher_dashboard_service.dart';
 import '../TeacherDashboard/models/teacher_portal_models.dart';
 import '../TeacherDashboard/teacher_quote_request_detail_page.dart';
 import '../navigation/app_navigation.dart';
+import '../l10n/app_localizations.dart';
 
 class TeacherQuotesPage extends StatefulWidget {
   const TeacherQuotesPage({super.key});
@@ -67,6 +68,7 @@ class _TeacherQuotesPageState extends State<TeacherQuotesPage>
 
   @override
   Widget build(BuildContext context) {
+    final localizations = AppLocalizations.of(context)!;
     return Scaffold(
       backgroundColor: const Color(0xFFFAFAFA),
       appBar: AppBar(
@@ -78,7 +80,7 @@ class _TeacherQuotesPageState extends State<TeacherQuotesPage>
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
-          "Quotes",
+          localizations.quotes,
           style: GoogleFonts.inter(
             fontSize: 28,
             fontWeight: FontWeight.w800,
@@ -112,10 +114,10 @@ class _TeacherQuotesPageState extends State<TeacherQuotesPage>
                 ),
                 indicatorSize: TabBarIndicatorSize.tab,
                 dividerColor: Colors.transparent,
-                tabs: const [
-                  Tab(text: "Waiting"),
-                  Tab(text: "Accepted"),
-                  Tab(text: "Rejected"),
+                tabs: [
+                  Tab(text: localizations.waiting),
+                  Tab(text: localizations.accepted),
+                  Tab(text: localizations.rejected),
                 ],
               ),
             ),
@@ -162,6 +164,7 @@ class _QuotesList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final localizations = AppLocalizations.of(context)!;
     if (requests.isEmpty) {
       return Center(
         child: Column(
@@ -170,7 +173,7 @@ class _QuotesList extends StatelessWidget {
             Icon(Icons.description_outlined, size: 64, color: Colors.grey.shade300),
             const SizedBox(height: 16),
             Text(
-              "No requests found",
+              localizations.noRequestsFound,
               style: GoogleFonts.inter(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
@@ -256,7 +259,7 @@ class _QuotesList extends StatelessWidget {
                   elevation: 0,
                 ),
                 child: Text(
-                  "See details",
+                  localizations.seeDetails,
                   style: GoogleFonts.inter(
                     fontSize: 12,
                     fontWeight: FontWeight.w700,

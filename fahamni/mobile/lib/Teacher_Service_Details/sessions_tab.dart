@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../../models/session_model.dart';
+import '../l10n/app_localizations.dart';
 import 'service_details_service.dart';
 
 class SessionsTab extends StatefulWidget {
@@ -76,7 +77,7 @@ class _SessionsTabState extends State<SessionsTab> {
         return;
       }
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to create session: $error')),
+        SnackBar(content: Text('${AppLocalizations.of(context)!.translate('failed_create_session')}: $error')),
       );
     }
   }
@@ -118,7 +119,7 @@ class _SessionsTabState extends State<SessionsTab> {
         return;
       }
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to re-schedule session: $error')),
+        SnackBar(content: Text('${AppLocalizations.of(context)!.translate('failed_reschedule_session')}: $error')),
       );
     }
   }
@@ -132,13 +133,14 @@ class _SessionsTabState extends State<SessionsTab> {
         return;
       }
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to cancel session: $error')),
+        SnackBar(content: Text('${AppLocalizations.of(context)!.translate('failed_cancel_session')}: $error')),
       );
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final localizations = AppLocalizations.of(context)!;
     if (_loading) return const Center(child: CircularProgressIndicator());
 
     final remaining = widget.totalSessions - _sessions.length;
@@ -152,12 +154,12 @@ class _SessionsTabState extends State<SessionsTab> {
             child: Row(
               children: [
                 _StatBox(
-                  label: 'SCHEDULED',
+                  label: localizations.translate('scheduled').toUpperCase(),
                   value: _sessions.length.toString(),
                 ),
                 const SizedBox(width: 12),
                 _StatBox(
-                  label: 'REMAINING',
+                  label: localizations.translate('remaining').toUpperCase(),
                   value: remaining < 0 ? '0' : remaining.toString(),
                 ),
               ],
@@ -166,10 +168,10 @@ class _SessionsTabState extends State<SessionsTab> {
         ),
         Expanded(
           child: _sessions.isEmpty
-              ? const Center(
+              ? Center(
                   child: Text(
-                    'No sessions yet',
-                    style: TextStyle(
+                    localizations.translate('no_sessions_yet'),
+                    style: const TextStyle(
                       fontFamily: 'Nunito',
                       color: Color(0xFF94A3B8),
                     ),
@@ -199,9 +201,9 @@ class _SessionsTabState extends State<SessionsTab> {
             child: ElevatedButton.icon(
               onPressed: _createSession,
               icon: const Icon(Icons.add, size: 20),
-              label: const Text(
-                'Add Session',
-                style: TextStyle(
+              label: Text(
+                localizations.translate('add_session'),
+                style: const TextStyle(
                   fontFamily: 'Nunito',
                   fontWeight: FontWeight.w700,
                   fontSize: 16,
@@ -235,6 +237,7 @@ class _SessionGridCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final localizations = AppLocalizations.of(context)!;
     final isOnline = session.modality.toLowerCase().contains('online');
     final dayStr = DateFormat('EEE, d MMM').format(session.date).toUpperCase();
     final startStr = DateFormat('HH:mm').format(session.startTime);
@@ -293,21 +296,21 @@ class _SessionGridCard extends StatelessWidget {
                       break;
                   }
                 },
-                itemBuilder: (context) => const [
+                itemBuilder: (context) => [
                   PopupMenuItem<_SessionAction>(
                     value: _SessionAction.reschedule,
                     height: 34,
                     child: Row(
                       children: [
-                        Icon(
+                        const Icon(
                           Icons.event_repeat_rounded,
                           size: 17,
                           color: Color(0xFF1F2937),
                         ),
-                        SizedBox(width: 8),
+                        const SizedBox(width: 8),
                         Text(
-                          'Re-Schedule',
-                          style: TextStyle(
+                          localizations.translate('reschedule'),
+                          style: const TextStyle(
                             fontFamily: 'Inter',
                             fontSize: 12,
                             fontWeight: FontWeight.w700,
@@ -321,15 +324,15 @@ class _SessionGridCard extends StatelessWidget {
                     height: 34,
                     child: Row(
                       children: [
-                        Icon(
+                        const Icon(
                           Icons.delete_outline_rounded,
                           size: 17,
                           color: Color(0xFF1F2937),
                         ),
-                        SizedBox(width: 8),
+                        const SizedBox(width: 8),
                         Text(
-                          'Cancel',
-                          style: TextStyle(
+                          localizations.cancel,
+                          style: const TextStyle(
                             fontFamily: 'Inter',
                             fontSize: 12,
                             fontWeight: FontWeight.w700,
@@ -374,7 +377,7 @@ class _SessionGridCard extends StatelessWidget {
                 ),
                 const SizedBox(width: 4),
                 Text(
-                  isOnline ? 'Online' : 'Onsite',
+                  isOnline ? localizations.online : localizations.onsite,
                   style: TextStyle(
                     fontFamily: 'Lexend',
                     fontWeight: FontWeight.w700,
@@ -481,6 +484,10 @@ class _SessionDialogState extends State<_SessionDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final localizations = AppLocalizations.of(context)!;
+    final String dialogTitle = widget.isReschedule
+        ? localizations.translate('reschedule_session')
+        : localizations.translate('create_session');
     return Padding(
       padding: const EdgeInsets.fromLTRB(14, 10, 14, 16),
       child: Column(
@@ -491,7 +498,7 @@ class _SessionDialogState extends State<_SessionDialog> {
             children: [
               Expanded(
                 child: Text(
-                  widget.title,
+                  dialogTitle,
                   textAlign: TextAlign.center,
                   style: const TextStyle(
                     fontFamily: 'Inter',
@@ -507,10 +514,10 @@ class _SessionDialogState extends State<_SessionDialog> {
               ),
             ],
           ),
-          const _FieldLabel(label: 'Date'),
+          _FieldLabel(label: localizations.translate('date')),
           _SelectorField(
             value: _date == null
-                ? 'Choose Date'
+                ? localizations.translate('choose_date')
                 : DateFormat('EEE, dd MMM').format(_date!).toUpperCase(),
             icon: Icons.calendar_today_outlined,
             onTap: _pickDate,
@@ -522,7 +529,7 @@ class _SessionDialogState extends State<_SessionDialog> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const _FieldLabel(label: 'Session Duration'),
+                    _FieldLabel(label: localizations.translate('session_duration')),
                     _DropdownField<int>(
                       value: _duration,
                       items: const [30, 45, 60, 90],
@@ -537,10 +544,10 @@ class _SessionDialogState extends State<_SessionDialog> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const _FieldLabel(label: 'Start Time'),
+                    _FieldLabel(label: localizations.translate('start_time')),
                     _SelectorField(
                       value: _startTime == null
-                          ? 'Choose Time'
+                          ? localizations.translate('choose_time')
                           : _formatTime(_startTime!),
                       icon: Icons.access_time_outlined,
                       onTap: _pickTime,
@@ -552,19 +559,21 @@ class _SessionDialogState extends State<_SessionDialog> {
           ),
           if (!widget.isReschedule) ...[
             const SizedBox(height: 12),
-            const _FieldLabel(label: 'Session Type'),
+            _FieldLabel(label: localizations.translate('session_type')),
             _DropdownField<String>(
               value: _modality,
               items: const ['Online', 'Onsite'],
-              labelBuilder: (value) => value,
+              labelBuilder: (value) => value == 'Online'
+                  ? localizations.online
+                  : localizations.onsite,
               onChanged: (value) => setState(() => _modality = value),
             ),
             if (_modality == 'Online') ...[
               const SizedBox(height: 12),
-              const _FieldLabel(label: 'Online Session Link'),
+              _FieldLabel(label: localizations.translate('online_session_link')),
               TextField(
                 controller: _linkController,
-                decoration: _inputDecoration(hint: 'URL'),
+                decoration: _inputDecoration(hint: localizations.translate('url')),
               ),
             ],
           ],
@@ -584,7 +593,9 @@ class _SessionDialogState extends State<_SessionDialog> {
                   ),
                 ),
                 child: Text(
-                  widget.isReschedule ? 'Save' : 'Create',
+                  widget.isReschedule
+                      ? localizations.translate('save')
+                      : localizations.translate('create'),
                   style: const TextStyle(
                     fontFamily: 'Inter',
                     fontSize: 12,
@@ -626,7 +637,7 @@ class _SessionDialogState extends State<_SessionDialog> {
     final startTime = _startTime;
     if (date == null || startTime == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please choose date and start time.')),
+        SnackBar(content: Text(AppLocalizations.of(context)!.translate('choose_date_start_time'))),
       );
       return;
     }

@@ -7,6 +7,7 @@ import '../Services/chat_service.dart';
 import '../repositories/firestore_chat_repository.dart';
 import '../Teacher_Service_Details/service_details_service.dart';
 import '../messaging/conversation_page.dart';
+import '../l10n/app_localizations.dart';
 
 class _ChatRecipient {
   final String userId;
@@ -115,12 +116,13 @@ class _MembersTabState extends State<MemberTab> {
 
   @override
   Widget build(BuildContext context) {
+    final AppLocalizations localizations = AppLocalizations.of(context)!;
     if (_loading) return const Center(child: CircularProgressIndicator());
 
     if (_members.isEmpty) {
-      return const Center(
-        child: Text('No members yet',
-            style: TextStyle(fontFamily: 'Nunito', color: Color(0xFF94A3B8))),
+      return Center(
+        child: Text(localizations.noMembersYet,
+            style: const TextStyle(fontFamily: 'Nunito', color: Color(0xFF94A3B8))),
       );
     }
 
@@ -139,6 +141,7 @@ class _MemberItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final AppLocalizations localizations = AppLocalizations.of(context)!;
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
@@ -193,7 +196,7 @@ class _MemberItem extends StatelessWidget {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  'Student',
+                  localizations.student,
                   style: TextStyle(
                     fontFamily: 'Nunito',
                     fontSize: 12,
@@ -210,8 +213,8 @@ class _MemberItem extends StatelessWidget {
               final String currentUserId = FirebaseAuth.instance.currentUser?.uid ?? '';
               if (currentUserId.isEmpty) {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Please sign in to chat with members.'),
+                  SnackBar(
+                    content: Text(localizations.pleaseSignInToChatMembers),
                   ),
                 );
                 return;
@@ -221,8 +224,8 @@ class _MemberItem extends StatelessWidget {
                 final recipient = await _resolveChatRecipient(student);
                 if (recipient.userId != student.uid && context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('This child is contacted through their parent.'),
+                    SnackBar(
+                      content: Text(localizations.childContactedParent),
                     ),
                   );
                 }
@@ -248,7 +251,7 @@ class _MemberItem extends StatelessWidget {
               } catch (error) {
                 if (!context.mounted) return;
                 ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('Unable to open chat: $error')),
+                  SnackBar(content: Text('${localizations.translate('unable_to_open_chat')}: $error')),
                 );
               }
             },
@@ -268,20 +271,20 @@ class _MemberItem extends StatelessWidget {
                   context: context,
                   builder: (dialogContext) {
                     return AlertDialog(
-                      title: const Text('Report member'),
+                      title: Text(localizations.reportMember),
                       content: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          const Text('Please describe the issue below.'),
+                          Text(localizations.describeIssueBelow),
                           const SizedBox(height: 12),
                           TextField(
                             controller: reportController,
                             autofocus: true,
                             maxLines: 4,
                             maxLength: 300,
-                            decoration: const InputDecoration(
-                              border: OutlineInputBorder(),
-                              hintText: 'Write your report here...',
+                            decoration: InputDecoration(
+                              border: const OutlineInputBorder(),
+                              hintText: localizations.writeReportHere,
                             ),
                           ),
                         ],
@@ -289,20 +292,20 @@ class _MemberItem extends StatelessWidget {
                       actions: [
                         TextButton(
                           onPressed: () => Navigator.of(dialogContext).pop(false),
-                          child: const Text('Cancel'),
+                          child: Text(localizations.cancel),
                         ),
                         ElevatedButton(
                           onPressed: () {
                             final String text = reportController.text.trim();
                             if (text.isEmpty) {
                               ScaffoldMessenger.of(dialogContext).showSnackBar(
-                                const SnackBar(content: Text('Please write your report before sending.')),
+                                SnackBar(content: Text(localizations.reportRequired)),
                               );
                               return;
                             }
                             Navigator.of(dialogContext).pop(true);
                           },
-                          child: const Text('Send'),
+                          child: Text(localizations.send),
                         ),
                       ],
                     );
@@ -318,7 +321,7 @@ class _MemberItem extends StatelessWidget {
                     );
                     if (!context.mounted) return;
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Report sent to admin successfully.')),
+                      SnackBar(content: Text(localizations.reportSent)),
                     );
                   } catch (error) {
                     if (!context.mounted) return;
@@ -329,10 +332,10 @@ class _MemberItem extends StatelessWidget {
                 }
               }
             },
-            itemBuilder: (_) => const [
+            itemBuilder: (_) => [
               PopupMenuItem<_MemberAction>(
                 value: _MemberAction.report,
-                child: Text('Report member'),
+                child: Text(localizations.reportMember),
               ),
             ],
           ),

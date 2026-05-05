@@ -12,6 +12,7 @@ import 'package:fahamni/models/tutor_review_bundle.dart';
 import 'package:fahamni/messaging/conversation_page.dart';
 import 'package:fahamni/widgets/servicecard.dart';
 import 'package:fahamni/widgets/servicedetails.dart';
+import 'package:fahamni/l10n/app_localizations.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -88,6 +89,7 @@ class _TutorProfilePageState extends State<TutorProfilePage>
   }
 
   Future<void> _submitFeedback() async {
+    final localizations = AppLocalizations.of(context)!;
     FocusScope.of(context).unfocus();
     final String comment = _feedbackController.text.trim();
     if (_selectedRating == 0) {
@@ -178,6 +180,7 @@ class _TutorProfilePageState extends State<TutorProfilePage>
   }
 
   Future<void> _showReportTutorDialog(TutorModel tutor) async {
+    final localizations = AppLocalizations.of(context)!;
     final TextEditingController reportController = TextEditingController();
     bool isSubmitting = false;
 
@@ -203,9 +206,9 @@ class _TutorProfilePageState extends State<TutorProfilePage>
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          const Text(
-                            'Report',
-                            style: TextStyle(
+                          Text(
+                            localizations.report,
+                            style: const TextStyle(
                               fontSize: 24,
                               fontWeight: FontWeight.w800,
                               color: Color(0xFF1F2937),
@@ -220,9 +223,9 @@ class _TutorProfilePageState extends State<TutorProfilePage>
                         ],
                       ),
                       const SizedBox(height: 16),
-                      const Text(
-                        'Your Report',
-                        style: TextStyle(
+                      Text(
+                        localizations.yourReport,
+                        style: const TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
                           color: Color(0xFF1F2937),
@@ -236,7 +239,7 @@ class _TutorProfilePageState extends State<TutorProfilePage>
                           maxLength: 200,
                           maxLines: 8,
                           decoration: InputDecoration(
-                            hintText: 'Write something ...',
+                            hintText: localizations.writeSomething,
                             filled: true,
                             fillColor: const Color(0xFFF8FAFC),
                             border: OutlineInputBorder(
@@ -271,8 +274,8 @@ class _TutorProfilePageState extends State<TutorProfilePage>
                                   final String reportText = reportController.text.trim();
                                   if (reportText.isEmpty) {
                                     ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(
-                                        content: Text('Please write your report before sending.'),
+                                      SnackBar(
+                                        content: Text(localizations.reportRequired),
                                       ),
                                     );
                                     return;
@@ -292,8 +295,8 @@ class _TutorProfilePageState extends State<TutorProfilePage>
                                     if (!mounted) return;
                                     Navigator.of(dialogContext).pop();
                                     ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(
-                                        content: Text('Report submitted successfully.'),
+                                      SnackBar(
+                                        content: Text(localizations.reportSubmittedSuccessfully),
                                       ),
                                     );
                                   } catch (error) {
@@ -314,9 +317,9 @@ class _TutorProfilePageState extends State<TutorProfilePage>
                           ),
                           child: isSubmitting
                               ? const CircularProgressIndicator(color: Colors.white)
-                              : const Text(
-                                  'Send',
-                                  style: TextStyle(
+                              : Text(
+                                  localizations.send,
+                                  style: const TextStyle(
                                     fontWeight: FontWeight.w700,
                                     fontSize: 16,
                                   ),
@@ -429,6 +432,7 @@ class _TutorProfilePageState extends State<TutorProfilePage>
 
   @override
   Widget build(BuildContext context) {
+    final localizations = AppLocalizations.of(context)!;
     final bool keyboardVisible = MediaQuery.of(context).viewInsets.bottom > 0;
     return Scaffold(
       backgroundColor: const Color(0xFFFAFAFA),
@@ -468,7 +472,7 @@ class _TutorProfilePageState extends State<TutorProfilePage>
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   _ProfileTopBar(
-                    tutorName: 'Teacher',
+                    tutorName: localizations.teacher,
                     isFavorite: _isFavorite,
                     isFavoriteLoading: _isFavoriteLoading,
                     onFavoriteTap: _toggleFavorite,
@@ -490,10 +494,10 @@ class _TutorProfilePageState extends State<TutorProfilePage>
                       fontSize: 14,
                       fontWeight: FontWeight.w700,
                     ),
-                    tabs: const [
-                      Tab(text: 'About'),
-                      Tab(text: 'Services'),
-                      Tab(text: 'Reviews'),
+                    tabs: [
+                      Tab(text: localizations.about),
+                      Tab(text: localizations.services),
+                      Tab(text: localizations.feedbacks),
                     ],
                   ),
                   const SizedBox(height: 16),
@@ -573,9 +577,9 @@ class _TutorProfilePageState extends State<TutorProfilePage>
                               ),
                             ),
                             icon: const Icon(Icons.message_outlined),
-                            label: const Text(
-                              'Message',
-                              style: TextStyle(
+                            label: Text(
+                              localizations.message,
+                              style: const TextStyle(
                                 fontWeight: FontWeight.w700,
                                 fontSize: 16,
                               ),
@@ -606,9 +610,9 @@ class _TutorProfilePageState extends State<TutorProfilePage>
                               ),
                             ),
                             icon: const Icon(Icons.calendar_today_outlined),
-                            label: const Text(
-                              'Quote request',
-                              style: TextStyle(
+                            label: Text(
+                              localizations.quoteRequest,
+                              style: const TextStyle(
                                 fontWeight: FontWeight.w700,
                                 fontSize: 16,
                               ),
@@ -648,15 +652,16 @@ class _FeedbacksPageState extends State<FeedbacksPage> {
 
   @override
   Widget build(BuildContext context) {
+    final localizations = AppLocalizations.of(context)!;
     return Scaffold(
       backgroundColor: const Color(0xFFFAFAFA),
       appBar: AppBar(
         backgroundColor: const Color(0xFFFAFAFA),
         scrolledUnderElevation: 0,
         centerTitle: true,
-        title: const Text(
-          'Feedbacks',
-          style: TextStyle(
+        title: Text(
+          localizations.feedbacks,
+          style: const TextStyle(
             fontSize: 24,
             fontWeight: FontWeight.w800,
             color: Color(0xFF1F2937),
@@ -679,10 +684,10 @@ class _FeedbacksPageState extends State<FeedbacksPage> {
                   reviewerSnapshot.data ?? <String, StudentModel>{};
 
               if (reviews.isEmpty) {
-                return const Center(
+                return Center(
                   child: Text(
                     'No feedback yet.',
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
                       color: Color(0xFF64748B),
@@ -797,6 +802,7 @@ class _TutorHero extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final localizations = AppLocalizations.of(context)!;
     return Column(
       children: [
         CircleAvatar(
@@ -825,7 +831,7 @@ class _TutorHero extends StatelessWidget {
         ),
         const SizedBox(height: 8),
         Text(
-          '${tutor.expertiseDomain} Specialist',
+          '${tutor.expertiseDomain} ${localizations.expertiseSpecialist}',
           textAlign: TextAlign.center,
           style: const TextStyle(
             fontSize: 14,
@@ -840,7 +846,7 @@ class _TutorHero extends StatelessWidget {
           runSpacing: 8,
           children: [
             _MetaText(
-              text: '${averageRating.toStringAsFixed(1)} Rating',
+              text: '${averageRating.toStringAsFixed(1)} ${localizations.rating}',
               color: const Color(0xFF64748B),
               leading: const Icon(Icons.star_rounded, size: 16, color: Color(0xFFF4B400)),
             ),
@@ -849,7 +855,7 @@ class _TutorHero extends StatelessWidget {
               color: const Color(0xFF64748B),
             ),
             _MetaText(
-              text: reviewService.availabilityLabel(tutor.isAvailable),
+              text: tutor.isAvailable ? localizations.available : localizations.busy,
               color: tutor.isAvailable ? const Color(0xFF16A34A) : const Color(0xFFDC2626),
             ),
           ],
@@ -868,6 +874,7 @@ class _AboutTutorTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final localizations = AppLocalizations.of(context)!;
     final String levelsTaught = tutor.levelsTaught.isEmpty
         ? 'Not specified'
         : tutor.levelsTaught.join(', ');
@@ -881,9 +888,9 @@ class _AboutTutorTab extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              _buildStatCard('Rating', tutor.averageRating.toStringAsFixed(1)),
-              _buildStatCard('Years', '${tutor.yearsOfExperience}+'),
-              _buildStatCard('Courses', '${tutor.levelsTaught.length}'),
+              _buildStatCard(localizations.rating, tutor.averageRating.toStringAsFixed(1)),
+              _buildStatCard(localizations.experience, '${tutor.yearsOfExperience}+'),
+              _buildStatCard(localizations.courses, '${tutor.levelsTaught.length}'),
             ],
           ),
           const SizedBox(height: 16),
@@ -903,7 +910,7 @@ class _AboutTutorTab extends StatelessWidget {
                     ),
                     const SizedBox(width: 4),
                     Text(
-                      'Details & Expertise',
+                      localizations.detailsExpertise,
                       style: GoogleFonts.inter(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
@@ -913,23 +920,23 @@ class _AboutTutorTab extends StatelessWidget {
                   ],
                 ),
                 const SizedBox(height: 8),
-                _buildInfoCard(Icons.menu_book, 'Expertise Domain', tutor.expertiseDomain),
-                _buildInfoCard(Icons.school_outlined, 'Levels Taught', levelsTaught),
-                _buildInfoCard(Icons.location_on_outlined, 'Location', tutor.location),
-                _buildInfoCard(Icons.devices_rounded, 'Teaching Mode', tutor.teachingMode),
+                _buildInfoCard(Icons.menu_book, localizations.expertiseDomain, tutor.expertiseDomain),
+                _buildInfoCard(Icons.school_outlined, localizations.levelsTaught, levelsTaught),
+                _buildInfoCard(Icons.location_on_outlined, localizations.location, tutor.location),
+                _buildInfoCard(Icons.devices_rounded, localizations.mode, tutor.teachingMode),
               ],
             ),
           ),
           const SizedBox(height: 16),
           _buildTextCard(
-            'Academic Background',
+            localizations.academicBackground,
             tutor.academicDescription.isNotEmpty
                 ? tutor.academicDescription
                 : 'No academic background provided yet.',
           ),
           const SizedBox(height: 16),
           _buildTextCard(
-            'Teaching Approach',
+            localizations.teachingApproach,
             tutor.pedagogicalDescription.isNotEmpty
                 ? tutor.pedagogicalDescription
                 : 'No teaching approach provided yet.',
@@ -955,6 +962,7 @@ class _TutorServicesTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final localizations = AppLocalizations.of(context)!;
     final String? currentUserId = FirebaseAuth.instance.currentUser?.uid;
 
     if (services.isEmpty) {
@@ -985,10 +993,10 @@ class _TutorServicesTab extends StatelessWidget {
           final bool isPending =
               currentUserId != null && service.pendingIds.contains(currentUserId);
           final String actionLabel = isJoined
-              ? 'Joined'
+              ? localizations.joined
               : isPending
-                  ? 'Pending'
-                  : 'Book Now';
+                  ? localizations.pending
+                  : localizations.bookNow;
           final bool isActionDisabled = isJoined || isPending;
 
           return GestureDetector(
@@ -1060,7 +1068,7 @@ class _TutorServicesTab extends StatelessWidget {
                                   const Icon(Icons.access_time_rounded, color: Color(0xFF64748B)),
                                   const SizedBox(width: 5),
                                   Text(
-                                    '${service.duration}min session',
+                                    '${service.duration} ${localizations.minSession}',
                                     style: const TextStyle(
                                       color: Color(0xFF64748B),
                                       fontSize: 14,
@@ -1095,7 +1103,7 @@ class _TutorServicesTab extends StatelessWidget {
                                     const Icon(Icons.error_outline_rounded, color: Color(0xFFDD0D0D)),
                                     const SizedBox(width: 5),
                                     Text(
-                                      '${service.maxnum - service.enrollednum} places left',
+                                      '${service.maxnum - service.enrollednum} ${localizations.placesLeftLower}',
                                       style: const TextStyle(
                                         color: Color(0xFFDD0D0D),
                                         fontSize: 14,
@@ -1389,8 +1397,9 @@ class _RatingsSummaryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final localizations = AppLocalizations.of(context)!;
     return _InfoCard(
-      title: 'Ratings & Reviews',
+      title: localizations.ratingsReviews,
       trailing: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -1490,7 +1499,7 @@ class _RatingsSummaryCard extends StatelessWidget {
           TextButton(
             onPressed: onViewAll,
             child: Text(
-              'View all $totalReviewsCount reviews',
+              '${localizations.viewAllReviews} ($totalReviewsCount)',
               style: const TextStyle(
                 fontSize: 15,
                 fontWeight: FontWeight.w800,
@@ -1521,8 +1530,9 @@ class _FeedbackComposerCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final localizations = AppLocalizations.of(context)!;
     return _InfoCard(
-      title: 'Your Feedback',
+      title: localizations.yourFeedback,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -1545,8 +1555,8 @@ class _FeedbackComposerCard extends StatelessWidget {
               maxLines: 3,
               textInputAction: TextInputAction.done,
               onTapOutside: (_) => FocusManager.instance.primaryFocus?.unfocus(),
-              decoration: const InputDecoration(
-                hintText: 'Write something...',
+              decoration: InputDecoration(
+                hintText: localizations.writeSomething,
                 border: InputBorder.none,
                 counterText: '',
               ),
@@ -1589,9 +1599,9 @@ class _FeedbackComposerCard extends StatelessWidget {
                         color: Colors.white,
                       ),
                     )
-                  : const Text(
-                      'Send',
-                      style: TextStyle(
+                  : Text(
+                      localizations.send,
+                      style: const TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.w700,
                       ),
@@ -1761,6 +1771,7 @@ class _FeedbackErrorState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final localizations = AppLocalizations.of(context)!;
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24),
@@ -1787,7 +1798,7 @@ class _FeedbackErrorState extends StatelessWidget {
                 backgroundColor: const Color(0xFF000080),
                 foregroundColor: Colors.white,
               ),
-              child: const Text('Retry'),
+              child: Text(localizations.retry),
             ),
           ],
         ),
@@ -1929,5 +1940,3 @@ ImageProvider<Object>? _resolveImageProvider(String path) {
   }
   return null;
 }
-
-

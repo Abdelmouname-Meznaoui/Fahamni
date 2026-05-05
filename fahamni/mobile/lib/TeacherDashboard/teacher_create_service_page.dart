@@ -2,6 +2,7 @@ import 'package:fahamni/TeacherDashboard/models/teacher_portal_models.dart';
 import 'package:fahamni/TeacherDashboard/teacher_portal_service.dart';
 import 'package:fahamni/TeacherDashboard/widgets/teacher_navbar.dart';
 import 'package:fahamni/messaging/chat_page.dart';
+import 'package:fahamni/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 
 import 'teacher_dashboard.dart';
@@ -91,7 +92,7 @@ class _TeacherCreateServicePageState extends State<TeacherCreateServicePage> {
       return;
     }
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Teacher profile is coming soon.')),
+      SnackBar(content: Text(AppLocalizations.of(context)!.translate('teacher_profile_coming_soon'))),
     );
   }
 
@@ -124,7 +125,7 @@ class _TeacherCreateServicePageState extends State<TeacherCreateServicePage> {
         return;
       }
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Service created successfully.')),
+        SnackBar(content: Text(AppLocalizations.of(context)!.translate('service_created_successfully'))),
       );
       Navigator.of(context).pop();
     } catch (error) {
@@ -145,6 +146,7 @@ class _TeacherCreateServicePageState extends State<TeacherCreateServicePage> {
 
   @override
   Widget build(BuildContext context) {
+    final localizations = AppLocalizations.of(context)!;
     return Scaffold(
       backgroundColor: const Color(0xFFF7F8FC),
       bottomNavigationBar: TeacherNavbar(
@@ -165,11 +167,11 @@ class _TeacherCreateServicePageState extends State<TeacherCreateServicePage> {
                       onPressed: () => Navigator.of(context).pop(),
                       icon: const Icon(Icons.arrow_back_ios_new_rounded),
                     ),
-                    const Expanded(
+                    Expanded(
                       child: Text(
-                        'Create Service',
+                        localizations.translate('create_service'),
                         textAlign: TextAlign.center,
-                        style: TextStyle(
+                        style: const TextStyle(
                           fontSize: 32,
                           fontWeight: FontWeight.w800,
                           color: Color(0xFF1F2937),
@@ -181,7 +183,7 @@ class _TeacherCreateServicePageState extends State<TeacherCreateServicePage> {
                 ),
                 const SizedBox(height: 18),
                 _FormFieldBlock(
-                  label: 'Service Name',
+                  label: localizations.translate('service_name'),
                   child: TextFormField(
                     controller: _nameController,
                     validator: _requiredValidator,
@@ -190,13 +192,13 @@ class _TeacherCreateServicePageState extends State<TeacherCreateServicePage> {
                 ),
                 const SizedBox(height: 16),
                 _FormFieldBlock(
-                  label: 'Description',
+                  label: localizations.translate('description'),
                   child: TextFormField(
                     controller: _descriptionController,
                     maxLines: 5,
                     maxLength: 200,
                     validator: _requiredValidator,
-                    decoration: _inputDecoration(hintText: 'In This Service ...'),
+                    decoration: _inputDecoration(hintText: localizations.translate('in_this_service')),
                   ),
                 ),
                 const SizedBox(height: 6),
@@ -204,13 +206,13 @@ class _TeacherCreateServicePageState extends State<TeacherCreateServicePage> {
                   children: [
                     Expanded(
                       child: _FormFieldBlock(
-                        label: 'Domain',
+                        label: localizations.domain,
                         child: DropdownButtonFormField<String>(
                           initialValue: _selectedDomain,
                           items: _domains
                               .map((domain) => DropdownMenuItem<String>(
                                     value: domain,
-                                    child: Text(domain),
+                                    child: Text(_localizedOption(context, domain)),
                                   ))
                               .toList(),
                           decoration: _inputDecoration(),
@@ -227,13 +229,13 @@ class _TeacherCreateServicePageState extends State<TeacherCreateServicePage> {
                     const SizedBox(width: 12),
                     Expanded(
                       child: _FormFieldBlock(
-                        label: 'Grade',
+                        label: localizations.grade,
                         child: DropdownButtonFormField<String>(
                           initialValue: _selectedGrade,
                           items: _grades
                               .map((grade) => DropdownMenuItem<String>(
                                     value: grade,
-                                    child: Text(grade),
+                                    child: Text(_localizedOption(context, grade)),
                                   ))
                               .toList(),
                           decoration: _inputDecoration(),
@@ -254,7 +256,7 @@ class _TeacherCreateServicePageState extends State<TeacherCreateServicePage> {
                   children: [
                     Expanded(
                       child: _FormFieldBlock(
-                        label: 'Members Number',
+                        label: localizations.translate('members_number'),
                         child: TextFormField(
                           controller: _membersController,
                           keyboardType: TextInputType.number,
@@ -266,13 +268,13 @@ class _TeacherCreateServicePageState extends State<TeacherCreateServicePage> {
                     const SizedBox(width: 12),
                     Expanded(
                       child: _FormFieldBlock(
-                        label: 'Mode',
+                        label: localizations.mode,
                         child: DropdownButtonFormField<String>(
                           initialValue: _selectedMode,
                           items: _modes
                               .map((mode) => DropdownMenuItem<String>(
                                     value: mode,
-                                    child: Text(mode),
+                                    child: Text(_localizedOption(context, mode)),
                                   ))
                               .toList(),
                           decoration: _inputDecoration(),
@@ -293,7 +295,7 @@ class _TeacherCreateServicePageState extends State<TeacherCreateServicePage> {
                   children: [
                     Expanded(
                       child: _FormFieldBlock(
-                        label: 'Sessions Number',
+                        label: localizations.translate('sessions_number'),
                         child: TextFormField(
                           controller: _sessionsController,
                           keyboardType: TextInputType.number,
@@ -305,13 +307,13 @@ class _TeacherCreateServicePageState extends State<TeacherCreateServicePage> {
                     const SizedBox(width: 12),
                     Expanded(
                       child: _FormFieldBlock(
-                        label: 'Sessions Duration',
+                        label: localizations.translate('sessions_duration'),
                         child: DropdownButtonFormField<int>(
                           initialValue: _selectedDuration,
                           items: _durations
                               .map((duration) => DropdownMenuItem<int>(
                                     value: duration,
-                                    child: Text('$duration min'),
+                                    child: Text('$duration ${localizations.translate('minutes_short')}'),
                                   ))
                               .toList(),
                           decoration: _inputDecoration(),
@@ -329,7 +331,7 @@ class _TeacherCreateServicePageState extends State<TeacherCreateServicePage> {
                 ),
                 const SizedBox(height: 16),
                 _FormFieldBlock(
-                  label: 'Service Price',
+                  label: localizations.translate('service_price'),
                   child: TextFormField(
                     controller: _priceController,
                     keyboardType: const TextInputType.numberWithOptions(decimal: true),
@@ -338,9 +340,9 @@ class _TeacherCreateServicePageState extends State<TeacherCreateServicePage> {
                   ),
                 ),
                 const SizedBox(height: 16),
-                const Text(
-                  'Service Picture',
-                  style: TextStyle(
+                Text(
+                  localizations.translate('service_picture'),
+                  style: const TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
                     color: Color(0xFF334155),
@@ -405,18 +407,18 @@ class _TeacherCreateServicePageState extends State<TeacherCreateServicePage> {
                                       color: Colors.white,
                                       borderRadius: BorderRadius.circular(999),
                                     ),
-                                    child: const Row(
+                                    child: Row(
                                       mainAxisSize: MainAxisSize.min,
                                       children: [
-                                        Icon(
+                                        const Icon(
                                           Icons.check_circle,
                                           color: Color(0xFF0D138B),
                                           size: 14,
                                         ),
-                                        SizedBox(width: 4),
+                                        const SizedBox(width: 4),
                                         Text(
-                                          'Selected',
-                                          style: TextStyle(
+                                          localizations.translate('selected'),
+                                          style: const TextStyle(
                                             fontSize: 11,
                                             fontWeight: FontWeight.w700,
                                             color: Color(0xFF0D138B),
@@ -454,9 +456,9 @@ class _TeacherCreateServicePageState extends State<TeacherCreateServicePage> {
                               color: Colors.white,
                             ),
                           )
-                        : const Text(
-                            'Create',
-                            style: TextStyle(fontWeight: FontWeight.w700),
+                        : Text(
+                            localizations.translate('create'),
+                            style: const TextStyle(fontWeight: FontWeight.w700),
                           ),
                   ),
                 ),
@@ -470,7 +472,7 @@ class _TeacherCreateServicePageState extends State<TeacherCreateServicePage> {
 
   String? _requiredValidator(String? value) {
     if (value == null || value.trim().isEmpty) {
-      return 'This field is required';
+      return AppLocalizations.of(context)!.translate('field_required');
     }
     return null;
   }
@@ -480,7 +482,7 @@ class _TeacherCreateServicePageState extends State<TeacherCreateServicePage> {
       return _requiredValidator(value);
     }
     if (double.tryParse(value!.trim()) == null) {
-      return 'Enter a valid number';
+      return AppLocalizations.of(context)!.translate('enter_valid_number');
     }
     return null;
   }
@@ -513,6 +515,35 @@ class _TeacherCreateServicePageState extends State<TeacherCreateServicePage> {
       ),
     );
   }
+}
+
+String _localizedOption(BuildContext context, String value) {
+  final localizations = AppLocalizations.of(context)!;
+  switch (value) {
+    case 'Online':
+      return localizations.online;
+    case 'Onsite':
+      return localizations.onsite;
+    case 'Hybrid':
+      return localizations.translate('hybrid');
+    case 'Mathematics':
+      return localizations.translate('mathematics');
+    case 'Physics':
+      return localizations.translate('physics');
+    case 'Languages':
+      return localizations.translate('languages');
+    case 'Programming':
+      return localizations.translate('programming');
+    case 'Middle School':
+      return localizations.translate('middle_school');
+    case '1st High School':
+      return localizations.translate('first_high_school');
+    case '2nd High School':
+      return localizations.translate('second_high_school');
+    case '3rd High School':
+      return localizations.translate('third_high_school');
+  }
+  return value;
 }
 
 class _FormFieldBlock extends StatelessWidget {

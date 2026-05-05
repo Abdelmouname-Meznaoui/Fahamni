@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../models/resource_model.dart';
 import '../Teacher_Service_Details/service_details_service.dart';
+import '../l10n/app_localizations.dart';
 
 class ResourceTab extends StatefulWidget {
   final String serviceId;
@@ -33,12 +34,13 @@ class _ResourcesTabState extends State<ResourceTab> {
 
   @override
   Widget build(BuildContext context) {
+    final AppLocalizations localizations = AppLocalizations.of(context)!;
     if (_loading) return const Center(child: CircularProgressIndicator());
 
     if (_resources.isEmpty) {
-      return const Center(
-        child: Text('No resources yet',
-            style: TextStyle(fontFamily: 'Nunito', color: Color(0xFF94A3B8))),
+      return Center(
+        child: Text(localizations.noResourcesYet,
+            style: const TextStyle(fontFamily: 'Nunito', color: Color(0xFF94A3B8))),
       );
     }
 

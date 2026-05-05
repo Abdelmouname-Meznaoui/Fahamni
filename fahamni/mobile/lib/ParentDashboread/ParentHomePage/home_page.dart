@@ -13,6 +13,7 @@ import 'package:fahamni/models/parent_model.dart';
 import 'package:fahamni/models/tutor_model.dart';
 import 'package:fahamni/models/user_model.dart';
 import 'package:fahamni/widgets/customnavbar.dart';
+import 'package:fahamni/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
@@ -41,8 +42,6 @@ class _ParenthomepageState extends State<Parenthomepage> {
   ];
 
   ParentModel? parent;
-  // FIXED: children now come from the `children` collection as ChildModel,
-  // not from `students` as StudentModel.
   List<ChildModel> linkedChildren = <ChildModel>[];
   List<TutorModel> favoriteTutors = <TutorModel>[];
   int currentIndex = 0;
@@ -54,10 +53,6 @@ class _ParenthomepageState extends State<Parenthomepage> {
     loadParent();
   }
 
-  // ---------------------------------------------------------------------------
-  // FIXED: fetch children from the `children` Firestore collection using
-  // parentUid, instead of looking them up in `students` by childrenUids.
-  // ---------------------------------------------------------------------------
   Future<List<ChildModel>> _fetchChildren(String parentUid) async {
     final query = await _db
         .collection('children')
@@ -69,13 +64,7 @@ class _ParenthomepageState extends State<Parenthomepage> {
   Future<void> loadParent() async {
     try {
       final ParentModel parentData = await _service.getParentData();
-
-      // Fetch children directly from `children` collection by parentUid.
       final List<ChildModel> children = await _fetchChildren(parentData.uid);
-
-      // Favorite tutors are not linked to ChildModel children, so we skip
-      // that join here. Wire this up once children have a Courses field.
-      // For now we load an empty list to avoid crashes.
       final List<TutorModel> tutors = <TutorModel>[];
 
       if (!mounted) return;
@@ -177,6 +166,7 @@ class _ParenthomepageState extends State<Parenthomepage> {
 
   @override
   Widget build(BuildContext context) {
+    final localizations = AppLocalizations.of(context)!;
     if (parent == null) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
@@ -220,9 +210,9 @@ class _ParenthomepageState extends State<Parenthomepage> {
                               ),
                             ),
                           ),
-                          const Text(
-                            'Parent',
-                            style: TextStyle(
+                          Text(
+                            localizations.parent,
+                            style: const TextStyle(
                               color: Color(0xFF000080),
                               fontFamily: 'Inter',
                               fontWeight: FontWeight.w500,
@@ -274,7 +264,7 @@ class _ParenthomepageState extends State<Parenthomepage> {
                         child: TextField(
                           textAlignVertical: TextAlignVertical.center,
                           decoration: InputDecoration(
-                            hintText: 'Search for Teacher/Module...',
+                            hintText: localizations.searchTeachersModules,
                             hintStyle: const TextStyle(
                               fontFamily: 'Nunito',
                               fontWeight: FontWeight.w600,
@@ -361,10 +351,10 @@ class _ParenthomepageState extends State<Parenthomepage> {
                                         color: Colors.white,
                                         borderRadius: BorderRadius.circular(8),
                                       ),
-                                      child: const Center(
+                                      child: Center(
                                         child: Text(
-                                          'En Profiter',
-                                          style: TextStyle(
+                                          localizations.takeOffer,
+                                          style: const TextStyle(
                                             color: Color(0xFF000080),
                                             fontFamily: 'Nunito',
                                             fontWeight: FontWeight.w700,
@@ -424,11 +414,11 @@ class _ParenthomepageState extends State<Parenthomepage> {
 
                 // ── Linked Children ──────────────────────────────────────────
                 Row(
-                  children: const <Widget>[
+                  children: <Widget>[
                     Expanded(
                       child: Text(
-                        'Linked Children',
-                        style: TextStyle(
+                        localizations.linkedChildren,
+                        style: const TextStyle(
                           color: Color(0xFF1F2937),
                           fontFamily: 'Inter',
                           fontSize: 20,
@@ -437,8 +427,8 @@ class _ParenthomepageState extends State<Parenthomepage> {
                       ),
                     ),
                     Text(
-                      'See All',
-                      style: TextStyle(
+                      localizations.seeAll,
+                      style: const TextStyle(
                         fontFamily: 'Nunito',
                         fontSize: 17,
                         fontWeight: FontWeight.w600,
@@ -449,14 +439,12 @@ class _ParenthomepageState extends State<Parenthomepage> {
                 ),
                 const SizedBox(height: 8),
 
-                // FIXED: render ChildModel cards using child.displayName and
-                // child.subtitle — no more StudentModel field reads.
                 if (linkedChildren.isEmpty)
-                  const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 10),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 10),
                     child: Text(
-                      'No linked children yet.',
-                      style: TextStyle(
+                      localizations.noLinkedChildren,
+                      style: const TextStyle(
                         fontFamily: 'Nunito',
                         fontWeight: FontWeight.w600,
                         color: Color(0xFF6B7280),
@@ -551,10 +539,10 @@ class _ParenthomepageState extends State<Parenthomepage> {
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: <Widget>[
-                    const Expanded(
+                    Expanded(
                       child: Text(
-                        'Favorite Teachers',
-                        style: TextStyle(
+                        localizations.favoriteTeachers,
+                        style: const TextStyle(
                           color: Color(0xFF1F2937),
                           fontFamily: 'Inter',
                           fontSize: 20,
@@ -564,9 +552,9 @@ class _ParenthomepageState extends State<Parenthomepage> {
                     ),
                     GestureDetector(
                       onTap: () {},
-                      child: const Text(
-                        'See All',
-                        style: TextStyle(
+                      child: Text(
+                        localizations.seeAll,
+                        style: const TextStyle(
                           fontFamily: 'Nunito',
                           fontSize: 17,
                           fontWeight: FontWeight.w600,
@@ -579,11 +567,11 @@ class _ParenthomepageState extends State<Parenthomepage> {
                 SizedBox(
                   height: 100,
                   child: favoriteTutors.isEmpty
-                      ? const Center(
+                      ? Center(
                           child: Text(
-                            'NO Favorite Teachers :(',
+                            localizations.noFavoriteTeachers,
                             textAlign: TextAlign.center,
-                            style: TextStyle(
+                            style: const TextStyle(
                               fontFamily: 'Nunito',
                               fontWeight: FontWeight.w700,
                               fontSize: 20,
@@ -666,9 +654,9 @@ class _ParenthomepageState extends State<Parenthomepage> {
                 const SizedBox(height: 10),
 
                 // ── Schedule CTA ─────────────────────────────────────────────
-                const Text(
-                  'Courses Schedule',
-                  style: TextStyle(
+                Text(
+                  localizations.courseSchedule,
+                  style: const TextStyle(
                     color: Color(0xFF1F2937),
                     fontFamily: 'Inter',
                     fontSize: 20,
@@ -689,9 +677,9 @@ class _ParenthomepageState extends State<Parenthomepage> {
                       ),
                       elevation: 0,
                     ),
-                    child: const Text(
-                      'Check Full Schedule',
-                      style: TextStyle(
+                    child: Text(
+                      localizations.checkFullSchedule,
+                      style: const TextStyle(
                         fontFamily: 'Lexend',
                         fontSize: 18,
                         fontWeight: FontWeight.w700,

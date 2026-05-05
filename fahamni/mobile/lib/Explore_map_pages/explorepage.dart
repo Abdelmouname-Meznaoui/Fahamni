@@ -5,6 +5,7 @@ import 'package:fahamni/feedback/feedback_pages.dart';
 import 'package:fahamni/Courses/courses_page.dart';
 import 'package:fahamni/StudentHomePage/studenthome_service.dart';
 import 'package:flutter/material.dart';
+import 'package:fahamni/l10n/app_localizations.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
@@ -259,20 +260,35 @@ class _ExplorepageState extends State<Explorepage> {
 
   @override
   Widget build(BuildContext context) {
+    final AppLocalizations localizations = AppLocalizations.of(context)!;
     if (services == null || tutors == null) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
+
+    op = [
+      localizations.subject,
+      localizations.price,
+      localizations.rating,
+      localizations.mode
+    ];
+    options = [
+      [localizations.mathematics, localizations.physics, localizations.languages],
+      ['<1000', '<2000', '<2500'],
+      ['3.5', '4', '4.5'],
+      [localizations.online, localizations.onsite],
+    ];
+
     return Scaffold(
       appBar: AppBar(
         backgroundColor: const Color(0xfff9f9f9),
         leading: IconButton(
-          onPressed: () => Navigator.pop(context),
+          onPressed: () =>  Navigator.of(context).pop(),
           iconSize: 24,
           icon: const Icon(Icons.arrow_back_ios_new_outlined),
         ),
-        title: const Text(
-          "Explore",
-          style: TextStyle(
+        title: Text(
+          localizations.explore,
+          style: const TextStyle(
             fontFamily: "Inter",
             fontSize: 20,
             fontWeight: FontWeight.w700,
@@ -308,7 +324,7 @@ class _ExplorepageState extends State<Explorepage> {
                     applyFilters();
                   },
                   decoration: InputDecoration(
-                    hintText: 'Search subjects or teachers',
+                    hintText: localizations.searchSubjectsTeachers,
                     hintStyle: const TextStyle(
                       fontSize: 18,
                       fontFamily: "Lexend",
@@ -347,7 +363,7 @@ class _ExplorepageState extends State<Explorepage> {
                       child: SizedBox(
                         width: 115,
                         child: DropdownButtonFormField<String>(
-                          initialValue: [
+                          value: [
                             selectedSubject,
                             selectedPrice,
                             selectedRating,
@@ -497,8 +513,8 @@ class _ExplorepageState extends State<Explorepage> {
                             Expanded(
                               child: Text(
                                 nearbyTutorsCount != 0
-                                    ? '$nearbyTutorsCount Tutors found near you'
-                                    : 'Discover Tutors found near you',
+                                    ? '$nearbyTutorsCount ${localizations.tutorsFoundNearYou}'
+                                    : localizations.discoverTutorsNearYou,
                                 overflow: TextOverflow.ellipsis,
                                 style: const TextStyle(
                                   fontFamily: "Lexend",
@@ -512,9 +528,9 @@ class _ExplorepageState extends State<Explorepage> {
                               onTap: () {
                                 _openFullMap();
                               },
-                              child: const Text(
-                                'VIEW FULL MAP',
-                                style: TextStyle(
+                              child: Text(
+                                localizations.viewFullMap,
+                                style: const TextStyle(
                                   fontFamily: "Lexend",
                                   fontWeight: FontWeight.w700,
                                   fontSize: 12,
@@ -535,10 +551,10 @@ class _ExplorepageState extends State<Explorepage> {
               Row(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  const Expanded(
+                  Expanded(
                     child: Text(
-                      'Recommended Teachers',
-                      style: TextStyle(
+                      localizations.recommendedTeachers,
+                      style: const TextStyle(
                         color: Colors.black,
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
@@ -547,9 +563,9 @@ class _ExplorepageState extends State<Explorepage> {
                   ),
                   GestureDetector(
                     onTap: () {},
-                    child: const Text(
-                      'See All',
-                      style: TextStyle(
+                    child: Text(
+                      localizations.seeAll,
+                      style: const TextStyle(
                         fontFamily: "Nunito",
                         fontSize: 17,
                         fontWeight: FontWeight.w600,
@@ -560,12 +576,12 @@ class _ExplorepageState extends State<Explorepage> {
                 ],
               ),
               if (tutors!.isEmpty)
-                const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 20),
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 20),
                   child: Center(
                     child: Text(
-                      'No results found :(',
-                      style: TextStyle(
+                      localizations.noResultsFound,
+                      style: const TextStyle(
                         fontFamily: 'Nunito',
                         fontWeight: FontWeight.w700,
                         fontSize: 20,
@@ -612,10 +628,10 @@ class _ExplorepageState extends State<Explorepage> {
               Row(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  const Expanded(
+                  Expanded(
                     child: Text(
-                      'Recommended Services',
-                      style: TextStyle(
+                      localizations.recommendedServices,
+                      style: const TextStyle(
                         color: Colors.black,
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
@@ -624,9 +640,9 @@ class _ExplorepageState extends State<Explorepage> {
                   ),
                   GestureDetector(
                     onTap: () {},
-                    child: const Text(
-                      'See All',
-                      style: TextStyle(
+                    child: Text(
+                      localizations.seeAll,
+                      style: const TextStyle(
                         fontFamily: "Nunito",
                         fontSize: 17,
                         fontWeight: FontWeight.w600,
@@ -640,10 +656,10 @@ class _ExplorepageState extends State<Explorepage> {
                 height: 410,
                 width: double.infinity,
                 child: services!.isEmpty
-                    ? const Center(
+                    ? Center(
                         child: Text(
-                          'No results found :(',
-                          style: TextStyle(
+                          localizations.noResultsFound,
+                          style: const TextStyle(
                             fontFamily: 'Nunito',
                             fontWeight: FontWeight.w700,
                             fontSize: 20,
@@ -1075,7 +1091,7 @@ class _RecommendedTeacherTile extends StatelessWidget {
                         ],
                       ),
                       Text(
-                        tutor.isAvailable ? 'Available' : 'Busy',
+                        tutor.isAvailable ? AppLocalizations.of(context)!.available : AppLocalizations.of(context)!.busy,
                         style: TextStyle(
                           fontFamily: "Lexend",
                           fontWeight: FontWeight.w600,
@@ -1128,5 +1144,3 @@ class _RecommendedTeacherTile extends StatelessWidget {
     );
   }
 }
-
-

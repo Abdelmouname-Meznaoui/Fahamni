@@ -62,6 +62,8 @@ dependencies:
   firebase_core: ^3.6.0
   cloud_firestore: ^5.4.4
   firebase_auth: ^5.3.1
+  flutter_localizations:
+    sdk: flutter
   intl: ^0.20.2
   google_fonts: ^8.0.2
   shared_preferences: ^2.3.3
@@ -97,8 +99,7 @@ flutter:
     - assets/images/
     - assets/images/map.png
     - assets/map_style.json
-
-    - assets/ 
+    - assets/lang/
   fonts:
     - family: Nunito
       fonts:
