@@ -40,6 +40,39 @@ function ConvAvatar({ src, name, size = 42, dark = false }) {
   );
 }
 
+function MessageAttachments({ attachments = [], isAdmin }) {
+  if (!attachments.length) return null;
+  return (
+    <div style={s.attachments}>
+      {attachments.map((att, index) => {
+        const isImage = (att.mimeType ?? "").startsWith("image/");
+        if (isImage) {
+          return (
+            <a key={index} href={att.url} target="_blank" rel="noreferrer">
+              <img src={att.url} alt={att.name ?? "attachment"} style={s.attachmentImage} />
+            </a>
+          );
+        }
+        return (
+          <a
+            key={index}
+            href={att.url}
+            target="_blank"
+            rel="noreferrer"
+            style={{ ...s.attachmentFile, color: isAdmin ? "#fff" : "#1F2937", borderColor: isAdmin ? "rgba(255,255,255,0.35)" : "#e2e8f0" }}
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+              <polyline points="14 2 14 8 20 8"/>
+            </svg>
+            <span>{att.name ?? "Attachment"}</span>
+          </a>
+        );
+      })}
+    </div>
+  );
+}
+
 export default function MessagesPage({ adminUser, onViewUser, pendingContact, onContactHandled }) {
   const { t } = useTranslation();
   const [conversations, setConversations] = useState([]);
@@ -315,11 +348,15 @@ export default function MessagesPage({ adminUser, onViewUser, pendingContact, on
                 <div style={s.emptyState}>{t("messages.noMessages")}</div>
               ) : messages.map(msg => {
                 const isAdmin = msg.sender_id === "admin";
+                const text = msg.text ?? msg.content ?? "";
                 return (
                   <div key={msg.id} style={{ ...s.msgRow, justifyContent: isAdmin ? "flex-end" : "flex-start" }}>
                     {!isAdmin && <ConvAvatar src={selected.user_picture} name={selected.user_name} size={36} />}
                     <div style={{ maxWidth: "62%", display: "flex", flexDirection: "column", alignItems: isAdmin ? "flex-end" : "flex-start", gap: 4 }}>
-                      <div style={{ ...s.bubble, ...(isAdmin ? s.bubbleAdmin : s.bubbleUser) }}>{msg.text}</div>
+                      <div style={{ ...s.bubble, ...(isAdmin ? s.bubbleAdmin : s.bubbleUser) }}>
+                        {text && <div>{text}</div>}
+                        <MessageAttachments attachments={msg.attachments} isAdmin={isAdmin} />
+                      </div>
                       <span style={s.msgMeta}>{isAdmin ? t("messages.admin") : selected.user_name} • {fmtTime(msg.created_at)}</span>
                     </div>
                     {isAdmin && <ConvAvatar src={null} name="Admin" size={36} dark />}
@@ -429,6 +466,12 @@ const s = {
   bubbleUser:  { background: "#fff", border: "1px solid #e2e8f0", color: "#1F2937", borderBottomLeftRadius: 4, boxShadow: "0 1px 4px rgba(0,0,0,0.05)" },
   bubbleAdmin: { background: "#000080", color: "#fff", borderBottomRightRadius: 4 },
   msgMeta: { fontSize: 11, color: "#94a3b8" },
+  attachments: { display: "flex", flexDirection: "column", gap: 8, marginTop: 8 },
+  attachmentImage: { width: 180, maxWidth: "100%", borderRadius: 10, display: "block" },
+  attachmentFile: {
+    display: "flex", alignItems: "center", gap: 8, padding: "8px 10px",
+    border: "1px solid", borderRadius: 10, textDecoration: "none", fontSize: 12, fontWeight: 600,
+  },
 
   inputRow: {
     display: "flex", alignItems: "center", gap: 10,
