@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../utils/image_utils.dart';
 
 class ConversationMembers extends StatelessWidget {
   final List<String> participants;
@@ -90,9 +91,10 @@ class ConversationMembers extends StatelessWidget {
                   CircleAvatar(
                     radius: 22.0,
                     backgroundColor: const Color(0xFFE5E7EB),
-                    backgroundImage: member.photoUrl.isNotEmpty
-                        ? NetworkImage(member.photoUrl)
-                        : null,
+                    backgroundImage: safeImage(
+                      member.photoUrl,
+                      defaultAsset: 'assets/images/studentmale.png',
+                    ),
                     child: member.photoUrl.isEmpty
                         ? const Icon(
                             Icons.person_outline_rounded,
@@ -191,5 +193,3 @@ String _toRoleLabel(String role) {
       return '${normalized[0].toUpperCase()}${normalized.substring(1)}';
   }
 }
-
-

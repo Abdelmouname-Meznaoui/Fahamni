@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../utils/image_utils.dart';
 
 import '../models/chat_model.dart';
 import 'conversation_page.dart';
@@ -8,7 +9,7 @@ class Conversationbox extends StatelessWidget {
     super.key,
     required this.conversation,
     required this.imageUrl,
-    required this.currentUserId, 
+    required this.currentUserId,
   });
 
   final ConversationModel conversation;
@@ -29,16 +30,16 @@ class Conversationbox extends StatelessWidget {
     return InkWell(
       onTap: () {
         Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => ConversationPage(
-            conversation: conversation,
-            imageUrl: imageUrl,
-            currentUserId: currentUserId,
+          context,
+          MaterialPageRoute(
+            builder: (context) => ConversationPage(
+              conversation: conversation,
+              imageUrl: imageUrl,
+              currentUserId: currentUserId,
+            ),
           ),
-        ),
-    );
-},
+        );
+      },
       child: Padding(
         padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
         child: Row(
@@ -47,7 +48,10 @@ class Conversationbox extends StatelessWidget {
             Stack(
               children: [
                 CircleAvatar(
-                  backgroundImage: NetworkImage(imageUrl),
+                  backgroundImage: safeImage(
+                    imageUrl,
+                    defaultAsset: 'assets/images/studentmale.png',
+                  ),
                   radius: 28,
                 ),
                 if (conversation.isOnline)
@@ -136,7 +140,7 @@ class Conversationbox extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 8),
-                
+
                 if (conversation.unreadCount > 0)
                   Container(
                     width: 12,
@@ -147,7 +151,7 @@ class Conversationbox extends StatelessWidget {
                     ),
                   )
                 else
-                  const SizedBox(height: 12), 
+                  const SizedBox(height: 12),
               ],
             ),
           ],
@@ -168,5 +172,3 @@ class Conversationbox extends StatelessWidget {
     return conversation.lastMessageTime;
   }
 }
-
-

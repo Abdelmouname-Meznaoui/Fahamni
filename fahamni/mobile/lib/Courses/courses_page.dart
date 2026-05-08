@@ -6,8 +6,10 @@ import 'package:fahamni/models/service_model.dart';
 import 'package:fahamni/models/session_model.dart';
 import 'package:fahamni/models/student_model.dart';
 import 'package:fahamni/models/tutor_model.dart';
+import 'package:fahamni/models/user_model.dart';
 import 'package:fahamni/Account_Settings_Student/account_screen.dart';
 import 'package:fahamni/widgets/customnavbar.dart';
+import 'package:fahamni/feedback/feedback_pages.dart';
 import 'package:flutter/material.dart';
 
 import 'student_course_details_page.dart';
@@ -35,19 +37,19 @@ class _CoursesPageState extends State<CoursesPage> {
 
   Future<_CoursesViewData> _loadCourses() async {
     final StudentModel student = await _service.getStudentData();
-    final List<SessionModel> sessions = await _service.getCourses(student.Courses);
+    final List<SessionModel> sessions = await _service.getCourses(
+      student.Courses,
+    );
     sessions.sort((a, b) => _sessionDateTime(a).compareTo(_sessionDateTime(b)));
 
     final List<_CourseCardData> cards = <_CourseCardData>[];
     for (final SessionModel session in sessions) {
       final TutorModel tutor = await _service.getTutorData(session.tutorId);
-      final ServiceModel? service = await _service.getServiceData(session.serviceId);
+      final ServiceModel? service = await _service.getServiceData(
+        session.serviceId,
+      );
       cards.add(
-        _CourseCardData(
-          session: session,
-          tutor: tutor,
-          service: service,
-        ),
+        _CourseCardData(session: session, tutor: tutor, service: service),
       );
     }
 
@@ -67,19 +69,20 @@ class _CoursesPageState extends State<CoursesPage> {
         final DateTime candidate = _sessionDateTime(card.session);
         final bool candidateUpcoming = candidate.isAfter(now);
         final bool existingUpcoming = existing.isAfter(now);
-        if (candidateUpcoming && (!existingUpcoming || candidate.isBefore(existing))) {
+        if (candidateUpcoming &&
+            (!existingUpcoming || candidate.isBefore(existing))) {
           byService[key] = card;
         }
       }
     }
 
     final List<_CourseCardData> deduped = byService.values.toList()
-      ..sort((a, b) => _sessionDateTime(a.session).compareTo(_sessionDateTime(b.session)));
+      ..sort(
+        (a, b) =>
+            _sessionDateTime(a.session).compareTo(_sessionDateTime(b.session)),
+      );
 
-    return _CoursesViewData(
-      student: student,
-      courses: deduped,
-    );
+    return _CoursesViewData(student: student, courses: deduped);
   }
 
   void _handleNavigation(int index, StudentModel student) {
@@ -185,7 +188,9 @@ class _CoursesPageState extends State<CoursesPage> {
           }
 
           final _CoursesViewData data = snapshot.data!;
-          final List<_CourseCardData> visibleCourses = data.courses.where((course) {
+          final List<_CourseCardData> visibleCourses = data.courses.where((
+            course,
+          ) {
             switch (_filter) {
               case _CourseFilter.all:
                 return true;
@@ -222,10 +227,7 @@ class _CoursesPageState extends State<CoursesPage> {
                   Text(
                     'Your enrolled sessions will appear here.',
                     textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 15,
-                      color: Color(0xFF64748B),
-                    ),
+                    style: TextStyle(fontSize: 15, color: Color(0xFF64748B)),
                   ),
                 ],
               ),
@@ -254,7 +256,8 @@ class _CoursesPageState extends State<CoursesPage> {
                       child: _FilterPill(
                         label: 'All',
                         selected: _filter == _CourseFilter.all,
-                        onTap: () => setState(() => _filter = _CourseFilter.all),
+                        onTap: () =>
+                            setState(() => _filter = _CourseFilter.all),
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -262,7 +265,8 @@ class _CoursesPageState extends State<CoursesPage> {
                       child: _FilterPill(
                         label: 'In Progress',
                         selected: _filter == _CourseFilter.inProgress,
-                        onTap: () => setState(() => _filter = _CourseFilter.inProgress),
+                        onTap: () =>
+                            setState(() => _filter = _CourseFilter.inProgress),
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -270,7 +274,8 @@ class _CoursesPageState extends State<CoursesPage> {
                       child: _FilterPill(
                         label: 'Done',
                         selected: _filter == _CourseFilter.done,
-                        onTap: () => setState(() => _filter = _CourseFilter.done),
+                        onTap: () =>
+                            setState(() => _filter = _CourseFilter.done),
                       ),
                     ),
                   ],
@@ -336,10 +341,7 @@ class _CoursesPageState extends State<CoursesPage> {
 }
 
 class _CourseCard extends StatelessWidget {
-  const _CourseCard({
-    required this.course,
-    required this.onOpenService,
-  });
+  const _CourseCard({required this.course, required this.onOpenService});
 
   final _CourseCardData course;
   final VoidCallback? onOpenService;
@@ -352,16 +354,17 @@ class _CourseCard extends StatelessWidget {
     final String title = service?.name.isNotEmpty == true
         ? service!.name
         : service?.subject.isNotEmpty == true
-            ? service!.subject
-            : 'Session';
+        ? service!.subject
+        : 'Session';
     final String subtitle = [
       if (service?.subject.isNotEmpty == true) service!.subject,
       if (service?.level.isNotEmpty == true) service!.level,
     ].join(' • ');
-    final String subjectLabel =
-        service?.subject.isNotEmpty == true ? service!.subject.toUpperCase() : 'COURSE';
-    final String tutorLabel =
-        'Prof. ${tutor.firstName} ${tutor.lastName}'.trim();
+    final String subjectLabel = service?.subject.isNotEmpty == true
+        ? service!.subject.toUpperCase()
+        : 'COURSE';
+    final String tutorLabel = 'Prof. ${tutor.firstName} ${tutor.lastName}'
+        .trim();
     final String sessionsLabel =
         '${service?.sessionsnum ?? 1} ${service?.sessionsnum == 1 ? 'Session' : 'Sessions'}';
     final String durationLabel =
@@ -386,7 +389,9 @@ class _CourseCard extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             ClipRRect(
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(18)),
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(18),
+              ),
               child: SizedBox(
                 height: 135,
                 width: double.infinity,
@@ -411,7 +416,10 @@ class _CourseCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 4,
+                    ),
                     decoration: BoxDecoration(
                       color: const Color(0xFFEDEBFF),
                       borderRadius: BorderRadius.circular(999),
@@ -449,35 +457,50 @@ class _CourseCard extends StatelessWidget {
                     ),
                   ],
                   const SizedBox(height: 14),
-                  Row(
-                    children: [
-                      CircleAvatar(
-                        radius: 12,
-                        backgroundImage:
-                            tutor.picture.isNotEmpty ? _imageProvider(tutor.picture) : null,
-                        child: tutor.picture.isEmpty
-                            ? Text(
-                                tutor.firstName.isNotEmpty
-                                    ? tutor.firstName[0].toUpperCase()
-                                    : 'T',
-                                style: const TextStyle(fontSize: 10),
-                              )
-                            : null,
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          tutorLabel,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            color: Color(0xFF7B8BA7),
-                            fontSize: 15,
-                            fontWeight: FontWeight.w500,
+                  GestureDetector(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => TutorProfilePage(tutorId: tutor.uid),
+                        ),
+                      );
+                    },
+                    child: Row(
+                      children: [
+                        CircleAvatar(
+                          radius: 12,
+                          backgroundImage: tutor.picture.isNotEmpty
+                              ? _imageProvider(tutor.picture)
+                              : AssetImage(
+                                  tutor.gender == Gender.female
+                                      ? 'assets/images/tutorfemale.png'
+                                      : 'assets/images/tutormale.png',
+                                ),
+                          child: tutor.picture.isEmpty
+                              ? Text(
+                                  tutor.firstName.isNotEmpty
+                                      ? tutor.firstName[0].toUpperCase()
+                                      : 'T',
+                                  style: const TextStyle(fontSize: 10),
+                                )
+                              : null,
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            tutorLabel,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: Color(0xFF7B8BA7),
+                              fontSize: 15,
+                              fontWeight: FontWeight.w500,
+                            ),
                           ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                   const SizedBox(height: 10),
                   _CourseStatRow(
@@ -499,10 +522,18 @@ class _CourseCard extends StatelessWidget {
   }
 
   ImageProvider _imageProvider(String path) {
-    if (path.startsWith('http')) {
-      return NetworkImage(path);
+    final String trimmed = path.trim();
+    if (trimmed.isEmpty || trimmed.toLowerCase() == 'null') {
+      return const AssetImage('assets/images/tutormale.png');
     }
-    return AssetImage(path);
+    if (trimmed.startsWith('http')) {
+      return NetworkImage(trimmed);
+    }
+    if (trimmed.startsWith('assets/')) {
+      return AssetImage(trimmed);
+    }
+    // Fallback to default tutor image when the path is unexpected.
+    return const AssetImage('assets/images/tutormale.png');
   }
 
   ImageProvider _courseCoverImage(ServiceModel? service) {
@@ -514,10 +545,7 @@ class _CourseCard extends StatelessWidget {
 }
 
 class _CourseStatRow extends StatelessWidget {
-  const _CourseStatRow({
-    required this.icon,
-    required this.label,
-  });
+  const _CourseStatRow({required this.icon, required this.label});
 
   final IconData icon;
   final String label;
@@ -581,10 +609,7 @@ class _FilterPill extends StatelessWidget {
 }
 
 class _CoursesViewData {
-  const _CoursesViewData({
-    required this.student,
-    required this.courses,
-  });
+  const _CoursesViewData({required this.student, required this.courses});
 
   final StudentModel student;
   final List<_CourseCardData> courses;
@@ -601,5 +626,3 @@ class _CourseCardData {
   final TutorModel tutor;
   final ServiceModel? service;
 }
-
-

@@ -12,6 +12,7 @@ import 'package:fahamni/ParentDashboread/ParentCoursePage/parent_courses_page.da
 import 'package:fahamni/ParentDashboread/ParentExplorePage/parent_explore_page.dart';
 import 'package:fahamni/ParentDashboread/ParentHomePage/home_page.dart';
 import 'package:fahamni/StudentHomePage/studenthome_service.dart';
+import '../utils/image_utils.dart';
 import 'package:fahamni/messaging/chat_page.dart';
 import 'package:fahamni/models/parent_model.dart';
 import 'package:fahamni/models/user_model.dart';
@@ -117,16 +118,10 @@ class _ParentAccountScreenState extends State<ParentAccountScreen> {
     }
 
     final String pic = _parent!.picture;
-    if (pic.startsWith('http')) {
-      return NetworkImage(pic);
-    }
-    if (pic.startsWith('assets/')) {
-      return AssetImage(pic);
-    }
-
-    return _parent!.gender == Gender.female
-        ? const AssetImage('assets/images/parentfemale.png')
-        : const AssetImage('assets/images/parentmale.png');
+    final String defaultAsset = _parent!.gender == Gender.female
+        ? 'assets/images/parentfemale.png'
+        : 'assets/images/parentmale.png';
+    return safeImage(pic, defaultAsset: defaultAsset);
   }
 
   void _showSuspendedDialog() {
