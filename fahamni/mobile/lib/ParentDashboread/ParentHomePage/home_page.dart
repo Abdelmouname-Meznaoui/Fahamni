@@ -72,10 +72,10 @@ class _ParenthomepageState extends State<Parenthomepage> {
       // Fetch children directly from `children` collection by parentUid.
       final List<ChildModel> children = await _fetchChildren(parentData.uid);
 
-      // Favorite tutors are not linked to ChildModel children, so we skip
-      // that join here. Wire this up once children have a Courses field.
-      // For now we load an empty list to avoid crashes.
-      final List<TutorModel> tutors = <TutorModel>[];
+      // Load favorite tutors for this parent (treat parent like student).
+      final List<TutorModel> tutors = await _service.getFavoriteTeachers(
+        parentData.favoriteTeachers,
+      );
 
       if (!mounted) return;
 
