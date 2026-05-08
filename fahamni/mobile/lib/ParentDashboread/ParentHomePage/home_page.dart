@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:fahamni/Account_Settings_Parent/account_screen.dart';
 import 'package:fahamni/Notification_page/notification_page.dart';
 import 'package:fahamni/ParentDashboread/ParentCoursePage/parent_courses_page.dart';
+import 'package:fahamni/ParentDashboread/ParentExplorePage/parent_explore_page.dart';
 import 'package:fahamni/Services/suspended_account_gate.dart';
 import 'package:fahamni/StudentHomePage/studenthome_service.dart';
 import 'package:fahamni/feedback/feedback_pages.dart';
@@ -14,6 +15,7 @@ import 'package:fahamni/models/user_model.dart';
 import 'package:fahamni/widgets/customnavbar.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:fahamni/ParentDashboread/ParentSchedulePage/parent_schedule_page.dart';
 
 class Parentpage extends StatelessWidget {
   const Parentpage({super.key});
@@ -134,7 +136,7 @@ class _ParenthomepageState extends State<Parenthomepage> {
   void _openSchedulePage() {
     Navigator.pushReplacement(
       context,
-      MaterialPageRoute(builder: (_) => const ParentCoursesPage()),
+      MaterialPageRoute(builder: (_) => const ParentSchedulePage()),
     );
   }
 
@@ -149,13 +151,16 @@ class _ParenthomepageState extends State<Parenthomepage> {
     if (index == 1) {
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (_) => const ParentCoursesPage()),
+        MaterialPageRoute(builder: (_) => const ParentExplorePage()),
       );
       return;
     }
 
     if (index == 2) {
-      _openSchedulePage();
+     Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const ParentCoursesPage()),
+    );
       return;
     }
 
