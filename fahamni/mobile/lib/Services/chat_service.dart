@@ -104,8 +104,10 @@ class ChatService {
         await _notifAllowed(receiverId, 'new_messages')) {
       await _notificationService.sendNotification(
         NotificationModel(
-          title: 'New message',
-          content: trimmedContent,
+          title: 'New Message',
+          content: trimmedContent.isEmpty
+              ? 'You received a new message.'
+              : trimmedContent,
           dateTime: timestamp,
           isRead: false,
           notificationId: '',

@@ -156,10 +156,27 @@ _NotificationIconConfig _notificationIconForType(String type) {
         backgroundColor: Color(0xFFDBEAFE),
       );
     case 'quote_request':
+    case 'quote_response':
+    case 'join_request_response':
       return const _NotificationIconConfig(
         icon: Icons.request_quote_outlined,
         iconColor: Color(0xFF0F766E),
         backgroundColor: Color(0xFFCCFBF1),
+      );
+    case 'session_scheduled':
+    case 'session_rescheduled':
+    case 'session_cancelled':
+    case 'session_reminder':
+      return const _NotificationIconConfig(
+        icon: Icons.event_available_outlined,
+        iconColor: Color(0xFF7C3AED),
+        backgroundColor: Color(0xFFEDE9FE),
+      );
+    case 'new_resource':
+      return const _NotificationIconConfig(
+        icon: Icons.menu_book_outlined,
+        iconColor: Color(0xFFEA580C),
+        backgroundColor: Color(0xFFFFEDD5),
       );
     case 'password_reset':
       return const _NotificationIconConfig(

@@ -20,6 +20,7 @@ class TeacherPortalService {
 
   final FirebaseFirestore _firestore;
   final FirebaseAuth _auth;
+  final NotificationService _notificationService = NotificationService();
 
   Future<TeacherServicesDashboardData> loadDashboard() async {
     final TutorModel tutor = await _loadCurrentTutor();
@@ -281,15 +282,14 @@ class TeacherPortalService {
       }
 
       try {
-        final NotificationService ns = NotificationService();
-        await ns.sendNotification(
+        await _notificationService.sendNotification(
           NotificationModel(
             title: status == QuoteStatus.accepted
-                ? 'Join request accepted'
-                : 'Join request rejected',
+                ? 'Request Accepted'
+                : 'Request Declined',
             content: status == QuoteStatus.accepted
-                ? 'Your join request for ${request.serviceTitle} has been accepted!'
-                : 'Your join request for ${request.serviceTitle} has been rejected.',
+                ? 'Your service request for ${request.serviceTitle} has been accepted by the teacher. Check the teacher response in the DM.'
+                : 'Your service request for ${request.serviceTitle} was declined by the teacher.',
             dateTime: DateTime.now(),
             isRead: false,
             notificationId: '',
@@ -383,15 +383,14 @@ class TeacherPortalService {
 
     // Send notification and chat message for all traditional quotes.
     try {
-      final NotificationService ns = NotificationService();
-      await ns.sendNotification(
+      await _notificationService.sendNotification(
         NotificationModel(
           title: status == QuoteStatus.accepted
-              ? 'Quote request accepted'
-              : 'Quote request declined',
+              ? 'Request Accepted'
+              : 'Request Declined',
           content: status == QuoteStatus.accepted
-              ? 'Your quote request for ${request.subject} has been accepted!'
-              : 'Your quote request for ${request.subject} has been declined.',
+              ? 'Your service request for ${request.subject} has been accepted by the teacher. Check the teacher response in the DM.'
+              : 'Your service request for ${request.subject} was declined by the teacher.',
           dateTime: DateTime.now(),
           isRead: false,
           notificationId: '',
@@ -451,12 +450,20 @@ class TeacherPortalService {
     );
 
     await doc.set(session.toMap());
+    await _notificationService.sendSessionScheduledNotifications(
+      sessionId: doc.id,
+      tutorId: tutor.uid,
+      serviceId: session.serviceId,
+      studentIds: session.studentIds,
+      startTime: session.startTime,
+    );
   }
 
   Future<void> rescheduleSession({
     required String sessionId,
     required TeacherSessionDraft draft,
   }) async {
+    final sessionDoc = await _firestore.collection('sessions').doc(sessionId).get();
     final DateTime startTime = DateTime(
       draft.date.year,
       draft.date.month,
@@ -478,6 +485,25 @@ class TeacherPortalService {
       'meeting_link': draft.meetingLink,
       'updated_at': Timestamp.now(),
     });
+
+    if (sessionDoc.exists && sessionDoc.data() != null) {
+      final session = SessionModel.fromMap({
+        ...sessionDoc.data()!,
+        'session_id': sessionDoc.id,
+        'start_time': Timestamp.fromDate(startTime),
+        'end_time': Timestamp.fromDate(endTime),
+        'date': Timestamp.fromDate(
+          DateTime(draft.date.year, draft.date.month, draft.date.day),
+        ),
+      });
+      await _notificationService.sendSessionRescheduledNotifications(
+        sessionId: session.sessionId,
+        tutorId: session.tutorId,
+        serviceId: session.serviceId,
+        studentIds: session.studentIds,
+        startTime: session.startTime,
+      );
+    }
   }
 
   Future<String?> findLatestSessionId(TeacherJoinRequestDetail request) async {
@@ -537,6 +563,14 @@ class TeacherPortalService {
       'file_name': draft.filePath.split('/').last,
       'link_url': draft.link,
     });
+    await _notificationService.sendStudyResourceNotifications(
+      resourceId: doc.id,
+      tutorId: tutor.uid,
+      title: draft.name,
+      serviceId: request.quote.serviceId,
+      sessionId: request.quote.quoteId,
+      studentIds: [request.quote.studentId],
+    );
   }
 
   Future<TutorModel> _loadCurrentTutor() async {

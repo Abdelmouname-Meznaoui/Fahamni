@@ -12,6 +12,7 @@ import '../models/teacher_dashboard_model.dart';
 import '../models/teacher_schedule_model.dart';
 import '../models/tutor_model.dart';
 import '../models/user_model.dart';
+import '../Services/notification_service.dart';
 
 class CreateServicePayload {
   const CreateServicePayload({
@@ -48,6 +49,7 @@ class TeacherDashboardService {
 
   final FirebaseFirestore _firestore;
   final FirebaseAuth _auth;
+  final NotificationService _notificationService = NotificationService();
 
   Future<TeacherDashboardModel> loadDashboard() async {
     final TutorModel tutor = await _loadCurrentTutor();
@@ -192,6 +194,7 @@ class TeacherDashboardService {
     if (sessionDurationMinutes != null) payload['teacher_session_duration'] = sessionDurationMinutes;
 
     bool updated = false;
+    Map<String, dynamic>? quoteData;
     for (final String collectionName in <String>['quote_requests', 'quotes']) {
       final DocumentReference<Map<String, dynamic>> quoteRef = _firestore
           .collection(collectionName)
@@ -199,6 +202,7 @@ class TeacherDashboardService {
       final DocumentSnapshot<Map<String, dynamic>> quoteSnapshot =
           await quoteRef.get();
       if (quoteSnapshot.exists) {
+        quoteData = quoteSnapshot.data();
         await quoteRef.set(payload, SetOptions(merge: true));
         updated = true;
       }
@@ -206,6 +210,16 @@ class TeacherDashboardService {
 
     if (!updated) {
       throw Exception('Quote request not found.');
+    }
+
+    if (quoteData != null) {
+      await _notificationService.sendStudentRequestResponseNotification(
+        studentId: (quoteData!['student_id'] ?? '').toString(),
+        tutorId: (quoteData!['tutor_id'] ?? '').toString(),
+        accepted: accepted,
+        serviceId: (quoteData!['service_id'] ?? '').toString(),
+        subject: (quoteData!['subject'] ?? '').toString(),
+      );
     }
   }
 
@@ -246,6 +260,14 @@ class TeacherDashboardService {
       if (onlineLink.isNotEmpty) 'online_link': onlineLink,
     });
 
+    await _notificationService.sendSessionScheduledNotifications(
+      sessionId: ref.id,
+      tutorId: tutor.uid,
+      serviceId: serviceId,
+      studentIds: studentIds,
+      startTime: start,
+    );
+
     return ref.id;
   }
 
@@ -257,6 +279,7 @@ class TeacherDashboardService {
     required String modality,
     String onlineLink = '',
   }) async {
+    final sessionDoc = await _firestore.collection('sessions').doc(sessionId).get();
     final DateTime start = DateTime(
       date.year,
       date.month,
@@ -273,6 +296,23 @@ class TeacherDashboardService {
       'modality': modality.toLowerCase(),
       if (onlineLink.isNotEmpty) 'online_link': onlineLink,
     }, SetOptions(merge: true));
+
+    if (sessionDoc.exists && sessionDoc.data() != null) {
+      final session = SessionModel.fromMap({
+        ...sessionDoc.data()!,
+        'session_id': sessionDoc.id,
+        'date': Timestamp.fromDate(DateTime(date.year, date.month, date.day)),
+        'start_time': Timestamp.fromDate(start),
+        'end_time': Timestamp.fromDate(end),
+      });
+      await _notificationService.sendSessionRescheduledNotifications(
+        sessionId: session.sessionId,
+        tutorId: session.tutorId,
+        serviceId: session.serviceId,
+        studentIds: session.studentIds,
+        startTime: session.startTime,
+      );
+    }
   }
 
   Future<String> addResource({
@@ -328,6 +368,13 @@ class TeacherDashboardService {
     };
 
     await ref.set(data);
+    await _notificationService.sendStudyResourceNotifications(
+      resourceId: ref.id,
+      tutorId: tutor.uid,
+      title: name,
+      serviceId: serviceId,
+      sessionId: sessionId,
+    );
     return ref.id;
   }
 

@@ -5,10 +5,12 @@ import '../models/resource_model.dart';
 import '../models/session_model.dart';
 import '../models/student_model.dart';
 import '../models/user_model.dart';
+import '../Services/notification_service.dart';
 
 class CourseDetailsService {
   final _db = FirebaseFirestore.instance;
   final _auth = FirebaseAuth.instance;
+  final _notificationService = NotificationService();
 
   // ── Sessions ──────────────────────────────────────────────
   Future<List<SessionModel>> getSessions(String serviceId) async {
@@ -26,10 +28,30 @@ class CourseDetailsService {
   Future<void> addSession(SessionModel session) async {
     final ref = _db.collection('sessions').doc();
     await ref.set({...session.toMap(), 'session_id': ref.id});
+    await _notificationService.sendSessionScheduledNotifications(
+      sessionId: ref.id,
+      tutorId: session.tutorId,
+      serviceId: session.serviceId,
+      studentIds: session.studentIds,
+      startTime: session.startTime,
+    );
   }
 
   Future<void> deleteSession(String sessionId) async {
+    final sessionDoc = await _db.collection('sessions').doc(sessionId).get();
     await _db.collection('sessions').doc(sessionId).delete();
+    if (sessionDoc.exists && sessionDoc.data() != null) {
+      final session = SessionModel.fromMap({
+        ...sessionDoc.data()!,
+        'session_id': sessionDoc.id,
+      });
+      await _notificationService.sendSessionCancelledNotifications(
+        sessionId: session.sessionId,
+        tutorId: session.tutorId,
+        serviceId: session.serviceId,
+        studentIds: session.studentIds,
+      );
+    }
   }
 
   Future<void> updateSession(SessionModel session) async {
@@ -37,12 +59,32 @@ class CourseDetailsService {
         .collection('sessions')
         .doc(session.sessionId)
         .set(session.toMap(), SetOptions(merge: true));
+    await _notificationService.sendSessionRescheduledNotifications(
+      sessionId: session.sessionId,
+      tutorId: session.tutorId,
+      serviceId: session.serviceId,
+      studentIds: session.studentIds,
+      startTime: session.startTime,
+    );
   }
 
   Future<void> cancelSession(String sessionId) async {
+    final sessionDoc = await _db.collection('sessions').doc(sessionId).get();
     await _db.collection('sessions').doc(sessionId).set({
       'status': SessionStatus.Canceled.name,
     }, SetOptions(merge: true));
+    if (sessionDoc.exists && sessionDoc.data() != null) {
+      final session = SessionModel.fromMap({
+        ...sessionDoc.data()!,
+        'session_id': sessionDoc.id,
+      });
+      await _notificationService.sendSessionCancelledNotifications(
+        sessionId: session.sessionId,
+        tutorId: session.tutorId,
+        serviceId: session.serviceId,
+        studentIds: session.studentIds,
+      );
+    }
   }
 
   // ── Resources ─────────────────────────────────────────────
@@ -101,6 +143,14 @@ class CourseDetailsService {
       data['service_id'] = serviceId;
     }
     await ref.set(data);
+    await _notificationService.sendStudyResourceNotifications(
+      resourceId: ref.id,
+      tutorId: resource.tutorId,
+      title: resource.title,
+      serviceId: serviceId ?? '',
+      sessionId: resource.sessionId,
+      studentIds: resource.allowedUsers,
+    );
   }
 
   Future<void> deleteResource(String resourceId) async {
@@ -183,6 +233,10 @@ class CourseDetailsService {
     bool accept,
   ) async {
     final serviceRef = _db.collection('services').doc(serviceId);
+    final serviceDoc = await serviceRef.get();
+    final serviceData = serviceDoc.data();
+    final tutorId = (serviceData?['tutor_id'] ?? '').toString();
+    final subject = (serviceData?['subject'] ?? '').toString();
 
     if (accept) {
       await _db.runTransaction((transaction) async {
@@ -214,6 +268,14 @@ class CourseDetailsService {
         'pending_ids': FieldValue.arrayRemove([studentId]),
       });
     }
+
+    await _notificationService.sendStudentRequestResponseNotification(
+      studentId: studentId,
+      tutorId: tutorId,
+      accepted: accept,
+      serviceId: serviceId,
+      subject: subject,
+    );
   }
 
   Future<void> submitStudentReport({

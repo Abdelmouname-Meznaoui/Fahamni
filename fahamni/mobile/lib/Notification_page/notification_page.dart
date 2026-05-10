@@ -200,6 +200,18 @@ class _NotificationPageState extends State<NotificationPage> {
       return;
     }
 
+    if (notification.type == 'session_scheduled' ||
+        notification.type == 'session_rescheduled' ||
+        notification.type == 'session_cancelled' ||
+        notification.type == 'session_reminder' ||
+        notification.type == 'new_resource') {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const CoursesPage()),
+      );
+      return;
+    }
+
     if (notification.tutorId.isNotEmpty) {
       Navigator.push(
         context,

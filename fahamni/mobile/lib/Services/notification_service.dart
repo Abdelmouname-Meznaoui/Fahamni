@@ -24,6 +24,257 @@ class NotificationService {
     }
   }
 
+  Future<void> sendNotificationOnce(NotificationModel notification) async {
+    final String notificationId = notification.notificationId.isNotEmpty
+        ? notification.notificationId
+        : firestore.collection('notifications').doc().id;
+    final doc = await firestore.collection('notifications').doc(notificationId).get();
+    if (doc.exists) {
+      return;
+    }
+    await sendNotification(
+      NotificationModel(
+        title: notification.title,
+        content: notification.content,
+        dateTime: notification.dateTime,
+        isRead: notification.isRead,
+        notificationId: notificationId,
+        receiverId: notification.receiverId,
+        type: notification.type,
+        senderId: notification.senderId,
+        conversationId: notification.conversationId,
+        tutorId: notification.tutorId,
+        serviceId: notification.serviceId,
+      ),
+    );
+  }
+
+  Future<String> resolveStudentNotificationReceiver(String studentId) async {
+    try {
+      final childDoc = await firestore.collection('children').doc(studentId).get();
+      final data = childDoc.data();
+      if (childDoc.exists && data != null) {
+        final parentUid = (data['parentUid'] ?? data['parent_uid'] ?? '')
+            .toString()
+            .trim();
+        if (parentUid.isNotEmpty) {
+          return parentUid;
+        }
+      }
+    } catch (_) {}
+    return studentId;
+  }
+
+  Future<void> sendStudentRequestResponseNotification({
+    required String studentId,
+    required String tutorId,
+    required bool accepted,
+    String serviceId = '',
+    String subject = '',
+  }) async {
+    try {
+      final receiverId = await resolveStudentNotificationReceiver(studentId);
+      final serviceName = await _serviceName(serviceId);
+      final context = serviceName.isNotEmpty
+          ? ' for $serviceName'
+          : subject.isNotEmpty
+              ? ' for $subject'
+              : '';
+
+      await sendNotification(
+        NotificationModel(
+          title: accepted ? 'Request Accepted' : 'Request Declined',
+          content: accepted
+              ? 'Your service request$context has been accepted by the teacher. Check the teacher response in the DM.'
+              : 'Your service request$context was declined by the teacher.',
+          dateTime: DateTime.now(),
+          isRead: false,
+          notificationId: '',
+          receiverId: receiverId,
+          type: 'quote_response',
+          senderId: tutorId,
+          tutorId: tutorId,
+          serviceId: serviceId,
+        ),
+      );
+    } catch (_) {}
+  }
+
+  Future<void> sendSessionScheduledNotifications({
+    required String sessionId,
+    required String tutorId,
+    required String serviceId,
+    required List<String> studentIds,
+    required DateTime startTime,
+  }) {
+    return _sendSessionNotifications(
+      sessionId: sessionId,
+      tutorId: tutorId,
+      serviceId: serviceId,
+      studentIds: studentIds,
+      title: 'Session Scheduled',
+      type: 'session_scheduled',
+      content: 'A new session has been scheduled${_whenText(startTime)}.',
+    );
+  }
+
+  Future<void> sendSessionRescheduledNotifications({
+    required String sessionId,
+    required String tutorId,
+    required String serviceId,
+    required List<String> studentIds,
+    required DateTime startTime,
+  }) {
+    return _sendSessionNotifications(
+      sessionId: sessionId,
+      tutorId: tutorId,
+      serviceId: serviceId,
+      studentIds: studentIds,
+      title: 'Session Re-Scheduled',
+      type: 'session_rescheduled',
+      content: 'A session has been re-scheduled${_whenText(startTime)}.',
+    );
+  }
+
+  Future<void> sendSessionCancelledNotifications({
+    required String sessionId,
+    required String tutorId,
+    required String serviceId,
+    required List<String> studentIds,
+  }) {
+    return _sendSessionNotifications(
+      sessionId: sessionId,
+      tutorId: tutorId,
+      serviceId: serviceId,
+      studentIds: studentIds,
+      title: 'Session Cancelled',
+      type: 'session_cancelled',
+      content: 'A session has been cancelled.',
+    );
+  }
+
+  Future<void> sendSessionReminderNotifications({
+    required String sessionId,
+    required String tutorId,
+    required String serviceId,
+    required List<String> studentIds,
+    required DateTime startTime,
+  }) {
+    return _sendSessionNotifications(
+      sessionId: sessionId,
+      tutorId: tutorId,
+      serviceId: serviceId,
+      studentIds: studentIds,
+      title: 'Upcoming Session',
+      type: 'session_reminder',
+      content: 'Your session is starting soon${_whenText(startTime)}.',
+      onceKeyPrefix: 'session_reminder',
+    );
+  }
+
+  Future<void> sendStudyResourceNotifications({
+    required String resourceId,
+    required String tutorId,
+    required String title,
+    String serviceId = '',
+    String sessionId = '',
+    List<String> studentIds = const <String>[],
+  }) async {
+    try {
+      final Set<String> recipients = {...studentIds.where((id) => id.isNotEmpty)};
+
+      if (recipients.isEmpty && serviceId.isNotEmpty) {
+        final serviceDoc = await firestore.collection('services').doc(serviceId).get();
+        recipients.addAll(List<String>.from(serviceDoc.data()?['student_ids'] ?? []));
+      }
+
+      if (recipients.isEmpty && sessionId.isNotEmpty) {
+        final sessionDoc = await firestore.collection('sessions').doc(sessionId).get();
+        recipients.addAll(List<String>.from(sessionDoc.data()?['student_ids'] ?? []));
+        serviceId = serviceId.isNotEmpty
+            ? serviceId
+            : (sessionDoc.data()?['service_id'] ?? '').toString();
+      }
+
+      final resourceTitle = title.trim().isEmpty ? 'learning material' : title.trim();
+      await Future.wait(recipients.map((studentId) async {
+        final receiverId = await resolveStudentNotificationReceiver(studentId);
+        await sendNotification(
+          NotificationModel(
+            title: 'New Resource',
+            content: 'Your teacher shared new learning material: $resourceTitle.',
+            dateTime: DateTime.now(),
+            isRead: false,
+            notificationId: '',
+            receiverId: receiverId,
+            type: 'new_resource',
+            senderId: tutorId,
+            tutorId: tutorId,
+            serviceId: serviceId,
+          ),
+        );
+      }));
+    } catch (_) {}
+  }
+
+  Future<void> _sendSessionNotifications({
+    required String sessionId,
+    required String tutorId,
+    required String serviceId,
+    required List<String> studentIds,
+    required String title,
+    required String content,
+    required String type,
+    String onceKeyPrefix = '',
+  }) async {
+    try {
+      final Set<String> uniqueStudentIds = {
+        ...studentIds.where((id) => id.trim().isNotEmpty),
+      };
+
+      await Future.wait(uniqueStudentIds.map((studentId) async {
+        final receiverId = await resolveStudentNotificationReceiver(studentId);
+        final notification = NotificationModel(
+          title: title,
+          content: content,
+          dateTime: DateTime.now(),
+          isRead: false,
+          notificationId: onceKeyPrefix.isEmpty
+              ? ''
+              : '${onceKeyPrefix}_${sessionId}_$receiverId',
+          receiverId: receiverId,
+          type: type,
+          senderId: tutorId,
+          tutorId: tutorId,
+          serviceId: serviceId,
+        );
+        if (onceKeyPrefix.isEmpty) {
+          await sendNotification(notification);
+        } else {
+          await sendNotificationOnce(notification);
+        }
+      }));
+    } catch (_) {}
+  }
+
+  Future<String> _serviceName(String serviceId) async {
+    if (serviceId.trim().isEmpty) {
+      return '';
+    }
+    try {
+      final doc = await firestore.collection('services').doc(serviceId).get();
+      return (doc.data()?['name'] ?? '').toString().trim();
+    } catch (_) {
+      return '';
+    }
+  }
+
+  String _whenText(DateTime dateTime) {
+    final hour = dateTime.hour.toString().padLeft(2, '0');
+    final minute = dateTime.minute.toString().padLeft(2, '0');
+    return ' on ${dateTime.day}/${dateTime.month}/${dateTime.year} at $hour:$minute';
+  }
+
   //READ
   Stream<List<NotificationModel>> streamNotifications(String userId) {
     return firestore

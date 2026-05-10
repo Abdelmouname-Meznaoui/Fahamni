@@ -3,10 +3,12 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import '../models/resource_model.dart';
 import '../models/chat_model.dart';
+import 'notification_service.dart';
 
 class ResourceService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
   final FirebaseStorage _storage = FirebaseStorage.instance;
+  final NotificationService _notificationService = NotificationService();
 
   // --- CREATE ---
   /// Uploads a file to Storage and saves the metadata to Firestore
@@ -51,6 +53,14 @@ class ResourceService {
         data['service_id'] = serviceId;
       }
       await _db.collection('resources').doc(updatedResource.resourceId).set(data);
+      await _notificationService.sendStudyResourceNotifications(
+        resourceId: updatedResource.resourceId,
+        tutorId: updatedResource.tutorId,
+        title: updatedResource.title,
+        serviceId: serviceId ?? '',
+        sessionId: updatedResource.sessionId,
+        studentIds: updatedResource.allowedUsers,
+      );
     } catch (e) {
       throw Exception("Upload failed: $e");
     }
