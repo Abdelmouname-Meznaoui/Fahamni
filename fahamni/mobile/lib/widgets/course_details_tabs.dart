@@ -6,9 +6,9 @@ import 'package:fahamni/models/service_model.dart';
 import 'package:fahamni/models/session_model.dart';
 import 'package:fahamni/models/student_model.dart';
 import 'package:fahamni/models/user_model.dart';
+import 'package:fahamni/utils/resource_link_launcher.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 class DocumentsTab extends StatefulWidget {
   const DocumentsTab({
@@ -41,9 +41,16 @@ class _DocumentsTabState extends State<DocumentsTab> {
     return _resourceService.getResources(widget.service.serviceId);
   }
 
+  bool _isUrlResource(ResourceModel resource) {
+    return resource is LinkResource ||
+        (resource is MediaResource && resource.platform.toLowerCase() == 'url');
+  }
+
   IconData _resourceIcon(ResourceModel resource) {
     if (resource is LinkResource) return Icons.link_rounded;
-    if (resource is MediaResource) return Icons.image_rounded;
+    if (resource is MediaResource) {
+      return _isUrlResource(resource) ? Icons.link_rounded : Icons.image_rounded;
+    }
     if (resource is DocumentResource) {
       final docType = resource.docType.toLowerCase();
       if (docType == 'pdf') return Icons.picture_as_pdf_outlined;
@@ -55,7 +62,10 @@ class _DocumentsTabState extends State<DocumentsTab> {
   String _resourceSubtitle(ResourceModel resource) {
     if (resource is LinkResource) return resource.linkUrl;
     if (resource is DocumentResource) return resource.docType.toUpperCase();
-    if (resource is MediaResource) return resource.platform.isNotEmpty ? resource.platform : 'Media file';
+    if (resource is MediaResource) {
+      if (_isUrlResource(resource)) return resource.mediaUrl;
+      return resource.platform.isNotEmpty ? resource.platform : 'Media file';
+    }
     return resource.contentType;
   }
 
@@ -72,8 +82,7 @@ class _DocumentsTabState extends State<DocumentsTab> {
       return;
     }
 
-    final uri = Uri.parse(url);
-    if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
+    if (!await launchResourceLink(url)) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Unable to open resource.')),
@@ -123,63 +132,74 @@ class _DocumentsTabState extends State<DocumentsTab> {
             separatorBuilder: (context, index) => const SizedBox(height: 12),
             itemBuilder: (context, index) {
               final ResourceModel resource = resources[index];
-              return Container(
-                padding: const EdgeInsets.all(14),
-                decoration: _cardDecoration(),
-                child: Row(
-                  children: [
-                    Container(
-                      height: 48,
-                      width: 48,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFE8EEFF),
-                        borderRadius: BorderRadius.circular(12),
+              return GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: _isUrlResource(resource) ? () => _openResource(resource) : null,
+                child: Container(
+                  padding: const EdgeInsets.all(14),
+                  decoration: _cardDecoration(),
+                  child: Row(
+                    children: [
+                      Container(
+                        height: 48,
+                        width: 48,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFE8EEFF),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Icon(
+                          _resourceIcon(resource),
+                          color: const Color(0xFF000080),
+                          size: 24,
+                        ),
                       ),
-                      child: Icon(
-                        _resourceIcon(resource),
-                        color: const Color(0xFF000080),
-                        size: 24,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            resource.title,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              fontFamily: 'Inter',
-                              fontSize: 15,
-                              fontWeight: FontWeight.w700,
-                              color: Color(0xFF0F172A),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              resource.title,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                fontFamily: 'Inter',
+                                fontSize: 15,
+                                fontWeight: FontWeight.w700,
+                                color: Color(0xFF0F172A),
+                              ),
                             ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            _resourceSubtitle(resource),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              fontFamily: 'Lexend',
-                              fontSize: 12,
-                              fontWeight: FontWeight.w400,
-                              color: Color(0xFF64748B),
+                            const SizedBox(height: 4),
+                            Text(
+                              _resourceSubtitle(resource),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontFamily: 'Lexend',
+                                fontSize: 12,
+                                fontWeight: FontWeight.w400,
+                                color: _isUrlResource(resource)
+                                    ? const Color(0xFF000080)
+                                    : const Color(0xFF64748B),
+                                decoration: _isUrlResource(resource)
+                                    ? TextDecoration.underline
+                                    : TextDecoration.none,
+                              ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
-                    ),
-                    IconButton(
-                      onPressed: () => _openResource(resource),
-                      icon: Icon(
-                        resource is LinkResource ? Icons.open_in_new_rounded : Icons.download_rounded,
-                        color: const Color(0xFF000080),
+                      IconButton(
+                        onPressed: () => _openResource(resource),
+                        icon: Icon(
+                          _isUrlResource(resource)
+                              ? Icons.open_in_new_rounded
+                              : Icons.download_rounded,
+                          color: const Color(0xFF000080),
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               );
             },

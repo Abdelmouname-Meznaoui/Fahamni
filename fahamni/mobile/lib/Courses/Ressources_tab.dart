@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:url_launcher/url_launcher.dart';
 import '../models/resource_model.dart';
 import '../Teacher_Service_Details/service_details_service.dart';
+import '../utils/resource_link_launcher.dart';
 
 class ResourceTab extends StatefulWidget {
   final String serviceId;
@@ -58,11 +58,14 @@ class _ResourceItem extends StatelessWidget {
     if (resource is DocumentResource) {
       final doc = resource as DocumentResource;
       switch (doc.docType) {
-        case 'pdf': return Icons.insert_drive_file_outlined;
-        case 'image': return Icons.image_outlined;
-        default: return Icons.description_outlined;
+        case 'pdf':
+          return Icons.insert_drive_file_outlined;
+        case 'image':
+          return Icons.image_outlined;
+        default:
+          return Icons.description_outlined;
       }
-    } else if (resource is MediaResource) {
+    } else if (resource is MediaResource && !_isUrlResource) {
       return Icons.play_circle_outline_rounded;
     } else {
       return Icons.link_rounded;
@@ -70,7 +73,7 @@ class _ResourceItem extends StatelessWidget {
   }
 
   Color get _iconColor {
-    if (resource is LinkResource) return const Color(0xFF6366F1);
+    if (_isUrlResource) return const Color(0xFF6366F1);
     if (resource is MediaResource) return const Color(0xFFEF4444);
     return const Color(0xFF3B82F6);
   }
@@ -79,7 +82,8 @@ class _ResourceItem extends StatelessWidget {
     if (resource is DocumentResource) {
       return (resource as DocumentResource).docType.toUpperCase();
     } else if (resource is MediaResource) {
-      return (resource as MediaResource).platform;
+      final MediaResource media = resource as MediaResource;
+      return _isUrlResource ? media.mediaUrl : media.platform;
     } else if (resource is LinkResource) {
       return (resource as LinkResource).linkUrl;
     }
@@ -93,78 +97,100 @@ class _ResourceItem extends StatelessWidget {
     return '';
   }
 
-  bool get _isLink => resource is LinkResource || resource is MediaResource;
+  bool get _isUrlResource {
+    return resource is LinkResource ||
+        (resource is MediaResource &&
+            (resource as MediaResource).platform.toLowerCase() == 'url');
+  }
+
+  bool get _isLink => _isUrlResource || resource is MediaResource;
+
+  Future<void> _openResource(BuildContext context) async {
+    if (_url.trim().isEmpty) {
+      return;
+    }
+
+    final bool opened = await launchResourceLink(_url);
+    if (!opened && context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Unable to open resource.')),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          )
-        ],
-      ),
-      child: Row(
-        children: [
-          Container(
-            height: 42,
-            width: 42,
-            decoration: BoxDecoration(
-              color: _iconColor.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(10),
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: _isUrlResource ? () => _openResource(context) : null,
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 10),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(14),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.04),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            )
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              height: 42,
+              width: 42,
+              decoration: BoxDecoration(
+                color: _iconColor.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(_icon, color: _iconColor, size: 22),
             ),
-            child: Icon(_icon, color: _iconColor, size: 22),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  resource.title,
-                  style: const TextStyle(
-                    fontFamily: 'Inter',
-                    fontWeight: FontWeight.w600,
-                    fontSize: 14,
-                    color: Color(0xFF0F172A),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    resource.title,
+                    style: const TextStyle(
+                      fontFamily: 'Inter',
+                      fontWeight: FontWeight.w600,
+                      fontSize: 14,
+                      color: Color(0xFF0F172A),
+                    ),
                   ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  _subtitle,
-                  style: const TextStyle(
-                    fontFamily: 'Nunito',
-                    fontSize: 12,
-                    color: Color(0xFF94A3B8),
+                  const SizedBox(height: 2),
+                  Text(
+                    _subtitle,
+                    style: TextStyle(
+                      fontFamily: 'Nunito',
+                      fontSize: 12,
+                      color: _isUrlResource
+                          ? const Color(0xFF000080)
+                          : const Color(0xFF94A3B8),
+                      decoration: _isUrlResource
+                          ? TextDecoration.underline
+                          : TextDecoration.none,
+                    ),
+                    overflow: TextOverflow.ellipsis,
                   ),
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-          const SizedBox(width: 8),
-          GestureDetector(
-            onTap: () async {
-              if (_url.isEmpty) return;
-              await launchUrl(
-                Uri.parse(_url),
-                mode: LaunchMode.externalApplication,
-              );
-            },
-            child: Icon(
-              _isLink ? Icons.open_in_new_rounded : Icons.download_rounded,
-              color: const Color(0xFF64748B),
-              size: 20,
+            const SizedBox(width: 8),
+            IconButton(
+              onPressed: () => _openResource(context),
+              icon: Icon(
+                _isLink ? Icons.open_in_new_rounded : Icons.download_rounded,
+                color: const Color(0xFF64748B),
+                size: 20,
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

@@ -331,7 +331,7 @@ class TeacherDashboardService {
     final bool isLink = type.toLowerCase() == 'link';
 
     final ResourceModel resource = isLink
-        ? MediaResource(
+        ? LinkResource(
             resourceId: ref.id,
             tutorId: tutor.uid,
             sessionId: sessionId,
@@ -343,8 +343,7 @@ class TeacherDashboardService {
             allowedUsers: const <String>[],
             isPublic: false,
             addedAt: DateTime.now(),
-            mediaUrl: value,
-            platform: 'url',
+            linkUrl: value,
           )
         : DocumentResource(
             resourceId: ref.id,

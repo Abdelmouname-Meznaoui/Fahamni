@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:url_launcher/url_launcher.dart';
 import '../models/resource_model.dart';
+import '../utils/resource_link_launcher.dart';
 
 class ResourceItem extends StatelessWidget {
   final ResourceModel resource;
@@ -9,7 +9,7 @@ class ResourceItem extends StatelessWidget {
   const ResourceItem({super.key, required this.resource, required this.onDelete});
 
   IconData get _icon {
-    if (resource is LinkResource) {
+    if (_isUrlResource) {
       return Icons.link_rounded;
     }
     if (resource is MediaResource) {
@@ -24,7 +24,13 @@ class ResourceItem extends StatelessWidget {
     return Icons.description_rounded;
   }
 
-  bool get _isLink => resource is LinkResource;
+  bool get _isUrlResource {
+    return resource is LinkResource ||
+        (resource is MediaResource &&
+            (resource as MediaResource).platform.toLowerCase() == 'url');
+  }
+
+  bool get _isLink => _isUrlResource;
 
   String get _resourceUrl {
     if (resource is LinkResource) {
@@ -52,82 +58,97 @@ class ResourceItem extends StatelessWidget {
     return resource.contentType;
   }
 
+  Future<void> _openResource(BuildContext context) async {
+    if (_resourceUrl.trim().isEmpty) {
+      return;
+    }
+
+    final bool opened = await launchResourceLink(_resourceUrl);
+    if (!opened && context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Unable to open resource.')),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 6,
-            offset: const Offset(0, 2),
-          )
-        ],
-      ),
-      child: Row(
-        children: [
-          Container(
-            height: 40,
-            width: 40,
-            decoration: BoxDecoration(
-              color: const Color(0xFF000080).withValues(alpha: 0.08),
-              borderRadius: BorderRadius.circular(10),
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: _isLink ? () => _openResource(context) : null,
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 10),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.04),
+              blurRadius: 6,
+              offset: const Offset(0, 2),
+            )
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              height: 40,
+              width: 40,
+              decoration: BoxDecoration(
+                color: const Color(0xFF000080).withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(_icon, color: const Color(0xFF000080), size: 20),
             ),
-            child: Icon(_icon, color: const Color(0xFF000080), size: 20),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  resource.title,
-                  style: const TextStyle(
-                    fontFamily: 'Lexend',
-                    fontWeight: FontWeight.w600,
-                    fontSize: 14,
-                    color: Color(0xFF0F172A),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    resource.title,
+                    style: const TextStyle(
+                      fontFamily: 'Lexend',
+                      fontWeight: FontWeight.w600,
+                      fontSize: 14,
+                      color: Color(0xFF0F172A),
+                    ),
                   ),
-                ),
-                Text(
-                  _subtitle,
-                  style: const TextStyle(
-                    fontFamily: 'Nunito',
-                    fontSize: 11,
-                    color: Color(0xFF94A3B8),
+                  Text(
+                    _subtitle,
+                    style: TextStyle(
+                      fontFamily: 'Nunito',
+                      fontSize: 11,
+                      color: _isLink
+                          ? const Color(0xFF000080)
+                          : const Color(0xFF94A3B8),
+                      decoration: _isLink
+                          ? TextDecoration.underline
+                          : TextDecoration.none,
+                    ),
+                    overflow: TextOverflow.ellipsis,
                   ),
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-          const SizedBox(width: 8),
-          // Open/Download button
-          GestureDetector(
-            onTap: () async {
-              if (_resourceUrl.isEmpty) {
-                return;
-              }
-              final uri = Uri.parse(_resourceUrl);
-              await launchUrl(uri, mode: LaunchMode.externalApplication);
-            },
-            child: Icon(
-              _isLink ? Icons.open_in_new_rounded : Icons.download_rounded,
-              color: const Color(0xFF000080),
-              size: 20,
+            const SizedBox(width: 8),
+            IconButton(
+              onPressed: () => _openResource(context),
+              icon: Icon(
+                _isLink ? Icons.open_in_new_rounded : Icons.download_rounded,
+                color: const Color(0xFF000080),
+                size: 20,
+              ),
             ),
-          ),
-          const SizedBox(width: 10),
-          GestureDetector(
-            onTap: onDelete,
-            child: const Icon(Icons.delete_outline_rounded,
-                color: Color(0xFFEF4444), size: 20),
-          ),
-        ],
+            const SizedBox(width: 10),
+            GestureDetector(
+              onTap: onDelete,
+              child: const Icon(Icons.delete_outline_rounded,
+                  color: Color(0xFFEF4444), size: 20),
+            ),
+          ],
+        ),
       ),
     );
   }

@@ -35,10 +35,11 @@ abstract class ResourceModel {
 
 
   factory ResourceModel.fromMap(Map<String, dynamic> map) {
-    final type = map['content_type'] ?? 'document';
+    final type = (map['content_type'] ?? 'document').toString().toLowerCase();
+    final linkUrl = (map['link_url'] ?? '').toString().trim();
     if (type == 'media') {
       return MediaResource.fromMap(map);
-    } else if (type == 'link') {
+    } else if (type == 'link' || linkUrl.isNotEmpty) {
       return LinkResource.fromMap(map);
     } else {
       return DocumentResource.fromMap(map);
