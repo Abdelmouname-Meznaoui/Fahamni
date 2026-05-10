@@ -249,6 +249,50 @@ class _ChatPageState extends State<ChatPage> {
     );
   }
 
+  Future<void> _confirmDeleteConversation(
+    ConversationModel conversation,
+  ) async {
+    final String? currentUserId = _currentUserId;
+    if (currentUserId == null) return;
+
+    final messenger = ScaffoldMessenger.of(context);
+    final bool shouldDelete =
+        await showDialog<bool>(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text('Delete conversation'),
+            content: const Text(
+              'Are you sure you want to delete this conversation?',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(false),
+                child: const Text('Cancel'),
+              ),
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(true),
+                child: const Text('Delete'),
+              ),
+            ],
+          ),
+        ) ??
+        false;
+
+    if (!mounted || !shouldDelete) return;
+
+    try {
+      await _chatService.deleteConversation(
+        conversationId: conversation.conversationId,
+        userId: currentUserId,
+      );
+    } catch (error) {
+      if (!mounted) return;
+      messenger.showSnackBar(
+        SnackBar(content: Text('Could not delete conversation: $error')),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final String? currentUserId = _currentUserId;
@@ -319,7 +363,9 @@ class _ChatPageState extends State<ChatPage> {
 
           // Tabs
           ChatButtons(
-            key: ValueKey(_currentRole == UserRole.tutor ? 'teacher-tabs' : 'default-tabs'),
+            key: ValueKey(
+              _currentRole == UserRole.tutor ? 'teacher-tabs' : 'default-tabs',
+            ),
             selectedIndex: _selectedTabIndex,
             tabs: _currentRole == UserRole.tutor
                 ? const ['Students', 'Groups']
@@ -379,6 +425,8 @@ class _ChatPageState extends State<ChatPage> {
                             conversation: conversation,
                             imageUrl: _conversationAvatar(conversation),
                             currentUserId: currentUserId,
+                            onLongPress: () =>
+                                _confirmDeleteConversation(conversation),
                           );
                         },
                       );
