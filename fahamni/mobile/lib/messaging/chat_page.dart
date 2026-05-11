@@ -418,7 +418,12 @@ class _ChatPageState extends State<ChatPage> {
                       final List<ConversationModel> conversations =
                           (snapshot.data ?? const <ConversationModel>[])
                               .where(_matchesSearch)
-                              .toList();
+                              .toList()
+                            ..sort(
+                              (a, b) => _conversationTime(
+                                b,
+                              ).compareTo(_conversationTime(a)),
+                            );
 
                       if (conversations.isEmpty) {
                         return Center(
@@ -483,5 +488,9 @@ class _ChatPageState extends State<ChatPage> {
           ? CustomBottomNavbar(selectedIndex: 3, onTap: _handleBottomNavigation)
           : null,
     );
+  }
+
+  DateTime _conversationTime(ConversationModel conversation) {
+    return conversation.lastMessage?.sendingDateTime ?? conversation.createdAt;
   }
 }

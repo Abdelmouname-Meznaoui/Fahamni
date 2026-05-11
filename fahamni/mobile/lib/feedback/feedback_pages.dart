@@ -443,7 +443,7 @@ class _TutorProfilePageState extends State<TutorProfilePage>
         SnackBar(
           content: Text(
             service == null
-                ? 'Booking request sent to ${tutor.firstName}.'
+                ? 'Quote request sent to ${tutor.firstName}.'
                 : 'Booking request sent for ${service.name}.',
           ),
         ),
@@ -563,6 +563,59 @@ class _TutorProfilePageState extends State<TutorProfilePage>
                       tutor: tutor,
                       averageRating: bundle.averageRating,
                       reviewService: _reviewService,
+                    ),
+                    FutureBuilder<DocumentSnapshot<Map<String, dynamic>>>(
+                      future: FirebaseFirestore.instance
+                          .collection('tutors')
+                          .doc(tutor.uid)
+                          .get(),
+                      builder: (context, snapshot) {
+                        final String homeTutoring =
+                            (snapshot.data?.data()?['home_tutoring'] ?? '')
+                                .toString()
+                                .toLowerCase();
+                        if (homeTutoring.isEmpty ||
+                            (homeTutoring != 'yes' && homeTutoring != 'true')) {
+                          return const SizedBox.shrink();
+                        }
+
+                        return Padding(
+                          padding: const EdgeInsets.only(top: 18),
+                          child: Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 14,
+                              vertical: 12,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(14),
+                              border: Border.all(
+                                color: const Color(0xFFE2E8F0),
+                              ),
+                            ),
+                            child: const Row(
+                              children: [
+                                Icon(
+                                  Icons.home_work_outlined,
+                                  color: Color(0xFF000080),
+                                ),
+                                SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    'This teacher provides home tutoring',
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w700,
+                                      color: Color(0xFF1F2937),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      },
                     ),
                     const SizedBox(height: 18),
                     TabBar(

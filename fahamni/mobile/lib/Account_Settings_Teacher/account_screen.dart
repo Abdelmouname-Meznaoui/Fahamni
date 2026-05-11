@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:fahamni/TeacherDashboard/teacher_dashboard_service.dart';
@@ -164,63 +163,7 @@ class _AccountScreenState extends State<AccountScreen> {
                     const SizedBox(height: 12),
                     _suspendedBanner(),
                   ],
-                  const SizedBox(height: 12),
-                  FutureBuilder<DocumentSnapshot<Map<String, dynamic>>>(
-                    future: FirebaseFirestore.instance
-                        .collection('tutors')
-                        .doc(tutor.uid)
-                        .get(),
-                    builder: (context, snap) {
-                      if (!snap.hasData) return const SizedBox.shrink();
-                      final Map<String, dynamic>? data = snap.data?.data();
-                      final String homeTutoring = (data?['home_tutoring'] ?? '')
-                          .toString()
-                          .toLowerCase();
-                      if (homeTutoring.isEmpty ||
-                          (homeTutoring != 'yes' && homeTutoring != 'true')) {
-                        return const SizedBox(height: 18);
-                      }
-
-                      return Container(
-                        width: double.infinity,
-                        margin: const EdgeInsets.only(top: 8, bottom: 12),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 10,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(12),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.03),
-                              blurRadius: 6,
-                            ),
-                          ],
-                        ),
-                        child: Row(
-                          children: const [
-                            Icon(
-                              Icons.home_work_outlined,
-                              color: Color(0xFF1F2937),
-                            ),
-                            SizedBox(width: 8),
-                            Expanded(
-                              child: Text(
-                                'This teacher offers home tutoring',
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w600,
-                                  color: Color(0xFF1F2937),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      );
-                    },
-                  ),
-                  const SizedBox(height: 18),
+                  const SizedBox(height: 30),
                   CircleAvatar(
                     radius: 50,
                     backgroundColor: const Color(0xFFE2E8F0),

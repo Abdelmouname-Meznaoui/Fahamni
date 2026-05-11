@@ -239,9 +239,9 @@ class StudentTutorActionService {
 
     await _notificationService.sendNotification(
       NotificationModel(
-        title: 'New booking request',
+        title: 'New quote request',
         content:
-            '$requestStudentName sent a booking request${service != null ? ' for ${service.name}' : ''}.',
+            '$requestStudentName sent a quote request${service != null ? ' for ${service.name}' : ''}.',
         dateTime: DateTime.now(),
         isRead: false,
         notificationId: '',
