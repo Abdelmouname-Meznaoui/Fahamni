@@ -226,7 +226,7 @@ class _IpersonalInfoState extends State<IpersonalInfo> {
                       return null;
                     },
                     decoration: InputDecoration(
-                      hintText: 'Mahieddine',
+                      hintText: 'First Name',
                       hintStyle: const TextStyle(
                         color: Color(0xFF94A3B8),
                         fontSize: 17,
@@ -287,7 +287,7 @@ class _IpersonalInfoState extends State<IpersonalInfo> {
                       return null;
                     },
                     decoration: InputDecoration(
-                      hintText: 'Mimoun',
+                      hintText: 'Last Name',
                       hintStyle: const TextStyle(
                         color: Color(0xFF94A3B8),
                         fontSize: 17,
