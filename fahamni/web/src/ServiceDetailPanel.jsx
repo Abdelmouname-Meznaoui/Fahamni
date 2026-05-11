@@ -74,30 +74,46 @@ export default function ServiceDetailPanel({ service: init, tutorUid, onBack, on
   const [reports,        setReports]        = useState(null);
   const [selectedReport, setSelectedReport] = useState(null);
   const [updatingReport, setUpdatingReport] = useState(false);
+  const serviceId = service.id ?? service.service_id;
 
   // Resources
   useEffect(() => {
-    if (topTab !== "Activity" || subTab !== "Resources" || resources !== null || !tutorUid) return;
-    getDocs(query(collection(db, "resources"), where("tutor_id", "==", tutorUid)))
+    if (topTab !== "Activity" || subTab !== "Resources" || resources !== null || !serviceId) return;
+    getDocs(query(collection(db, "resources"), where("service_id", "==", serviceId)))
       .then(snap => setResources(snap.docs.map(d => ({ id: d.id, ...d.data() }))))
       .catch(() => setResources([]));
-  }, [topTab, subTab, tutorUid, resources]);
+  }, [topTab, subTab, resources, serviceId]);
 
   // Members — batch by 30 (Firestore "in" limit)
   useEffect(() => {
     if (topTab !== "Activity" || subTab !== "Members" || members !== null) return;
-    const ids = service.student_ids ?? [];
-    if (!ids.length) { setMembers([]); return; }
-    const chunks = [];
-    for (let i = 0; i < ids.length; i += 30) chunks.push(ids.slice(i, i + 30));
-    Promise.all(
-      chunks.map(chunk =>
-        getDocs(query(collection(db, "students"), where("uid", "in", chunk)))
-      )
-    )
-      .then(snaps => setMembers(snaps.flatMap(s => s.docs.map(d => ({ id: d.id, ...d.data() })))))
-      .catch(() => setMembers([]));
-  }, [topTab, subTab, service.student_ids, members]);
+    const loadMembers = async () => {
+      let ids = Array.isArray(service.student_ids) ? service.student_ids : [];
+      if (!ids.length && serviceId) {
+        const sessionSnap = await getDocs(query(collection(db, "sessions"), where("service_id", "==", serviceId)));
+        ids = Array.from(
+          new Set(
+            sessionSnap.docs.flatMap(d => Array.isArray(d.data().student_ids) ? d.data().student_ids : [])
+          )
+        );
+      }
+      if (!ids.length) {
+        setMembers([]);
+        return;
+      }
+      const chunks = [];
+      for (let i = 0; i < ids.length; i += 30) chunks.push(ids.slice(i, i + 30));
+      try {
+        const snaps = await Promise.all(
+          chunks.map(chunk => getDocs(query(collection(db, "students"), where("uid", "in", chunk))))
+        );
+        setMembers(snaps.flatMap(s => s.docs.map(d => ({ id: d.id, ...d.data() }))));
+      } catch (e) {
+        setMembers([]);
+      }
+    };
+    loadMembers();
+  }, [topTab, subTab, members, service.student_ids, serviceId]);
 
   // Sessions
   useEffect(() => {
