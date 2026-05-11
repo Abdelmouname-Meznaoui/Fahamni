@@ -64,7 +64,12 @@ class _ParentCoursesPageState extends State<ParentCoursesPage> {
 
     final List<_CourseCardData> cards = <_CourseCardData>[];
     for (final SessionModel session in sessions) {
-      final TutorModel tutor = await _service.getTutorData(session.tutorId);
+      TutorModel tutor;
+      try {
+        tutor = await _service.getTutorData(session.tutorId);
+      } catch (_) {
+        continue;
+      }
       final ServiceModel? service = await _service.getServiceData(
         session.serviceId,
       );
