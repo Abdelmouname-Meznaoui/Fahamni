@@ -405,26 +405,30 @@ class _TeacherQuoteRequestDetailPageState
                       ],
                     ),
                   ),
-                  const SizedBox(height: 14),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _ActionButton(
-                          label: 'Accept',
-                          filled: true,
-                          onTap: _busy ? null : _accept,
+                  // Only show Accept / Reject when the quote is still pending.
+                  // Once accepted or rejected the response is final.
+                  if (request.quote.status == QuoteStatus.pending) ...[
+                    const SizedBox(height: 14),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _ActionButton(
+                            label: 'Accept',
+                            filled: true,
+                            onTap: _busy ? null : _accept,
+                          ),
                         ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: _ActionButton(
-                          label: 'Reject',
-                          filled: false,
-                          onTap: _busy ? null : _reject,
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: _ActionButton(
+                            label: 'Reject',
+                            filled: false,
+                            onTap: _busy ? null : _reject,
+                          ),
                         ),
-                      ),
-                    ],
-                  ),
+                      ],
+                    ),
+                  ],
                 ],
               ),
             ),

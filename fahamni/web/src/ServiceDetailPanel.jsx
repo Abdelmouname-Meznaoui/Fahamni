@@ -85,6 +85,8 @@ export default function ServiceDetailPanel({ service: init, tutorUid, onBack, on
   }, [topTab, subTab, resources, serviceId]);
 
   // Members — batch by 30 (Firestore "in" limit)
+  // Queries both "students" and "children" collections by document ID,
+  // since member UIDs are stored as Firestore document IDs (not as a uid field).
   useEffect(() => {
     if (topTab !== "Activity" || subTab !== "Members" || members !== null) return;
     const loadMembers = async () => {
@@ -104,11 +106,40 @@ export default function ServiceDetailPanel({ service: init, tutorUid, onBack, on
       const chunks = [];
       for (let i = 0; i < ids.length; i += 30) chunks.push(ids.slice(i, i + 30));
       try {
-        const snaps = await Promise.all(
-          chunks.map(chunk => getDocs(query(collection(db, "students"), where("uid", "in", chunk))))
+        // Query both collections in parallel for each chunk, using document ID.
+        // This works regardless of whether a "uid" field exists inside each doc.
+        const [studentSnaps, childSnaps] = await Promise.all([
+          Promise.all(chunks.map(chunk =>
+            getDocs(query(collection(db, "students"), where(documentId(), "in", chunk)))
+          )),
+          Promise.all(chunks.map(chunk =>
+            getDocs(query(collection(db, "children"), where(documentId(), "in", chunk)))
+          )),
+        ]);
+
+        const studentMembers = studentSnaps.flatMap(s =>
+          s.docs.map(d => ({ id: d.id, uid: d.id, ...d.data(), _isChild: false }))
         );
-        setMembers(snaps.flatMap(s => s.docs.map(d => ({ id: d.id, ...d.data() }))));
+
+        const foundDocIds = new Set(studentMembers.map(m => m.id));
+
+        const childMembers = childSnaps.flatMap(s =>
+          s.docs
+            .filter(d => !foundDocIds.has(d.id))   // avoid duplicates
+            .map(d => ({
+              id: d.id,
+              uid: d.id,
+              ...d.data(),
+              _isChild: true,
+              // normalize: children may store full name in "name" instead of first_name/last_name
+              first_name: d.data().first_name ?? (d.data().name ?? "").split(" ")[0],
+              last_name:  d.data().last_name  ?? (d.data().name ?? "").split(" ").slice(1).join(" "),
+            }))
+        );
+
+        setMembers([...studentMembers, ...childMembers]);
       } catch (e) {
+        console.error("Members load error:", e);
         setMembers([]);
       }
     };
@@ -307,7 +338,8 @@ export default function ServiceDetailPanel({ service: init, tutorUid, onBack, on
                 : members.length === 0
                   ? <EmptyRow text="No students enrolled in this service." />
                   : members.map(m => {
-                    const name = `${m.first_name ?? ""} ${m.last_name ?? ""}`.trim() || "Unknown";
+                    const name = `${m.first_name ?? ""} ${m.last_name ?? ""}`.trim() || m.name || "Unknown";
+                    const isChild = m._isChild === true;
                     return (
                       <div key={m.id} style={s.memberRow}>
                         {m.picture
@@ -318,12 +350,21 @@ export default function ServiceDetailPanel({ service: init, tutorUid, onBack, on
                         }
                         <div style={{ flex:1, minWidth:0 }}>
                           <div style={s.memberName}>{name}</div>
-                          <div style={s.memberRole}>Student</div>
+                          <div style={s.memberRole}>
+                            {isChild ? "Child (Student)" : "Student"}
+                          </div>
                         </div>
                         <button
                           style={s.eyeBtn}
-                          title="View student profile"
-                          onClick={() => onViewUser?.({ ...m, col: "students", role: "student", id: m.id })}
+                          title={isChild ? "View parent account" : "View student profile"}
+                          onClick={() => {
+                            if (isChild && m.parentUid) {
+                              // Open the parent's account
+                              onViewUser?.({ uid: m.parentUid, id: m.parentUid, col: "parents", role: "parent" });
+                            } else {
+                              onViewUser?.({ ...m, col: "students", role: "student", id: m.id });
+                            }
+                          }}
                         >
                           <Eye size={16} color="#000080" strokeWidth={1.8} />
                         </button>

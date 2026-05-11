@@ -40,7 +40,6 @@ class _SendEstimatePageState extends State<SendEstimatePage> {
 
   // Editable by teacher
   final _priceCtrl = TextEditingController();
-  final _sessionsCtrl = TextEditingController();
 
   // Auto-filled, read-only
   String _studentEmail = '';
@@ -62,7 +61,6 @@ class _SendEstimatePageState extends State<SendEstimatePage> {
   @override
   void dispose() {
     _priceCtrl.dispose();
-    _sessionsCtrl.dispose();
     super.dispose();
   }
 
@@ -108,11 +106,6 @@ class _SendEstimatePageState extends State<SendEstimatePage> {
       final rawPrice = widget.request.quote.responsePrice;
       final parsedPrice = double.tryParse(rawPrice) ?? 0.0;
       _priceCtrl.text = parsedPrice > 0 ? parsedPrice.toStringAsFixed(0) : '';
-
-      final sessions = widget.request.quote.responseSessionsCount > 0
-          ? widget.request.quote.responseSessionsCount
-          : widget.request.sessionsCount;
-      _sessionsCtrl.text = sessions > 0 ? sessions.toString() : '';
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -126,17 +119,12 @@ class _SendEstimatePageState extends State<SendEstimatePage> {
 
   EstimateData? _buildEstimateData() {
     final price = double.tryParse(_priceCtrl.text.trim()) ?? 0.0;
-    final sessions = int.tryParse(_sessionsCtrl.text.trim()) ?? 0;
+    // Sessions count is fixed by the student/parent; read directly from the request.
+    final sessions = widget.request.sessionsCount;
 
     if (price <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please enter a valid price per session.')),
-      );
-      return null;
-    }
-    if (sessions <= 0) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter a valid sessions count.')),
       );
       return null;
     }
@@ -353,13 +341,12 @@ class _SendEstimatePageState extends State<SendEstimatePage> {
                       _section(
                         title: 'Pricing',
                         children: [
-                          _editableField(
-                            label: 'Sessions Count *',
-                            controller: _sessionsCtrl,
-                            keyboard: TextInputType.number,
-                            inputFormatters: [
-                              FilteringTextInputFormatter.digitsOnly,
-                            ],
+                          // Sessions count is fixed by the student/parent at quote creation.
+                          _readOnlyField(
+                            label: 'Number of Sessions',
+                            value: widget.request.sessionsCount > 0
+                                ? widget.request.sessionsCount.toString()
+                                : '—',
                           ),
                           const SizedBox(height: 12),
                           _editableField(
