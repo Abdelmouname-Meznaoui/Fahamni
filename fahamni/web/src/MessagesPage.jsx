@@ -99,7 +99,11 @@ export default function MessagesPage({ adminUser, onViewUser, pendingContact, on
   useEffect(() => {
     let unsub = () => {};
     try {
-      const q = query(collection(db, "conversations"), orderBy("last_message_at", "desc"));
+      const q = query(
+        collection(db, "conversations"),
+        orderBy("last_message_at", "desc"),
+        orderBy("__name__", "desc")
+      );
       unsub = onSnapshot(
         q,
         snap => {
@@ -113,7 +117,12 @@ export default function MessagesPage({ adminUser, onViewUser, pendingContact, on
             .then(snap => {
               const list = snap.docs
                 .map(d => ({ id: d.id, ...d.data() }))
-                .sort((a, b) => (b.last_message_at?.seconds ?? 0) - (a.last_message_at?.seconds ?? 0));
+                .sort((a, b) => {
+                  const aTime = a.last_message_at?.seconds ?? 0;
+                  const bTime = b.last_message_at?.seconds ?? 0;
+                  if (aTime !== bTime) return bTime - aTime;
+                  return b.id.localeCompare(a.id);
+                });
               setConversations(list);
             })
             .catch(() => {})
@@ -135,7 +144,8 @@ export default function MessagesPage({ adminUser, onViewUser, pendingContact, on
     try {
       const q = query(
         collection(db, "conversations", selected.id, "messages"),
-        orderBy("created_at", "asc")
+        orderBy("created_at", "asc"),
+        orderBy("__name__", "asc")
       );
       unsub = onSnapshot(
         q,
@@ -395,7 +405,14 @@ export default function MessagesPage({ adminUser, onViewUser, pendingContact, on
                 <div style={s.emptyState}>{t("messages.loadingMessages")}</div>
               ) : messages.length === 0 ? (
                 <div style={s.emptyState}>{t("messages.noMessages")}</div>
-              ) : messages.map(msg => {
+              ) : messages
+                .sort((a, b) => {
+                  const aTime = (a.created_at?.seconds ?? 0) * 1000 + (a.created_at?.nanoseconds ?? 0) / 1000000;
+                  const bTime = (b.created_at?.seconds ?? 0) * 1000 + (b.created_at?.nanoseconds ?? 0) / 1000000;
+                  if (aTime !== bTime) return aTime - bTime;
+                  return (a.id ?? "").localeCompare(b.id ?? "");
+                })
+                .map(msg => {
                 const isAdmin = msg.sender_id === "admin";
                 const text = msg.text ?? msg.content ?? "";
                 return (

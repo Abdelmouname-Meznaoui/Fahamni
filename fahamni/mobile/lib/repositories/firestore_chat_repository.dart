@@ -57,7 +57,8 @@ class FirestoreChatRepository implements ChatRepository {
     return _conversationsCollection
         .doc(conversationId)
         .collection('messages')
-        .orderBy('created_at')
+        .orderBy('created_at', descending: false)
+        .orderBy(FieldPath.documentId, descending: false)
         .snapshots()
         .map(
           (snapshot) => snapshot.docs
