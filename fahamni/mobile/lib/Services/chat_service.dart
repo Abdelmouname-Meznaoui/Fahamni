@@ -220,7 +220,7 @@ class ChatService {
     }
   }
 
-  /// Soft deletes a message by marking it as deleted
+  /// Permanently deletes a message.
   /// Only the sender can delete their own messages
   Future<void> deleteMessage({
     required String messageId,
@@ -240,19 +240,10 @@ class ChatService {
         throw Exception('You can only delete your own messages');
       }
 
-      // Check if message is already deleted
-      if (message.isDeleted) {
-        throw Exception('Message is already deleted');
-      }
-
-      // Create updated message with soft delete
-      final updatedMessage = message.copyWith(
-        isDeleted: true,
-        deletedAt: DateTime.now(),
+      await _chatRepository.deleteMessage(
+        conversationId: conversationId,
+        messageId: messageId,
       );
-
-      // Update the message in Firestore
-      await _chatRepository.updateMessage(updatedMessage);
     } catch (e) {
       throw Exception('Failed to delete message: $e');
     }
@@ -266,7 +257,9 @@ class ChatService {
   }) async {
     try {
       // First, get the conversation to verify participation
-      final conversations = await _chatRepository.getConversations(userId).first;
+      final conversations = await _chatRepository
+          .getConversations(userId)
+          .first;
       final conversation = conversations.firstWhere(
         (conv) => conv.conversationId == conversationId,
         orElse: () => throw Exception('Conversation not found'),

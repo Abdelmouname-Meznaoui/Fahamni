@@ -4,7 +4,9 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:fahamni/Login_Screen/LoginScreen.dart';
+import 'package:fahamni/Onboarding/onboarding.dart';
 import 'package:fahamni/StudentHomePage/Student_homepage.dart';
 import 'package:fahamni/TeacherDashboard/teacher_dashboard.dart';
 import 'package:fahamni/ParentDashboread/ParentHomePage/home_page.dart';
@@ -73,6 +75,16 @@ class _AuthGateState extends State<AuthGate> {
   Future<void> _checkAuth() async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) {
+      final prefs = await SharedPreferences.getInstance();
+      final hasSeenOnboarding = prefs.getBool('hasSeenOnboarding') ?? false;
+      if (!hasSeenOnboarding) {
+        if (!mounted) return;
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (_) => const OnboardingScreen()),
+        );
+        return;
+      }
+
       if (mounted) setState(() => _checking = false);
       return;
     }

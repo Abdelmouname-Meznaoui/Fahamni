@@ -17,7 +17,10 @@ abstract class ChatRepository {
 
   Future<void> updateMessage(MessageModel message);
 
+  Future<void> deleteMessage({
+    required String conversationId,
+    required String messageId,
+  });
+
   Future<void> updateConversation(ConversationModel conversation);
 }
-
-
