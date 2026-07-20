@@ -1,0 +1,163 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_app_check/firebase_app_check.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:fahamni/Login_Screen/LoginScreen.dart';
+import 'package:fahamni/Onboarding/onboarding.dart';
+import 'package:fahamni/StudentHomePage/Student_homepage.dart';
+import 'package:fahamni/TeacherDashboard/teacher_dashboard.dart';
+import 'package:fahamni/ParentDashboread/ParentHomePage/home_page.dart';
+import 'package:fahamni/TeacherDashboard/teacher_guest_dashboard.dart';
+import 'package:fahamni/Services/suspended_account_gate.dart';
+import 'package:fahamni/models/user_model.dart';
+
+import 'firebase_options.dart';
+import 'navigation/app_navigation.dart';
+
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  try {
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+  } catch (_) {}
+
+  await FirebaseAppCheck.instance.activate(
+    androidProvider: AndroidProvider.debug,
+  );
+
+  try {
+    await dotenv.load(fileName: '.env');
+  } catch (_) {
+    // AI features stay inactive until a local .env file is provided.
+  }
+
+  runApp(const MyApp());
+}
+
+class MyApp extends StatelessWidget {
+  const MyApp({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      debugShowCheckedModeBanner: false,
+      navigatorKey: NavigationService.instance.navigatorKey,
+      theme: ThemeData(
+        fontFamily: 'Inter',
+        scaffoldBackgroundColor: const Color(0xFFF5F5F5),
+      ),
+      home: const AuthGate(),
+    );
+  }
+}
+
+class AuthGate extends StatefulWidget {
+  const AuthGate({super.key});
+
+  @override
+  State<AuthGate> createState() => _AuthGateState();
+}
+
+class _AuthGateState extends State<AuthGate> {
+  bool _checking = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkAuth();
+  }
+
+  Future<void> _checkAuth() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      final prefs = await SharedPreferences.getInstance();
+      final hasSeenOnboarding = prefs.getBool('hasSeenOnboarding') ?? false;
+      if (!hasSeenOnboarding) {
+        if (!mounted) return;
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (_) => const OnboardingScreen()),
+        );
+        return;
+      }
+
+      if (mounted) setState(() => _checking = false);
+      return;
+    }
+
+    try {
+      final doc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .get();
+      if (!mounted) return;
+
+      if (!doc.exists) {
+        setState(() => _checking = false);
+        return;
+      }
+
+      final role = doc['role'] as String? ?? 'student';
+      final parsedRole = UserModel.parseRole(role);
+      Widget home;
+
+      final profileDoc = await FirebaseFirestore.instance
+          .collection(_collectionForRole(parsedRole))
+          .doc(user.uid)
+          .get();
+      if (!mounted) return;
+      final isSuspended =
+          doc.data()?['is_suspended'] == true ||
+          profileDoc.data()?['is_suspended'] == true;
+
+      if (isSuspended) {
+        home = SuspendedAccountGate.accountScreenForRole(parsedRole);
+      } else if (role == 'tutor') {
+        // Check if teacher is pending
+        final accountStatus = doc['account_status'] as String? ?? 'pending';
+        if (accountStatus == 'pending') {
+          home = const TeacherGuestDashboardScreen();
+        } else {
+          home = const TeacherDashboardScreen();
+        }
+      } else if (role == 'parent') {
+        home = const Parenthomepage();
+      } else {
+        home = const Studenthomepage();
+      }
+
+      Navigator.of(
+        context,
+      ).pushReplacement(MaterialPageRoute(builder: (_) => home));
+    } catch (_) {
+      if (mounted) setState(() => _checking = false);
+    }
+  }
+
+  String _collectionForRole(UserRole role) {
+    switch (role) {
+      case UserRole.student:
+        return 'students';
+      case UserRole.tutor:
+        return 'tutors';
+      case UserRole.parent:
+        return 'parents';
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_checking) {
+      return const Scaffold(
+        body: Center(
+          child: CircularProgressIndicator(color: Color(0xFF000080)),
+        ),
+      );
+    }
+    return const LoginScreen();
+  }
+}

@@ -17,7 +17,32 @@
       "Bash(flutter devices:*)",
       "Bash(adb -s emulator-5554 logcat -d -t 200)",
       "Bash(adb -s emulator-5554 logcat -d)",
-      "Bash(git commit -m ':*)"
+      "Bash(git commit -m ':*)",
+      "Bash(xargs grep *)",
+      "Bash(git -C c:/Users/catal/Fahamni status --short)",
+      "Bash(npm run *)",
+      "Bash(node --input-type=module --eval \"import './src/Dashboard.jsx'\")",
+      "Bash(grep -E \"\\\\.\\(jsx?|tsx?\\)$\")",
+      "Bash(xargs head *)",
+      "Bash(firebase --version)",
+      "Bash(firebase projects:list)",
+      "Bash(node -e \"const f=require\\(require\\('os'\\).homedir\\(\\)+'/.config/configstore/firebase-tools.json'\\); const tokens=f.tokens; if\\(tokens\\){console.log\\('refresh_token found:', !!tokens.refresh_token\\)}else{const users=f.users; if\\(users\\){const keys=Object.keys\\(users\\); console.log\\('users:', keys.length\\); if\\(keys.length>0\\){const u=users[keys[0]]; console.log\\('has tokens:', !!u.tokens\\);}}}\")",
+      "Bash(mkdir -p /tmp/fahamni-cleanup)",
+      "Read(//tmp/**)",
+      "Bash(npm init *)",
+      "Bash(npm install *)",
+      "Read(//c/Users/catal/.claude/projects/c--Users-catal-Fahamni/memory/**)",
+      "Bash(Get-ChildItem -Path \"c:\\\\Users\\\\catal\\\\Fahamni\" -Directory)",
+      "Bash(Select-Object Name)",
+      "PowerShell(New-Item -ItemType Directory -Path \"c:\\\\Users\\\\catal\\\\Fahamni\\\\Instalation web\" -Force)",
+      "PowerShell(Copy-Item \"c:\\\\Users\\\\catal\\\\Fahamni\\\\fahamni\\\\mobile\\\\assets\\\\images\\\\logo.png\" -Destination \"c:\\\\Users\\\\catal\\\\Fahamni\\\\Instalation web\\\\logo.png\")",
+      "Bash(firebase deploy *)",
+      "Bash(cd /c/Users/catal/Fahamni/fahamni/web/dashboard/src && find . -type f -name \"*.tsx\" -o -name \"*.ts\" -o -name \"*.jsx\" -o -name \"*.js\" | head -30)",
+      "Read(//c/c/Users/catal/Fahamni/fahamni/web/dashboard/**)",
+      "Bash(Get-ChildItem -Path \"c:\\\\Users\\\\catal\\\\Fahamni\\\\fahamni\\\\mobile\" -Recurse -Filter \"*.js\")",
+      "Bash(Select-Object FullName)",
+      "Bash(powershell -Command \"ls 'c:\\\\Users\\\\catal\\\\Fahamni\\\\fahamni\\\\mobile\\\\functions\\\\' | grep -v node_modules\")",
+      "Bash(xargs wc -l)"
     ]
   }
 }
